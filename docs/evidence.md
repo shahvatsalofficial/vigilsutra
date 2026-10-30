@@ -12,8 +12,8 @@ Command: `npm test` (builds, then `node --test test/*.test.mjs`).
 
 | Metric | Value |
 |---|---|
-| Tests | 55 |
-| Passed | 54 |
+| Tests | 56 |
+| Passed | 55 |
 | Failed | 0 |
 | Skipped | 1 (symlink-escape test; Windows denied symlink creation, so that behaviour was **not** exercised on this run) |
 

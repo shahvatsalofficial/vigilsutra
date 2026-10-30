@@ -228,6 +228,12 @@ test("CLI: exit codes, fail-on, formats and output file", () => {
   assert.equal(cli(["nope"]).status, 2);
 });
 
+test("CLI: failOn from .vigilsutra.yml applies when --fail-on is absent", () => {
+  const root = project({ "a.js": "eval(x)", ".vigilsutra.yml": "failOn: high\n" });
+  assert.equal(cli(["audit", root]).status, 1);
+  assert.equal(cli(["audit", root, "--fail-on", "critical"]).status, 0);
+});
+
 test("CLI: rules list, explain, doctor, help", () => {
   assert.match(cli(["rules", "list"]).stdout, /VS-SECRET-001/);
   assert.match(cli(["explain", "vs-secret-001"]).stdout, /rotate/i);

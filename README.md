@@ -170,7 +170,7 @@ Measured on the build in this repository (Windows 11, Node 24.15, 14 threads), 2
 
 | Check | Result |
 |---|---|
-| Automated tests (`npm test`) | 55 tests: **54 passed, 0 failed, 1 skipped** (symlink test, because Windows blocked creating symlinks) |
+| Automated tests (`npm test`) | 56 tests: **55 passed, 0 failed, 1 skipped** (symlink test, because Windows blocked creating symlinks) |
 | Rule fixtures | 31 rule families each have a vulnerable fixture that is flagged and a clean fixture that is not; all pass. This is a small controlled set, **not** a real-world precision or recall figure. |
 | Redaction | Planted secrets absent from all 5 output formats |
 | Speed and memory | 129 files / 6.1 MiB (TypeScript's own package) scanned in about 180 ms, about 75 MiB RSS; this repo (53 files) in about 30 ms |

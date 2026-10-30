@@ -1,0 +1,34 @@
+name: release
+# Publishes to npm with provenance when a GitHub release is published.
+# Auth: npm Trusted Publishing (OIDC), so no long-lived npm token is stored.
+# One-time setup on npmjs.com: package vigilsutra -> Settings -> Trusted Publisher ->
+# GitHub Actions, owner shahvatsalofficial, repository vigilsutra, workflow release.yml.
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write   # OIDC token for trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Release tag must match package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          V=$(node -p "require('./package.json').version")
+          test "$TAG" = "v$V" || { echo "tag $TAG does not match package.json version $V"; exit 1; }
+      - run: npm ci
+      - run: npm test
+      - run: npm run audit:self
+      - name: Publish with provenance
+        run: npm publish --provenance --access public

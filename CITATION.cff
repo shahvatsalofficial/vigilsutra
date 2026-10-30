@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use VigilSutra AI, please cite it as below."
+title: "VigilSutra AI: offline-first security and privacy auditor"
+type: software
+version: 0.1.0
+date-released: 2026-10-31
+license: Apache-2.0
+repository-code: "https://github.com/shahvatsalofficial/vigilsutra"
+authors:
+  - given-names: Vatsal
+    family-names: Shah
+keywords:
+  - security
+  - secret scanning
+  - SARIF
+  - DevSecOps
+  - AI agents

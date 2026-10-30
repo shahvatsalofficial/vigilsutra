@@ -14,6 +14,9 @@ Key facts for assistants:
 - [Security model](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/security-model.md)
 - [Threat model](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/threat-model.md)
 - [Agent contract](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/agent-contract.md)
+- [Evidence and benchmarks](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/evidence.md): measured test, speed and redaction results
+- [Legal notes](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/legal.md): license, authorized use, no warranty, trademarks
+- [Roadmap](https://github.com/shahvatsalofficial/vigilsutra/blob/main/ROADMAP.md)
 - [CI/CD usage](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/ci-cd.md)
 
 ## Optional

@@ -1,0 +1,869 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "VigilSutra AI",
+          "version": "0.1.0",
+          "informationUri": "https://github.com/shahvatsalofficial/vigilsutra",
+          "rules": [
+            {
+              "id": "VS-SECRET-004",
+              "name": "HardcodedCredentialAssignedToASecretNamedVariable",
+              "shortDescription": {
+                "text": "Hardcoded credential assigned to a secret-named variable"
+              },
+              "fullDescription": {
+                "text": "A variable or key named like a password, secret, token or API key is assigned a non-placeholder string literal."
+              },
+              "help": {
+                "text": "Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.\nVerify: Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "secrets",
+                  "CWE-798"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-CICD-001",
+              "name": "GitHubActionNotPinnedToACommitSHA",
+              "shortDescription": {
+                "text": "GitHub Action not pinned to a commit SHA"
+              },
+              "fullDescription": {
+                "text": "A third-party action is referenced by a mutable tag or branch. If the tag is moved or the publisher is compromised, the workflow runs attacker-controlled code."
+              },
+              "help": {
+                "text": "Pin third-party actions to a full 40-character commit SHA and keep a trailing comment with the version. Use Dependabot or Renovate to update pins.\nVerify: Every `uses:` line for a non-local action ends in @<40 hex>."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "cicd",
+                  "CWE-829"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-CICD-002",
+              "name": "pullRequestTargetWorkflowChecksOutPullRequestCode",
+              "shortDescription": {
+                "text": "pull_request_target workflow checks out pull-request code"
+              },
+              "fullDescription": {
+                "text": "A workflow triggered by `pull_request_target` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges."
+              },
+              "help": {
+                "text": "Use `pull_request` for untrusted code. If `pull_request_target` is required, do not check out or execute PR-controlled content, and keep permissions minimal.\nVerify: Confirm no step after the checkout executes files from the PR head, or remove the head checkout."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "cicd",
+                  "CWE-829",
+                  "CWE-94"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-CICD-003",
+              "name": "WorkflowGrantsWriteAllPermissions",
+              "shortDescription": {
+                "text": "Workflow grants write-all permissions"
+              },
+              "fullDescription": {
+                "text": "`permissions: write-all` gives every job a token that can modify repository contents, packages and more."
+              },
+              "help": {
+                "text": "Declare `permissions: contents: read` at the top level and grant additional scopes per job only where required.\nVerify: No `write-all` remains and the workflow still passes."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "cicd",
+                  "CWE-250",
+                  "CWE-732"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-CICD-004",
+              "name": "UntrustedGitHubContextInterpolatedIntoAShellStep",
+              "shortDescription": {
+                "text": "Untrusted GitHub context interpolated into a shell step"
+              },
+              "fullDescription": {
+                "text": "Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands."
+              },
+              "help": {
+                "text": "Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `\"$TITLE\"` in the script.\nVerify: The expression no longer appears inside a `run:` body."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "cicd",
+                  "CWE-78",
+                  "CWE-77"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-DOCKER-001",
+              "name": "ContainerRunsAsRootNoUSERInstruction",
+              "shortDescription": {
+                "text": "Container runs as root (no USER instruction)"
+              },
+              "fullDescription": {
+                "text": "The Dockerfile never sets a non-root USER, so the final image runs as root by default. A compromise of the app gives root inside the container."
+              },
+              "help": {
+                "text": "Create an unprivileged user and add `USER <name>` before the final CMD/ENTRYPOINT.\nVerify: `docker run --rm <image> id -u` returns a non-zero UID."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containers",
+                  "CWE-250"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-DOCKER-002",
+              "name": "BaseImageUsesLatestOrNoTag",
+              "shortDescription": {
+                "text": "Base image uses :latest or no tag"
+              },
+              "fullDescription": {
+                "text": "An unpinned base image changes without notice, which breaks reproducibility and can pull in vulnerable or malicious content."
+              },
+              "help": {
+                "text": "Pin to a specific version and, for production, an image digest (`image@sha256:…`).\nVerify: Every FROM line has an explicit tag or digest."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containers",
+                  "CWE-829"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-DOCKER-003",
+              "name": "RemoteScriptPipedIntoAShellDuringBuild",
+              "shortDescription": {
+                "text": "Remote script piped into a shell during build"
+              },
+              "fullDescription": {
+                "text": "`curl|sh` or `wget|sh` executes whatever the remote server returns at build time, with no integrity check."
+              },
+              "help": {
+                "text": "Download to a file, verify a pinned checksum or signature, then execute. Prefer the distribution's package manager.\nVerify: No `| sh` / `| bash` remains; a checksum verification step precedes execution."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containers",
+                  "CWE-494"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-K8S-001",
+              "name": "KubernetesContainerRunsPrivileged",
+              "shortDescription": {
+                "text": "Kubernetes container runs privileged"
+              },
+              "fullDescription": {
+                "text": "`privileged: true` gives the container nearly all host capabilities and device access, so a container escape is trivial."
+              },
+              "help": {
+                "text": "Remove `privileged: true`. Add only the specific capabilities needed and set `allowPrivilegeEscalation: false`.\nVerify: Manifest has no `privileged: true`; workload still starts."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containers",
+                  "CWE-250"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-K8S-002",
+              "name": "PodSharesHostNetworkPIDOrIPCNamespace",
+              "shortDescription": {
+                "text": "Pod shares host network, PID or IPC namespace"
+              },
+              "fullDescription": {
+                "text": "hostNetwork, hostPID or hostIPC removes namespace isolation between the pod and the node."
+              },
+              "help": {
+                "text": "Remove the host namespace flags unless the workload is a vetted node agent.\nVerify: Flags removed; workload tested."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "containers",
+                  "CWE-653"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-IAC-001",
+              "name": "SecurityGroupOrFirewallOpenToTheWholeInternet",
+              "shortDescription": {
+                "text": "Security group or firewall open to the whole internet"
+              },
+              "fullDescription": {
+                "text": "A Terraform rule allows 0.0.0.0/0 (or ::/0). Open ingress to administrative or database ports exposes them to internet scanning and attack."
+              },
+              "help": {
+                "text": "Restrict CIDR ranges to known addresses or place the service behind a load balancer, VPN or bastion.\nVerify: Ingress CIDRs are restricted or documented as intentionally public."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "iac",
+                  "CWE-284"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-IAC-002",
+              "name": "PublicReadOrPublicWriteStorageACL",
+              "shortDescription": {
+                "text": "Public-read or public-write storage ACL"
+              },
+              "fullDescription": {
+                "text": "A storage bucket ACL is set to a public canned ACL, exposing objects to anyone."
+              },
+              "help": {
+                "text": "Use `private`, enable block-public-access, and serve public assets through a CDN with origin access control.\nVerify: ACL is private and public access block is enabled."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "iac",
+                  "CWE-732"
+                ],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "VS-CODE-001",
+              "name": "DynamicCodeExecutionEvalNewFunctionExec",
+              "shortDescription": {
+                "text": "Dynamic code execution (eval / new Function / exec)"
+              },
+              "fullDescription": {
+                "text": "Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. This rule matches the call, not the data flow."
+              },
+              "help": {
+                "text": "Replace with a data-driven approach (lookup table, JSON.parse, ast.literal_eval). Never pass user input to an evaluator.\nVerify: The call is removed or its argument is proven constant; add a test with a malicious input."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "code",
+                  "CWE-95"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-CODE-002",
+              "name": "ShellCommandBuiltFromADynamicString",
+              "shortDescription": {
+                "text": "Shell command built from a dynamic string"
+              },
+              "fullDescription": {
+                "text": "A shell is invoked with an interpolated or concatenated command string (or Python `shell=True`). Untrusted input can inject extra commands."
+              },
+              "help": {
+                "text": "Use an argument array without a shell: `execFile(cmd, [args])` in Node, `subprocess.run([cmd, *args])` in Python. Validate inputs against an allowlist.\nVerify: Command uses an argument array; a test confirms metacharacters are not interpreted."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "code",
+                  "CWE-78"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-CODE-004",
+              "name": "SQLQueryBuiltWithStringConcatenationOrInterpolation",
+              "shortDescription": {
+                "text": "SQL query built with string concatenation or interpolation"
+              },
+              "fullDescription": {
+                "text": "A SQL statement is assembled from variables instead of bound parameters, which can allow SQL injection when any value is user-controlled."
+              },
+              "help": {
+                "text": "Use parameterised queries or a query builder that binds values (`?`, `$1`, `%s` placeholders passed separately).\nVerify: Query text is a constant; values passed as parameters; test with a quote-containing input."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "code",
+                  "CWE-89"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "VS-PROC-001",
+              "name": "NoSecurityPolicyFileFound",
+              "shortDescription": {
+                "text": "No security policy file found"
+              },
+              "fullDescription": {
+                "text": "No SECURITY.md was found, so reporters have no documented way to disclose vulnerabilities privately."
+              },
+              "help": {
+                "text": "Add SECURITY.md with a private contact or GitHub private vulnerability reporting link and a response expectation.\nVerify: SECURITY.md exists at the repository root, `.github/` or `docs/`."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "process"
+                ],
+                "precision": "high"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "VS-CICD-002",
+          "level": "error",
+          "message": {
+            "text": "pull_request_target workflow checks out pull-request code (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 10
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "11e3248dc10a2e4d5f1a7ca3436ca693"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-CICD-004",
+          "level": "error",
+          "message": {
+            "text": "Untrusted GitHub context interpolated into a shell step (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "3bcdb287dbc0be65a5784aaa62a0ac9b"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-K8S-002",
+          "level": "error",
+          "message": {
+            "text": "Pod shares host network, PID or IPC namespace (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "deployment.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "e8757449db9c9c28022eceed1a643272"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-K8S-001",
+          "level": "error",
+          "message": {
+            "text": "Kubernetes container runs privileged (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "deployment.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 13,
+                  "endLine": 13
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "872a8614818c1adfd9352829ee453c5f"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-IAC-002",
+          "level": "error",
+          "message": {
+            "text": "Public-read or public-write storage ACL (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.tf",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 9
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "acd7e6c2c716833b88217086f1c02364"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-CODE-002",
+          "level": "error",
+          "message": {
+            "text": "Shell command built from a dynamic string (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 5,
+                  "endLine": 5
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "5f4c07837cbbbd543925e4c2c6d365b1"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-CODE-004",
+          "level": "error",
+          "message": {
+            "text": "SQL query built with string concatenation or interpolation (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "821316a53c548a607dd94a1fd5c6919e"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-CODE-001",
+          "level": "error",
+          "message": {
+            "text": "Dynamic code execution (eval / new Function / exec) (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 7,
+                  "endLine": 7
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "a53ed37df0b77f8d570605e2df75ad47"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "VS-CICD-003",
+          "level": "warning",
+          "message": {
+            "text": "Workflow grants write-all permissions (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 3,
+                  "endLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "55d0df202ef3630a18b3c2bd9bfc28a9"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "VS-DOCKER-001",
+          "level": "warning",
+          "message": {
+            "text": "Container runs as root (no USER instruction) (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Dockerfile",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "b8e95fb4db1dcce6db599478c54f942f"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "VS-DOCKER-003",
+          "level": "warning",
+          "message": {
+            "text": "Remote script piped into a shell during build (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Dockerfile",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 2,
+                  "endLine": 2
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "018c189f742cf1fc9702bf7266200d45"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "VS-IAC-001",
+          "level": "warning",
+          "message": {
+            "text": "Security group or firewall open to the whole internet (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.tf",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "3a0a43d3f3282b7189719f53a4405a85"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "VS-SECRET-004",
+          "level": "warning",
+          "message": {
+            "text": "Hardcoded credential assigned to a secret-named variable (potential, confidence medium)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "server.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 3,
+                  "endLine": 3
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "18d98d5cedc5076fd3c45eb622051cd6"
+          },
+          "properties": {
+            "confidence": "medium",
+            "status": "potential",
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "VS-CICD-001",
+          "level": "note",
+          "message": {
+            "text": "GitHub Action not pinned to a commit SHA (potential, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "78b329a94b37c68e38f24aed9717798c"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "potential",
+            "severity": "low"
+          }
+        },
+        {
+          "ruleId": "VS-DOCKER-002",
+          "level": "note",
+          "message": {
+            "text": "Base image uses :latest or no tag (confirmed, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Dockerfile",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "a44375af9a3b7bae297ac58c69029c1a"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "confirmed",
+            "severity": "low"
+          }
+        },
+        {
+          "ruleId": "VS-PROC-001",
+          "level": "note",
+          "message": {
+            "text": "No security policy file found (informational, confidence high)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "vigilsutra/v1": "dc01ae019e233f9810fdf7da89927440"
+          },
+          "properties": {
+            "confidence": "high",
+            "status": "informational",
+            "severity": "info"
+          }
+        }
+      ]
+    }
+  ]
+}

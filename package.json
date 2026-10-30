@@ -65,7 +65,7 @@
     "prepublishOnly": "npm test && npm run audit:self"
   },
   "devDependencies": {
-    "@types/node": "^22.20.5",
+    "@types/node": "^26.6.5",
     "typescript": "^5.9.3"
   }
 }

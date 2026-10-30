@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Release workflow publishing to npm with provenance (Trusted Publishing); Dependabot for Actions and npm; workflow actions pinned to commit SHAs.
+
 ## 0.1.0 - 2026-10-31
 
 First public release (early). Published to npm as `vigilsutra@0.1.0`.

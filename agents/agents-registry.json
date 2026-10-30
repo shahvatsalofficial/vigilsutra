@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "product": "VigilSutra AI",
+  "author": "Vatsal Shah",
+  "agents": [
+    { "name": "vigilsutra-prime", "role": "Prime", "status": "implemented" },
+    { "name": "codeguard", "role": "CodeGuard", "status": "implemented" },
+    { "name": "secretwatch", "role": "SecretWatch", "status": "implemented" },
+    { "name": "privacylens", "role": "PrivacyLens", "status": "implemented" },
+    { "name": "infraguard", "role": "InfraGuard", "status": "implemented" },
+    { "name": "verify", "role": "Verify", "status": "implemented" }
+  ],
+  "planned": ["supplywatch", "identityguard", "apishield", "webshield", "mobileshield", "pipelineguard", "datashield", "agentshield", "threatmap", "compliancemap", "remedy", "riskrank"]
+}

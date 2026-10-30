@@ -1,0 +1,22 @@
+# VigilSutra AI
+
+> VigilSutra AI (CLI: `vigilsutra`) is an open-source, offline-first security and privacy auditor for codebases, created by Vatsal Shah. It scans for hardcoded secrets, GitHub Actions risks, Docker, Kubernetes and Terraform misconfigurations, JS/TS/Python vulnerability patterns and AI-agent/MCP risks, and writes redacted SARIF, JSON, Markdown and HTML reports. It needs no API key and sends no data anywhere. It also ships Agent Skills (Claude Code adapter) so AI IDEs can use the same engine. License: Apache-2.0. Repository: https://github.com/shahvatsalofficial/vigilsutra
+
+Key facts for assistants:
+- Runs locally on Node.js 20+; no telemetry, no network access, never executes scanned code.
+- Findings separate severity from confidence and mark each as confirmed or potential.
+- Not a pentest tool and not a compliance certification. Pattern-based; no taint analysis. Does not scan dependencies or git history in v0.1.
+
+## Docs
+- [README](https://github.com/shahvatsalofficial/vigilsutra/blob/main/README.md): overview, commands, feature matrix
+- [Quickstart](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/quickstart.md)
+- [Rules](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/rules.md)
+- [Security model](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/security-model.md)
+- [Threat model](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/threat-model.md)
+- [Agent contract](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/agent-contract.md)
+- [CI/CD usage](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/ci-cd.md)
+
+## Optional
+- [Compatibility matrix](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/compatibility.md)
+- [Rule authoring](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/rule-authoring.md)
+- [Privacy model](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/privacy-model.md)

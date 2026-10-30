@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vigilsutra/
+*.tgz
+.env
+.env.*
+!.env.example
+coverage/
+vigilsutra-report.*
+vigilsutra-results.json
+vigilsutra.sarif

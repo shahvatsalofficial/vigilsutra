@@ -9,6 +9,7 @@ Finds hardcoded secrets, risky GitHub Actions, Docker / Kubernetes / Terraform m
 
 [![CI](https://github.com/shahvatsalofficial/vigilsutra/actions/workflows/test.yml/badge.svg)](https://github.com/shahvatsalofficial/vigilsutra/actions/workflows/test.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/vigilsutra.svg)](https://www.npmjs.com/package/vigilsutra)
 ![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![Runtime dependencies: 0](https://img.shields.io/badge/runtime%20deps-0-brightgreen)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-brightgreen)
@@ -49,8 +50,10 @@ Details: [security model](docs/security-model.md), [threat model](docs/threat-mo
 Requires Node.js 20+. No account, API key or network access is needed to scan.
 
 ```bash
-npm install -g github:shahvatsalofficial/vigilsutra
-vigilsutra audit examples/intentionally-insecure   # run from a clone, or point at any folder
+npx vigilsutra audit .                 # no install needed
+# or install globally
+npm install -g vigilsutra
+vigilsutra audit .
 ```
 
 Or from a clone:
@@ -63,7 +66,7 @@ npm run build
 node dist/cli.js audit examples/intentionally-insecure
 ```
 
-> **npm status:** not yet published to the npm registry. Once it is, `npx vigilsutra audit .` will work and this note will be removed.
+> Published on npm: <https://www.npmjs.com/package/vigilsutra>. You can also install from GitHub: `npm install -g github:shahvatsalofficial/vigilsutra`. Try the demo project after cloning: `vigilsutra audit examples/intentionally-insecure`.
 
 Everyday use:
 

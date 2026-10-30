@@ -18,7 +18,13 @@ npm install && npm run build
 node dist/cli.js audit examples/intentionally-insecure
 ```
 
-## Global `vigilsutra` command
+## From npm
+```bash
+npx vigilsutra audit .
+npm install -g vigilsutra
+```
+
+## Global `vigilsutra` command (from a clone)
 ```bash
 npm link      # from the cloned repo; remove with: npm unlink -g vigilsutra
 vigilsutra doctor

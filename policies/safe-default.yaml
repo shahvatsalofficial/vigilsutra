@@ -1,0 +1,11 @@
+# VigilSutra AI policy. Defaults already ignore .git, node_modules, dist, build, vendor
+# and lockfiles. Entries below ADD to those defaults; they never remove them.
+# Do not ignore .env files: the scanner reports them without echoing contents.
+version: 1
+ignore:
+  - examples/sample-reports/**
+maxFileSize: 1048576
+maxFiles: 20000
+timeLimitMs: 60000
+# failOn: high
+disableRules: []

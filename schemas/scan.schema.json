@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shahvatsalofficial/vigilsutra/schemas/scan.schema.json",
+  "title": "VigilSutra scan result",
+  "type": "object",
+  "required": ["schemaVersion", "tool", "generatedAt", "mode", "project", "scope", "summary", "categoriesAssessed", "notAssessed", "limitations", "findings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "tool": { "type": "object", "required": ["name", "version", "rulesVersion"] },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "mode": { "const": "local" },
+    "project": { "type": "object", "required": ["name", "detected"] },
+    "scope": { "type": "object", "required": ["filesScanned", "skippedSymlinks", "truncated"] },
+    "summary": { "type": "object", "required": ["total", "bySeverity", "byStatus", "baselineSuppressed"] },
+    "categoriesAssessed": { "type": "array", "items": { "type": "string" } },
+    "notAssessed": { "type": "array", "items": { "type": "string" } },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } }
+  }
+}

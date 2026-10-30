@@ -1,0 +1,9 @@
+# Self-audit policy. Rule definitions and tests contain deliberately secret-shaped
+# strings, so they are excluded; fixtures are generated at test time.
+version: 1
+ignore:
+  - src/rules/**
+  - src/redact.ts
+  - test/**
+  - docs/rules.md
+  - examples/intentionally-insecure/**

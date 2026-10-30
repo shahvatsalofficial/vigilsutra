@@ -1,0 +1,5 @@
+# Suggested CI policy: fail the job on high-severity findings.
+version: 1
+ignore: []
+failOn: high
+maxFileSize: 1048576

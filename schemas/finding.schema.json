@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shahvatsalofficial/vigilsutra/schemas/finding.schema.json",
+  "title": "VigilSutra finding",
+  "type": "object",
+  "required": ["id", "fingerprint", "ruleId", "ruleVersion", "title", "category", "severity", "confidence", "status", "path", "startLine", "endLine", "evidenceType", "excerpt", "redacted", "remediation", "verification", "cwe", "mappingNote"],
+  "properties": {
+    "id": { "type": "string" },
+    "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "ruleId": { "type": "string", "pattern": "^VS-[A-Z]+-[0-9]{3}$" },
+    "ruleVersion": { "type": "string" },
+    "title": { "type": "string" },
+    "category": { "type": "string" },
+    "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "status": { "enum": ["confirmed", "potential", "informational", "not-assessed", "resolved"] },
+    "path": { "type": "string" },
+    "startLine": { "type": "integer", "minimum": 1 },
+    "endLine": { "type": "integer", "minimum": 1 },
+    "evidenceType": { "enum": ["source-line", "file-presence", "file-absence"] },
+    "excerpt": { "type": "string", "description": "Redacted; secret values are never included." },
+    "redacted": { "type": "boolean" },
+    "remediation": { "type": "string" },
+    "verification": { "type": "string" },
+    "cwe": { "type": "array", "items": { "type": "string" } },
+    "mappingNote": { "type": "string" }
+  }
+}

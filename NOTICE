@@ -1,0 +1,10 @@
+VigilSutra AI
+Copyright 2026 Vatsal Shah
+
+Created by Vatsal Shah. Licensed under the Apache License, Version 2.0.
+
+This product has no bundled third-party runtime dependencies. Development
+dependencies (TypeScript, @types/node) are used under their own licenses.
+CWE identifiers referenced in rule metadata are from MITRE's Common Weakness
+Enumeration (https://cwe.mitre.org/). VigilSutra is not affiliated with or
+endorsed by OWASP, NIST, MITRE or any standards body.

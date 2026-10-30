@@ -1,0 +1,70 @@
+{
+  "name": "vigilsutra",
+  "version": "0.1.0",
+  "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
+  "keywords": [
+    "security",
+    "security-audit",
+    "security-scanner",
+    "sast",
+    "secret-scanning",
+    "secrets-detection",
+    "privacy",
+    "devsecops",
+    "appsec",
+    "sarif",
+    "github-actions-security",
+    "docker-security",
+    "kubernetes-security",
+    "iac-security",
+    "ai-agents",
+    "agent-skills",
+    "claude-code",
+    "mcp",
+    "llm-security",
+    "offline",
+    "cli"
+  ],
+  "license": "Apache-2.0",
+  "author": "Vatsal Shah",
+  "homepage": "https://github.com/shahvatsalofficial/vigilsutra#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shahvatsalofficial/vigilsutra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shahvatsalofficial/vigilsutra/issues"
+  },
+  "type": "module",
+  "bin": {
+    "vigilsutra": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "agents",
+    "adapters",
+    "policies",
+    "schemas",
+    "docs",
+    "templates",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "llms.txt",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"test/*.test.mjs\"",
+    "audit:self": "npm run build && node dist/cli.js audit . --fail-on high",
+    "prepublishOnly": "npm test && npm run audit:self"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}

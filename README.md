@@ -175,7 +175,7 @@ Measured on the build in this repository (Windows 11, Node 24.15, 14 threads), 2
 | Redaction | Planted secrets absent from all 5 output formats |
 | Speed and memory | 129 files / 6.1 MiB (TypeScript's own package) scanned in about 180 ms, about 75 MiB RSS; this repo (53 files) in about 30 ms |
 | Self-audit | The repo scans itself with no findings at medium or above |
-| Linux / macOS | CI is configured (Node 20 and 22) but results have **not** been recorded yet |
+| Linux / macOS / Windows CI | GitHub Actions matrix (3 OS x Node 20 and 22): **6 of 6 jobs passed** on commit `c9e2b92` |
 
 Not yet measured: real-world false-positive rate, recall against public benchmarks, behaviour on very large monorepos.
 

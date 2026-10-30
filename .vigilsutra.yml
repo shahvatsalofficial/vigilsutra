@@ -7,3 +7,4 @@ ignore:
   - test/**
   - docs/rules.md
   - examples/intentionally-insecure/**
+  - examples/sample-reports/**

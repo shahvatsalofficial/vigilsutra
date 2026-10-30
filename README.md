@@ -54,7 +54,14 @@ node dist/cli.js audit . --format html     --out vigilsutra-report.html
 node dist/cli.js audit . --fail-on high
 ```
 
-> npm publication is not done yet; the `vigilsutra` package name is reserved for a future release. Until then run from a clone, or `npm link` to get a global `vigilsutra` command.
+> **npm status:** not yet published to the npm registry. Install from GitHub today:
+>
+> ```bash
+> npm install -g github:shahvatsalofficial/vigilsutra
+> vigilsutra --help
+> ```
+>
+> Or run from a clone as shown above (`npm link` gives a global `vigilsutra` command). Once the first npm release is out, `npx vigilsutra audit .` will also work and this note will be removed.
 
 ## Commands
 

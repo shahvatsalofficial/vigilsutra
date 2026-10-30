@@ -3,7 +3,7 @@
 Plans, not promises. Order may change; nothing here is implemented unless the README feature matrix says so.
 
 ## Next (v0.2)
-- Publish the first npm release.
+- Publish from GitHub Actions with npm provenance.
 - Dependency inventory from lockfiles (offline), with clear "advisory data not loaded" status.
 - Waivers with owner, reason and expiry.
 - More rule fixtures from real-world false-positive reports.

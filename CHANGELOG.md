@@ -2,7 +2,7 @@
 
 ## 0.1.0 - 2026-10-31
 
-First public release (early).
+First public release (early). Published to npm as `vigilsutra@0.1.0`.
 
 - Offline, read-only CLI: `audit`, `baseline`, `verify`, `rules`, `explain`, `doctor`, `init`, `adapters`.
 - 32 rules across secrets, GitHub Actions, Docker, Kubernetes, Terraform, JS/TS/Python code patterns, AI agents, privacy signals and process.

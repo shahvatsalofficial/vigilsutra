@@ -273,7 +273,7 @@ test("adapters: claude install is previewable, non-destructive, and reversible",
   assert.equal(cli(["adapters", "install", "claude", "--project", root]).status, 0);
   const skill = join(root, ".claude", "skills", "vigilsutra-prime", "SKILL.md");
   assert.ok(existsSync(skill));
-  assert.match(readFileSync(skill, "utf8"), /^---\nname: vigilsutra-prime\n/);
+  assert.match(readFileSync(skill, "utf8"), /^---\r?\nname: vigilsutra-prime\r?\n/);
 
   writeFileSync(skill, "USER EDIT");
   assert.match(cli(["adapters", "install", "claude", "--project", root]).stdout, /skip-exists/);
@@ -292,7 +292,7 @@ test("every shipped SKILL.md has valid frontmatter and a registry entry", () => 
     const p = join("agents", a.name, "SKILL.md");
     assert.ok(existsSync(p), p);
     const t = readFileSync(p, "utf8");
-    assert.match(t, new RegExp(`^---\\nname: ${a.name}\\ndescription: .{20,}\\n---\\n`));
+    assert.match(t, new RegExp(String.raw`^---\r?\nname: ${a.name}\r?\ndescription: .{20,}\r?\n---\r?\n`));
   }
 });
 

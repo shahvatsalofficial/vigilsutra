@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { audit, exceeds, VERSION } from "./engine.js";
+import { loadPolicy } from "./policy.js";
 import { render, FORMATS, type Format } from "./reporters/index.js";
 import { ALL_RULES, findRule, RULES_VERSION } from "./rules/index.js";
 import { ADAPTERS, PACKAGE_ROOT, installClaude, planClaudeInstall, uninstallClaude } from "./adapters.js";
@@ -100,7 +101,7 @@ function main(): void {
       if (!FORMATS.includes(format as Format)) fail(`unknown format "${format}"`);
       const baselineFile = flags.get("baseline");
       const result = audit({ root, baselineFile: typeof baselineFile === "string" ? resolve(baselineFile) : undefined });
-      const failOn = sev(flags.get("fail-on"));
+      const failOn = sev(flags.get("fail-on")) ?? loadPolicy(root).failOn;
       const out = flags.get("out");
       if (typeof out === "string") {
         writeOut(out, render(result, format as Format, false));

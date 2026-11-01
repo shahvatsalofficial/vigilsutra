@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2026-11-01
+
+- CI now tests Node 20, 22, 24 and 26 (current LTS) on Ubuntu, macOS and Windows; all 12 jobs pass. Docs updated. No code changes.
+
 ## 0.1.1 - 2026-11-01
 
 - Release workflow publishing to npm with provenance (Trusted Publishing); Dependabot for Actions and npm; workflow actions pinned to commit SHAs; OpenSSF Scorecard workflow; manual benchmark workflow.

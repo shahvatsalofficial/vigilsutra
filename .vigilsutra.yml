@@ -8,3 +8,6 @@ ignore:
   - docs/rules.md
   - examples/intentionally-insecure/**
   - examples/sample-reports/**
+  - docs/assurance/**
+  - benchmarks/**
+  - docs/launch-kit.md

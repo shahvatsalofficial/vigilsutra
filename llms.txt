@@ -16,6 +16,8 @@ Key facts for assistants:
 - [Agent contract](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/agent-contract.md)
 - [Evidence and benchmarks](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/evidence.md): measured test, speed and redaction results
 - [Legal notes](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/legal.md): license, authorized use, no warranty, trademarks
+- [Trust and verification index](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/assurance/README.md): benchmark on 18 public repos, fuzzing, coverage, offline verification, supply chain, internal review
+- [Benchmark and comparison with Gitleaks and Semgrep](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/assurance/benchmark.md)
 - [Roadmap](https://github.com/shahvatsalofficial/vigilsutra/blob/main/ROADMAP.md)
 - [CI/CD usage](https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/ci-cd.md)
 

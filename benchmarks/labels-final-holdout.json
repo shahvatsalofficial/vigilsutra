@@ -1,0 +1,166 @@
+{
+ "version": "after round-2 fixes; sample drawn after all fixes and never used to tune rules",
+ "labeledBy": "the maintainer's AI assistant (Claude), not an independent human reviewer",
+ "labels": {
+  "OWASP__NodeGoat|.github/workflows/lint.yml|21|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "actions__starter-workflows|.github/workflows/label-support.yml|13|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|.github/workflows/semgrep.yml|14|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|app/routes/contributions.js|34|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "django__django|django/core/management/commands/shell.py|89|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|routes/userProfile.ts|65|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "django__django|django/core/cache/backends/db.py|102|VS-CODE-003": {
+   "label": "TP",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|django/contrib/gis/db/backends/spatialite/operations.py|162|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/loginJimChallenge_4.ts|18|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "digininja__DVWA|vulnerabilities/csp/source/high.js|9|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "juice-shop__juice-shop|frontend/src/app/data-export/data-export.component.ts|72|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "docker__awesome-compose|react-nginx/Dockerfile|46|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/users-repo/Dockerfile|1|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/gcp/networks.tf|22|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|terraform/networking.tf|72|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|25|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "OWASP__NodeGoat|artifacts/db-reset.js|35|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/azure/mssql.tf|140|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "django__django|tests/queryset_pickle/tests.py|98|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/queryset_pickle/tests.py|400|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/backends/mysql/test_introspection.py|119|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "fastify__fastify|test/https/https.test.js|127|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|tests/e2e_zap.py|37|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "fastify__fastify|test/https/https.test.js|69|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "django__django|tests/file_uploads/views.py|50|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "fastify__fastify|test/reply-trailers.test.js|476|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "django__django|tests/file_uploads/tests.py|116|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "django__django|js_tests/gis/mapwidget.test.js|217|VS-CODE-007": {
+   "label": "TT",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/storage/redis/image/Dockerfile|15|VS-DOCKER-001": {
+   "label": "TT",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "terraform-aws-modules__terraform-aws-vpc|examples/outpost/main.tf|82|VS-IAC-001": {
+   "label": "TT",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|18|VS-K8S-002": {
+   "label": "TT",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "django__django|tests/admin_views/tests.py|2477|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  }
+ }
+}

@@ -1,97 +1,127 @@
-✔ no rule throws on adversarial, malformed or random input (262.9843ms)
-✔ ReDoS guard: each rule handles 1,000 adversarial 1,990-character lines quickly (15048.4716ms)
-✔ lines above 2,000 characters are skipped by line rules rather than scanned (0.4462ms)
-✔ malformed Unicode, NUL bytes and huge single lines do not crash a full audit (48.0254ms)
-✔ policy parser survives deep, huge and hostile input without hanging (31.7962ms)
-✔ JSON baseline and previous-result inputs that are hostile are rejected, not trusted (6163.8862ms)
-✔ preload really blocks and records network, DNS and subprocess attempts (self-check) (607.0631ms)
-✔ every offline command runs to completion with the network and subprocesses blocked (9291.8116ms)
-✔ every rule has metadata and unique id (3.1038ms)
-✔ VS-SECRET-001: vulnerable fixture flagged, clean fixture not (35.5828ms)
-✔ VS-SECRET-002: vulnerable fixture flagged, clean fixture not (27.4231ms)
-✔ VS-SECRET-003: vulnerable fixture flagged, clean fixture not (29.2808ms)
-✔ VS-SECRET-004: vulnerable fixture flagged, clean fixture not (25.6961ms)
-✔ VS-SECRET-005: vulnerable fixture flagged, clean fixture not (30.8142ms)
-✔ VS-SECRET-006: vulnerable fixture flagged, clean fixture not (33.6269ms)
-✔ VS-CICD-001: vulnerable fixture flagged, clean fixture not (39.3038ms)
-✔ VS-CICD-002: vulnerable fixture flagged, clean fixture not (44.1983ms)
-✔ VS-CICD-003: vulnerable fixture flagged, clean fixture not (39.6333ms)
-✔ VS-CICD-004: vulnerable fixture flagged, clean fixture not (44.8999ms)
-✔ VS-DOCKER-001: vulnerable fixture flagged, clean fixture not (32.2131ms)
-✔ VS-DOCKER-002: vulnerable fixture flagged, clean fixture not (27.899ms)
-✔ VS-DOCKER-003: vulnerable fixture flagged, clean fixture not (28.9912ms)
-✔ VS-K8S-001: vulnerable fixture flagged, clean fixture not (42.9151ms)
-✔ VS-K8S-002: vulnerable fixture flagged, clean fixture not (30.8249ms)
-✔ VS-K8S-003: vulnerable fixture flagged, clean fixture not (32.6848ms)
-✔ VS-IAC-001: vulnerable fixture flagged, clean fixture not (37.2034ms)
-✔ VS-IAC-002: vulnerable fixture flagged, clean fixture not (37.1621ms)
-✔ VS-IAC-003: vulnerable fixture flagged, clean fixture not (27.574ms)
-✔ VS-CODE-001: vulnerable fixture flagged, clean fixture not (40.2932ms)
-✔ VS-CODE-002: vulnerable fixture flagged, clean fixture not (38.171ms)
-✔ VS-CODE-003: vulnerable fixture flagged, clean fixture not (38.3727ms)
-✔ VS-CODE-004: vulnerable fixture flagged, clean fixture not (33.6184ms)
-✔ VS-CODE-005: vulnerable fixture flagged, clean fixture not (33.5578ms)
-✔ VS-CODE-006: vulnerable fixture flagged, clean fixture not (36.5247ms)
-✔ VS-CODE-007: vulnerable fixture flagged, clean fixture not (41.2243ms)
-✔ VS-AGENT-001: vulnerable fixture flagged, clean fixture not (38.6277ms)
-✔ VS-AGENT-002: vulnerable fixture flagged, clean fixture not (36.1931ms)
-✔ VS-AGENT-003: vulnerable fixture flagged, clean fixture not (47.0782ms)
-✔ VS-PRIV-001: vulnerable fixture flagged, clean fixture not (44.1799ms)
-✔ VS-PRIV-002: vulnerable fixture flagged, clean fixture not (29.0159ms)
-✔ VS-PROC-001 fires without SECURITY.md and not with it (20.3437ms)
-✔ secrets never appear in any report format (19.7119ms)
-✔ fingerprints and ordering are deterministic across scans (21.5648ms)
-✔ fingerprint survives line shifts (23.4594ms)
-﹣ symlinks are not followed outside the root (13.9041ms) # cannot create symlinks on this system
-✔ paths with spaces and non-ASCII characters work (13.3182ms)
-✔ CRLF files report correct line numbers (13.0351ms)
-✔ size limit and binary files are skipped and counted (14.2426ms)
-✔ default ignores skip node_modules at any depth but not .env (119.0445ms)
-✔ HTML report escapes untrusted content (11.878ms)
-✔ malicious repo instructions do not change scan scope or behavior (13.7172ms)
-✔ SARIF output has the required 2.1.0 structure (9.147ms)
-✔ JSON result matches the published schema's required keys (13.4795ms)
-✔ source never imports network modules (offline guarantee) (4.7237ms)
-✔ scan does not modify the target project (19.1564ms)
-✔ policy parser rejects unknown keys and bad values (1.7426ms)
-✔ CLI: exit codes, fail-on, formats and output file (6294.967ms)
-✔ CLI: failOn from .vigilsutra.yml applies when --fail-on is absent (1375.5624ms)
-✔ CLI: rules list, explain, doctor, help (3256.8082ms)
-✔ baseline suppresses accepted findings; verify reports changes (2001.9648ms)
-✔ init creates policy once and never overwrites (1238.4276ms)
-✔ adapters: claude install is previewable, non-destructive, and reversible (2784.6993ms)
-✔ every shipped SKILL.md has valid frontmatter and a registry entry (1.4981ms)
-✔ repo self-audit finds no high-or-above issues (39.5201ms)
-ℹ tests 64
+✔ no rule throws on adversarial, malformed or random input (377.8261ms)
+✔ ReDoS guard: each rule handles 1,000 adversarial 1,990-character lines quickly (26177.0091ms)
+✔ lines above 2,000 characters are skipped by line rules rather than scanned (0.9168ms)
+✔ malformed Unicode, NUL bytes and huge single lines do not crash a full audit (83.1693ms)
+✔ policy parser survives deep, huge and hostile input without hanging (47.8608ms)
+✔ JSON baseline and previous-result inputs that are hostile are rejected, not trusted (6841.1173ms)
+✔ preload really blocks and records network, DNS and subprocess attempts (self-check) (779.9545ms)
+✔ every offline command runs to completion with the network and subprocesses blocked (13349.6825ms)
+✔ every rule has metadata and unique id (2.7892ms)
+✔ VS-SECRET-001: vulnerable fixture flagged, clean fixture not (38.2638ms)
+✔ VS-SECRET-002: vulnerable fixture flagged, clean fixture not (33.9911ms)
+✔ VS-SECRET-003: vulnerable fixture flagged, clean fixture not (44.9974ms)
+✔ VS-SECRET-004: vulnerable fixture flagged, clean fixture not (43.4831ms)
+✔ VS-SECRET-005: vulnerable fixture flagged, clean fixture not (53.308ms)
+✔ VS-SECRET-006: vulnerable fixture flagged, clean fixture not (53.7492ms)
+✔ VS-SECRET-006: vulnerable fixture flagged, clean fixture not (35.1251ms)
+✔ VS-CICD-001: vulnerable fixture flagged, clean fixture not (62.2842ms)
+✔ VS-CICD-002: vulnerable fixture flagged, clean fixture not (47.2792ms)
+✔ VS-CICD-003: vulnerable fixture flagged, clean fixture not (42.4921ms)
+✔ VS-CICD-004: vulnerable fixture flagged, clean fixture not (40.8719ms)
+✔ VS-DOCKER-001: vulnerable fixture flagged, clean fixture not (28.4402ms)
+✔ VS-DOCKER-002: vulnerable fixture flagged, clean fixture not (45.7507ms)
+✔ VS-DOCKER-003: vulnerable fixture flagged, clean fixture not (45.7238ms)
+✔ VS-K8S-001: vulnerable fixture flagged, clean fixture not (41.9957ms)
+✔ VS-K8S-002: vulnerable fixture flagged, clean fixture not (42.0682ms)
+✔ VS-K8S-003: vulnerable fixture flagged, clean fixture not (57.1514ms)
+✔ VS-IAC-001: vulnerable fixture flagged, clean fixture not (32.4774ms)
+✔ VS-IAC-002: vulnerable fixture flagged, clean fixture not (27.3414ms)
+✔ VS-IAC-003: vulnerable fixture flagged, clean fixture not (34.8101ms)
+✔ VS-CODE-001: vulnerable fixture flagged, clean fixture not (78.4681ms)
+✔ VS-CODE-002: vulnerable fixture flagged, clean fixture not (30.0228ms)
+✔ VS-CODE-003: vulnerable fixture flagged, clean fixture not (35.4438ms)
+✔ VS-CODE-004: vulnerable fixture flagged, clean fixture not (44.2037ms)
+✔ VS-CODE-005: vulnerable fixture flagged, clean fixture not (56.0302ms)
+✔ VS-CODE-006: vulnerable fixture flagged, clean fixture not (51.105ms)
+✔ VS-CODE-007: vulnerable fixture flagged, clean fixture not (38.1171ms)
+✔ VS-AGENT-001: vulnerable fixture flagged, clean fixture not (36.6574ms)
+✔ VS-AGENT-002: vulnerable fixture flagged, clean fixture not (46.8111ms)
+✔ VS-AGENT-003: vulnerable fixture flagged, clean fixture not (43.9599ms)
+✔ VS-PRIV-001: vulnerable fixture flagged, clean fixture not (67.3408ms)
+✔ VS-PRIV-002: vulnerable fixture flagged, clean fixture not (62.3239ms)
+✔ VS-PROC-001 fires without SECURITY.md and not with it (34.4246ms)
+✔ secrets never appear in any report format (29.8334ms)
+✔ fingerprints and ordering are deterministic across scans (30.7857ms)
+✔ fingerprint survives line shifts (34.8053ms)
+﹣ symlinks are not followed outside the root (14.6457ms) # cannot create symlinks on this system
+✔ paths with spaces and non-ASCII characters work (23.2082ms)
+✔ CRLF files report correct line numbers (10.0719ms)
+✔ size limit and binary files are skipped and counted (21.8001ms)
+✔ default ignores skip node_modules at any depth but not .env (56.1022ms)
+✔ HTML report escapes untrusted content (27.4176ms)
+✔ malicious repo instructions do not change scan scope or behavior (126.7471ms)
+✔ SARIF output has the required 2.1.0 structure (10.4406ms)
+✔ JSON result matches the published schema's required keys (13.6363ms)
+✔ source never imports network modules (offline guarantee) (3.5476ms)
+✔ scan does not modify the target project (21.1899ms)
+✔ policy parser rejects unknown keys and bad values (1.775ms)
+✔ CLI: exit codes, fail-on, formats and output file (8622.3041ms)
+✔ CLI: failOn from .vigilsutra.yml applies when --fail-on is absent (2067.2818ms)
+✔ CLI: rules list, explain, doctor, help (4289.9163ms)
+✔ baseline suppresses accepted findings; verify reports changes (2360.5497ms)
+✔ init creates policy once and never overwrites (1844.577ms)
+✔ adapters: claude install is previewable, non-destructive, and reversible (2822.2128ms)
+✔ every shipped SKILL.md has valid frontmatter and a registry entry (3.7678ms)
+✔ false-positive regression: VS-CICD-001 does not fire on "jobs:\n  b:\n    uses: './.github/workflows/c.y (14.382ms)
+✔ false-positive regression: VS-CODE-001 does not fire on "var B = eval(\"require('buffer').Buffer\");" (8.7207ms)
+✔ false-positive regression: VS-CODE-001 does not fire on "var x = 'javascript:eval(document.body.innerHTM (11.7166ms)
+✔ false-positive regression: VS-CODE-005 does not fire on "decoded = jwt.decode(token, verify = False)" (11.1974ms)
+✔ false-positive regression: VS-CODE-006 does not fire on "return hashlib.sha1(x, usedforsecurity=False).h (11.8087ms)
+✔ false-positive regression: VS-CODE-007 does not fire on "var s = `<script>document.write(\"x\")</script> (10.4874ms)
+✔ false-positive regression: VS-CODE-003 does not fire on "restored = pickle.loads(pickle.dumps(obj))" (12.01ms)
+✔ false-positive regression: VS-DOCKER-003 does not fire on "FROM a:1\nRUN echo \"curl -sSL https://x.invali (13.3178ms)
+✔ false-positive regression: VS-IAC-001 does not fire on "resource \"aws_route\" \"r\" {\n  destination_c (12.1602ms)
+✔ false-positive regression: VS-IAC-001 does not fire on "resource \"aws_route_table\" \"t\" {\n  route { (12.9423ms)
+✔ false-positive regression: VS-IAC-003 does not fire on "statement {\n  effect    = \"Deny\"\n  actions  (17.0426ms)
+✔ false-positive regression: VS-PRIV-001 does not fire on "logger.warn('Failed to record chat token usage  (18.8786ms)
+✔ false-positive regression: VS-SECRET-004 does not fire on "<pre>WHERE password = '$password'</pre>" (14.7444ms)
+✔ false-positive regression: VS-DOCKER-001 does not fire on "FROM gcr.io/distroless/static-debian13:nonroot- (22.3626ms)
+✔ false-positive regression: VS-CODE-007 does not fire on "box.innerHTML = \"\";" (13.1234ms)
+✔ false-positive regression: VS-CODE-007 does not fire on "<span dangerouslySetInnerHTML={{ __html: saniti (15.0662ms)
+✔ false-positive regression: VS-SECRET-004 does not fire on "{ \"NEW_PASSWORD\": \"Abc12345xyz\" }" (24.0844ms)
+✔ false-positive regression: VS-SECRET-004 does not fire on "{ \"MANDATORY_NEW_PASSWORD\": \"請提供新的密碼.\" }" (13.8063ms)
+✔ true positives next to the false-positive cases are still reported (27.0358ms)
+✔ IAC-001 uses the real line: an egress block is skipped even when an identical ingress line appears earlier (30.8811ms)
+✔ findings in test, example or vendored paths stay visible but get low confidence (22.3542ms)
+✔ review: adapter uninstall refuses manifest entries outside .claude/skills/<name>/SKILL.md (825.4176ms)
+✔ review: a project policy that narrows scope is disclosed, and --no-policy ignores it (2194.7709ms)
+✔ review: SARIF file locations are percent-encoded URIs (15.4656ms)
+✔ review: Markdown report cannot be broken out of a code span by a file name (17.6694ms)
+✔ review: terminal control characters in paths and excerpts are neutralized in text output (14.7803ms)
+✔ review: one rule matching thousands of lines in a file is capped and disclosed (34.2875ms)
+✔ review: a directory junction pointing outside the project is not followed (20.1547ms)
+✔ review: isInside rejects siblings that merely share a name prefix (1.2088ms)
+✔ repo self-audit finds no high-or-above issues (84.6137ms)
+ℹ tests 94
 ℹ suites 0
-ℹ pass 63
+ℹ pass 93
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 1
 ℹ todo 0
-ℹ duration_ms 22263.6047
+ℹ duration_ms 34325.1053
 ℹ start of coverage report
-ℹ ------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------
 ℹ file                | line % | branch % | funcs % | uncovered lines
-ℹ ------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------
 ℹ dist                |        |          |         | 
-ℹ  adapters.js        |  97.22 |    64.71 |  100.00 | 66-67
-ℹ  cli.js             |  97.97 |    60.47 |  100.00 | 85-87 235-236
-ℹ  engine.js          |  99.02 |    92.86 |   90.48 | 203-204
-ℹ  policy.js          | 100.00 |    96.30 |  100.00 | 
+ℹ  adapters.js        |  97.33 |    72.22 |  100.00 | 69-70
+ℹ  cli.js             |  98.02 |    62.79 |  100.00 | 91-93 242-243
+ℹ  engine.js          |  99.12 |    91.58 |   95.24 | 225-226
+ℹ  policy.js          | 100.00 |    98.25 |  100.00 | 
 ℹ  redact.js          | 100.00 |    71.43 |  100.00 | 
 ℹ  reporters          |        |          |         | 
-ℹ   index.js          | 100.00 |    89.58 |  100.00 | 
+ℹ   index.js          | 100.00 |    92.00 |  100.00 | 
 ℹ  rules              |        |          |         | 
 ℹ   agents-privacy.js | 100.00 |   100.00 |   93.33 | 
 ℹ   code.js           | 100.00 |   100.00 |  100.00 | 
 ℹ   index.js          | 100.00 |   100.00 |  100.00 | 
-ℹ   infra.js          | 100.00 |    96.08 |  100.00 | 
+ℹ   infra.js          | 100.00 |    98.33 |  100.00 | 
 ℹ   secrets.js        | 100.00 |   100.00 |  100.00 | 
-ℹ   util.js           | 100.00 |    96.88 |  100.00 | 
-ℹ  scope.js           |  84.17 |    71.43 |  100.00 | 47-49 55-58 66-68 70-72 93-96 114-115
+ℹ   util.js           | 100.00 |    96.08 |  100.00 | 
+ℹ  scope.js           |  86.99 |    71.74 |  100.00 | 68-70 76-79 87-89 114-117 121-123 140-141
 ℹ  types.js           | 100.00 |   100.00 |  100.00 | 
-ℹ ------------------------------------------------------------------------------------------
-ℹ all files           |  98.21 |    87.89 |   98.03 | 
-ℹ ------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------
+ℹ all files           |  98.36 |    89.60 |   98.82 | 
+ℹ ----------------------------------------------------------------------------------------------
 ℹ end of coverage report

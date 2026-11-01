@@ -4,7 +4,7 @@
 
 ## What was measured
 
-VigilSutra was run on **18 public repositories** (shallow clones at the commits below, read-only, nothing executed): 7 deliberately vulnerable projects and 11 mainstream projects. The first run used the released rules (v0.1.0). A sample of **140 findings** was labeled, the false positives were studied, the rules were fixed, and the same commits were scanned again to check that real findings were kept.
+VigilSutra was run on **18 public repositories** (shallow clones at the commits below, read-only, nothing executed): 7 deliberately vulnerable projects and 11 mainstream projects. The first run used the released rules (v0.1.0). 240 findings were labeled in three samples, the false positives were studied, the rules were fixed, and the same commits were scanned again to check that real findings were kept.
 
 ### Labeling rubric
 
@@ -14,82 +14,83 @@ VigilSutra was run on **18 public repositories** (shallow clones at the commits 
 | TT | the construct is real but only in tests, fixtures, test data, archived examples or vendored/minified code |
 | FP | the rule misread the code, or the construct is not a security issue in context |
 
-> **Warning:** labels were assigned by the maintainer's AI assistant, not by an independent human reviewer. They are an honest first pass and are published in `benchmarks/labels-v0.1.0.json` so anyone can disagree and re-label. One label was already corrected during the regression check (an egress rule first read as ingress).
+> **Warning:** labels were assigned by the maintainer's AI assistant, not by an independent human reviewer. They are an honest first pass and are published in `benchmarks/labels-v0.1.0.json` so anyone can disagree and re-label. Three labels were corrected during regression checks (egress rules first read as ingress), which shows the first pass is imperfect.
 
 ### Sampling
 
-Up to 8 findings per rule, spread round-robin across repositories in fingerprint order (deterministic, **not random**). High-volume rules are therefore under-represented, and the numbers below are **not** population estimates or confidence intervals.
+Up to 8 findings per rule, spread round-robin across repositories in fingerprint order (deterministic, **not random**). High-volume rules are therefore under-represented, and the numbers below are **not** population estimates. Sample C was drawn from findings not in A or B, up to 3 per rule, after the last fix.
 
 ## Repositories
 
 | Repository | Kind | Commit | Files | Size (MiB) | Scan time on CI (ms) | Findings now |
 |---|---|---|---|---|---|---|
-| juice-shop/juice-shop | vulnerable-by-design | `717f5ef` | 1172 | 13.6 | 436 | 281 |
-| OWASP/NodeGoat | vulnerable-by-design | `c5cb68a` | 92 | 0.3 | 13 | 20 |
-| appsecco/dvna | vulnerable-by-design | `9ba473a` | 126 | 0.8 | 21 | 3 |
-| bridgecrewio/terragoat | vulnerable-by-design | `729f8da` | 66 | 0.5 | 10 | 27 |
-| madhuakula/kubernetes-goat | vulnerable-by-design | `723a0db` | 243 | 1 | 31 | 36 |
+| juice-shop/juice-shop | vulnerable-by-design | `717f5ef` | 1172 | 13.6 | 424 | 221 |
+| OWASP/NodeGoat | vulnerable-by-design | `c5cb68a` | 92 | 0.3 | 18 | 20 |
+| appsecco/dvna | vulnerable-by-design | `9ba473a` | 126 | 0.8 | 14 | 3 |
+| bridgecrewio/terragoat | vulnerable-by-design | `729f8da` | 66 | 0.5 | 18 | 26 |
+| madhuakula/kubernetes-goat | vulnerable-by-design | `723a0db` | 243 | 1 | 45 | 36 |
 | we45/Vulnerable-Flask-App | vulnerable-by-design | `b6a4f97` | 18 | 0.1 | 5 | 20 |
-| digininja/DVWA | vulnerable-by-design | `a1978a2` | 233 | 1 | 27 | 20 |
-| expressjs/express | mainstream | `1c6f1b0` | 216 | 0.7 | 42 | 1 |
-| pallets/flask | mainstream | `49943b5` | 231 | 1.4 | 45 | 4 |
-| psf/requests | mainstream | `3c7baaa` | 124 | 1.5 | 31 | 8 |
-| docker/awesome-compose | mainstream | `30f4b7f` | 426 | 0.5 | 31 | 36 |
-| actions/starter-workflows | mainstream | `e3c451d` | 503 | 1.4 | 41 | 14 |
+| digininja/DVWA | vulnerable-by-design | `a1978a2` | 233 | 1 | 26 | 20 |
+| expressjs/express | mainstream | `1c6f1b0` | 216 | 0.7 | 44 | 1 |
+| pallets/flask | mainstream | `49943b5` | 231 | 1.4 | 46 | 4 |
+| psf/requests | mainstream | `3c7baaa` | 124 | 1.5 | 29 | 8 |
+| docker/awesome-compose | mainstream | `30f4b7f` | 426 | 0.5 | 30 | 36 |
+| actions/starter-workflows | mainstream | `e3c451d` | 503 | 1.4 | 37 | 14 |
 | terraform-aws-modules/terraform-aws-vpc | mainstream | `b3abd6d` | 111 | 0.9 | 19 | 78 |
-| kubernetes/examples | mainstream | `22934a0` | 453 | 0.8 | 37 | 33 |
-| modelcontextprotocol/servers | mainstream | `194cc86` | 357 | 4 | 143 | 58 |
-| fastify/fastify | mainstream | `5b9c009` | 392 | 2.9 | 123 | 22 |
-| django/django | mainstream | `a05e16a` | 5635 | 34.9 | 1327 | 192 |
-| prometheus/prometheus | mainstream | `ef78ff6` | 1707 | 17.6 | 364 | 26 |
+| kubernetes/examples | mainstream | `22934a0` | 453 | 0.8 | 35 | 33 |
+| modelcontextprotocol/servers | mainstream | `194cc86` | 357 | 4 | 139 | 58 |
+| fastify/fastify | mainstream | `5b9c009` | 392 | 2.9 | 125 | 22 |
+| django/django | mainstream | `a05e16a` | 5635 | 34.9 | 1260 | 191 |
+| prometheus/prometheus | mainstream | `ef78ff6` | 1707 | 17.6 | 353 | 23 |
 
-Timing is from a GitHub-hosted Ubuntu runner. The largest repository (django, 5635 files) took 1327 ms. No crash, hang or truncation occurred on any repository.
+Timing is from a GitHub-hosted Ubuntu runner. The largest repository (django, 5635 files) took 1260 ms. No crash, hang or truncation occurred on any repository.
 
 ## Results
 
 | | v0.1.0 rules | After fixes |
 |---|---|---|
-| Total findings on the 18 repos | 1000 | 879 |
-| Findings outside test, example and vendored paths | not tracked | 508 |
+| Total findings on the 18 repos | 1000 | 814 |
+| Findings outside test, example and vendored paths | not tracked | 443 |
 | Findings in test, example and vendored paths (confidence lowered) | not tracked | 371 |
 
-### Labeled sample
+### Three labeled samples
 
-| | v0.1.0 | After fixes |
-|---|---|---|
-| Labeled findings | 140 | 110 still reported |
-| True positives (TP) | 79 (56%) | 78 kept |
-| Test or example context (TT) | 38 (27%) | 30 kept, 29 of them now low confidence |
-| False positives (FP) | 23 (16%) | 2 remain (2% of the sample) |
+| Sample | Labeled | TP | TT | FP (share when labeled) | Still reported now (TP/TT/FP) | Role |
+|---|---|---|---|---|---|---|
+| A: released v0.1.0 rules | 140 | 65 | 50 | 25 (18%) | 64/42/2 | found the first false-positive classes; **rules were tuned on it** |
+| B: drawn after round-1 fixes | 68 | 31 | 30 | 7 (10%) | 31/30/2 | found more classes; **rules were tuned on it** |
+| C: drawn after all fixes | 32 | 18 | 14 | 0 (0%) | 18/14/0 | **never used for tuning**; the honest estimate |
 
-In this sample the false-positive share fell from **16%** to **2%**, and 1 labeled true positive(s) were lost (below). The remaining false positives are non-security uses of MD5 or SHA-1 that a pattern cannot tell apart.
+Reading it: with the released rules the false-positive share in sample A was **18%**. After round-1 fixes it was **10%** in a fresh sample (B). After round-2 fixes, a third fresh sample (C) of 32 findings had **0 false positives**. With so few samples that does not mean zero: the 95% upper bound for 0 of 32 is about 9% (rule of three). Across the 18 repositories 443 of 814 findings sit outside test, example and vendored paths.
 
-### Per rule (labeled sample)
+Of the labeled true positives in A and B, 1 are no longer reported (listed below). Sample A/B false positives still reported now: 4 (non-security uses of MD5 or SHA-1, and one `eval` of server-generated numbers, which a pattern cannot tell apart).
 
-| Rule | Findings v0.1.0 | Findings now | Labeled | TP | TT | FP | FP remaining |
+### Per rule (all 240 labeled findings, three samples combined)
+
+| Rule | Findings v0.1.0 | Findings now | Labeled | TP | TT | FP | FP still reported |
 |---|---|---|---|---|---|---|---|
-| VS-CICD-001 | 193 | 185 | 8 | 7 | 0 | 1 | 0 |
-| VS-CODE-001 | 32 | 27 | 8 | 2 | 4 | 2 | 0 |
+| VS-CICD-001 | 193 | 185 | 16 | 15 | 0 | 1 | 0 |
+| VS-CODE-001 | 32 | 27 | 16 | 7 | 6 | 3 | 1 |
 | VS-CODE-002 | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| VS-CODE-003 | 98 | 29 | 8 | 1 | 7 | 0 | 0 |
-| VS-CODE-004 | 35 | 35 | 8 | 5 | 3 | 0 | 0 |
-| VS-CODE-005 | 17 | 16 | 8 | 0 | 7 | 1 | 0 |
-| VS-CODE-006 | 19 | 16 | 8 | 2 | 3 | 3 | 2 |
-| VS-CODE-007 | 27 | 24 | 8 | 4 | 2 | 2 | 0 |
-| VS-DOCKER-001 | 75 | 75 | 8 | 7 | 1 | 0 | 0 |
-| VS-DOCKER-002 | 10 | 10 | 8 | 7 | 1 | 0 | 0 |
-| VS-DOCKER-003 | 4 | 3 | 4 | 3 | 0 | 1 | 0 |
-| VS-IAC-001 | 106 | 91 | 8 | 5 | 0 | 3 | 0 |
+| VS-CODE-003 | 98 | 29 | 16 | 4 | 12 | 0 | 0 |
+| VS-CODE-004 | 35 | 35 | 16 | 9 | 7 | 0 | 0 |
+| VS-CODE-005 | 17 | 16 | 16 | 0 | 15 | 1 | 0 |
+| VS-CODE-006 | 19 | 16 | 16 | 3 | 9 | 4 | 3 |
+| VS-CODE-007 | 27 | 19 | 16 | 7 | 5 | 4 | 0 |
+| VS-DOCKER-001 | 75 | 74 | 16 | 12 | 3 | 1 | 0 |
+| VS-DOCKER-002 | 10 | 10 | 10 | 6 | 4 | 0 | 0 |
+| VS-DOCKER-003 | 4 | 3 | 4 | 2 | 1 | 1 | 0 |
+| VS-IAC-001 | 106 | 75 | 16 | 9 | 1 | 6 | 0 |
 | VS-IAC-002 | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
 | VS-IAC-003 | 2 | 1 | 2 | 1 | 0 | 1 | 0 |
-| VS-K8S-001 | 12 | 12 | 8 | 7 | 1 | 0 | 0 |
-| VS-K8S-002 | 15 | 15 | 8 | 8 | 0 | 0 | 0 |
+| VS-K8S-001 | 12 | 12 | 12 | 6 | 6 | 0 | 0 |
+| VS-K8S-002 | 15 | 15 | 15 | 7 | 8 | 0 | 0 |
 | VS-K8S-003 | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
 | VS-PRIV-001 | 2 | 0 | 2 | 1 | 0 | 1 | 0 |
-| VS-PROC-001 | 10 | 10 | 8 | 8 | 0 | 0 | 0 |
+| VS-PROC-001 | 10 | 10 | 10 | 10 | 0 | 0 | 0 |
 | VS-SECRET-001 | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| VS-SECRET-002 | 13 | 13 | 8 | 4 | 4 | 0 | 0 |
-| VS-SECRET-004 | 318 | 312 | 8 | 2 | 4 | 2 | 0 |
+| VS-SECRET-002 | 13 | 13 | 13 | 4 | 9 | 0 | 0 |
+| VS-SECRET-004 | 318 | 269 | 16 | 6 | 7 | 3 | 0 |
 | VS-SECRET-006 | 7 | 0 | 7 | 0 | 1 | 6 | 0 |
 
 ### True positives lost by the fixes
@@ -117,23 +118,23 @@ Same commits, same Linux CI run (gitleaks 8.30.1, semgrep 1.183.0). Unit: files 
 
 | | Files |
 |---|---|
-| Flagged by VigilSutra secret rules | 114 |
+| Flagged by VigilSutra secret rules | 99 |
 | Flagged by Gitleaks | 75 |
 | Both | 35 |
-| Only VigilSutra | 79 |
+| Only VigilSutra | 64 |
 | Only Gitleaks | 40 |
 
-Gitleaks found things VigilSutra does not, mainly generic API keys (33 files), JWTs and Kubernetes secrets, because VigilSutra has only six secret rules. VigilSutra's extra files mostly come from its broad hardcoded-credential rule (many are test files) and the `.env` rule. **Gitleaks is the better secrets scanner**, and it also scans git history, which VigilSutra does not. Use both.
+Gitleaks found things VigilSutra does not, mainly generic API keys (30 files), JWTs and Kubernetes secrets, because VigilSutra has only six secret rules. VigilSutra's extra files mostly come from its broad hardcoded-credential rule (many are test files) and the `.env` rule. **Gitleaks is the better secrets scanner**, and it also scans git history, which VigilSutra does not. Use both.
 
 ### Code and configuration: VigilSutra vs Semgrep (`p/security-audit`)
 
 | | Files |
 |---|---|
-| Flagged by VigilSutra (code, CI, container, IaC, agent rules) | 242 |
-| Flagged by Semgrep | 178 (561 findings) |
+| Flagged by VigilSutra (code, CI, container, IaC, agent rules) | 239 |
+| Flagged by Semgrep | 179 (562 findings) |
 | Both | 17 |
-| Only VigilSutra | 225 |
-| Only Semgrep | 178 |
+| Only VigilSutra | 222 |
+| Only Semgrep | 179 |
 
 The overlap is small because the tools look at different things. That Semgrep ruleset is dominated by framework-specific rules (the most frequent were custom-expression-as-sql, template-blocktranslate-no-escape, extends-custom-expression), while VigilSutra's findings are mostly CI workflows, Dockerfiles, Kubernetes and Terraform. They complement each other; **VigilSutra does not replace Semgrep** for code analysis. Trivy and CodeQL were not compared.
 

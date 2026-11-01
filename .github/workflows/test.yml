@@ -21,3 +21,16 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run audit:self
+      - name: Audit inside a network namespace with no interfaces (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          cat > /tmp/offline.sh <<'SCRIPT'
+          # 1. prove the namespace really has no network: a request must fail
+          if node -e "fetch('http://example.com').then(() => process.exit(0), () => process.exit(1))"; then
+            echo "namespace unexpectedly has network access"; exit 1
+          fi
+          # 2. the audit must still succeed
+          node dist/cli.js audit examples/intentionally-insecure --format sarif --out /tmp/vs.sarif
+          test -s /tmp/vs.sarif
+          SCRIPT
+          sudo unshare --net -- env "PATH=$PATH" sh /tmp/offline.sh

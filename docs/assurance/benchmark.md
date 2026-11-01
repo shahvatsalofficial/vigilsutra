@@ -134,7 +134,7 @@ Gitleaks found things VigilSutra does not, mainly generic API keys (30 files), J
 | Flagged by Semgrep | 179 (562 findings) |
 | Both | 17 |
 | Only VigilSutra | 222 |
-| Only Semgrep | 179 |
+| Only Semgrep | 162 |
 
 The overlap is small because the tools look at different things. That Semgrep ruleset is dominated by framework-specific rules (the most frequent were custom-expression-as-sql, template-blocktranslate-no-escape, extends-custom-expression), while VigilSutra's findings are mostly CI workflows, Dockerfiles, Kubernetes and Terraform. They complement each other; **VigilSutra does not replace Semgrep** for code analysis. Trivy and CodeQL were not compared.
 

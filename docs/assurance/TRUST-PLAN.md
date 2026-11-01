@@ -9,7 +9,7 @@ Written 2026-11-01 after an independent-auditor style review of what a skeptical
 | 3 | Independent verification | **Blocked / not possible by tooling** | Internal review with 10 fixes and tests; GitHub CodeQL (an independent static analyzer) now runs on every push and found 3 real-or-near-real issues that were fixed: [internal-review.md](internal-review.md); open request for reviewers: [REVIEW-REQUEST.md](REVIEW-REQUEST.md) | Someone outside the project has to review it. Owner: recruit a reviewer |
 | 4 | npm provenance | **Blocked** | `release.yml` publishes with provenance via Trusted Publishing; Actions pinned; Dependabot on | Owner must add the Trusted Publisher on npmjs.com and run a release. Version 0.1.0 on npm has no provenance |
 | 5 | Verified offline claim | **Done** | Runtime test with blocked network/subprocess APIs; Linux network-namespace step in CI: [offline-verification.md](offline-verification.md) | |
-| 6 | Visible CI status | **Done** | CI badge, 3 OS x Node 20/22 matrix, compatibility page; Scorecard workflow added | Scorecard badge appears after its first run on `main` |
+| 6 | Visible CI status | **Done** | CI badge, 3 OS x Node 20/22 matrix, compatibility page; OpenSSF Scorecard published (5.5/10 at first run); CodeQL on every push | Scorecard weak spots: branch protection, required code review, repository age, OpenSSF best-practices badge (owner actions) |
 | 7 | Fuzz and ReDoS testing | **Done** | Seeded fuzz and adversarial-timing tests; found 2 real quadratic regexes: [fuzzing.md](fuzzing.md) | No formal regex analysis |
 | 8 | Coverage figure | **Done** | 98.4 % lines, 89.6 % branches: [coverage.md](coverage.md) | No enforced threshold or mutation testing |
 | 9 | Dependency, license and SBOM report | **Done** | CycloneDX and SPDX SBOMs, license table, `npm audit`: [supply-chain.md](supply-chain.md) | Zero runtime dependencies, so little to report |
@@ -22,7 +22,7 @@ Written 2026-11-01 after an independent-auditor style review of what a skeptical
 | H1 | Exposed GitHub token | **Blocked** | Never written to the repo | Owner must revoke it |
 | H2 | npm package owned by a personal account, org exists | **Blocked** | | `npm owner add` / transfer to the `vigilsutra` org |
 | H3 | Trademark clearance | **Blocked** | Preliminary search: [trademark-search.md](trademark-search.md) | Formal search by an attorney |
-| H4 | Dependabot major bumps (TypeScript 7, @types/node 26, checkout 7) | **Pending** | PR checks exist; TypeScript 7 failed CI | Review and close or merge each |
+| H4 | Dependabot pull requests (5 open) | **Pending (owner decision)** | Recommendation: merge the three official-action bumps (`actions/checkout` 7, `actions/setup-node` 7, `codeql-action` 4) once CI is green on the PR; close TypeScript 7 (its CI run fails) and `@types/node` 26 (the package supports Node 20, so types for Node 26 would hide API misuse) | Merge or close each |
 
 ## Principles used
 

@@ -31,7 +31,7 @@ for (const f of readdirSync(join(dir, "vigilsutra")).filter((x) => x.endsWith(".
   rows.push({
     repo,
     secrets: { vigilsutra: vsSecretFiles.size, gitleaks: glFiles.size, both: inter(vsSecretFiles, glFiles), onlyVigilSutra: vsSecretFiles.size - inter(vsSecretFiles, glFiles), onlyGitleaks: onlyGl.length },
-    code: { vigilsutraFiles: vsCodeFiles.size, semgrepFiles: sgFiles.size, both: inter(vsCodeFiles, sgFiles), onlyVigilSutra: vsCodeFiles.size - inter(vsCodeFiles, sgFiles), onlySemgrep: sgFiles.size - inter(sgFiles, vsCodeFiles), semgrepFindings: sg.length }
+    code: { vigilsutraFiles: vsCodeFiles.size, semgrepFiles: sgFiles.size, both: inter(vsCodeFiles, sgFiles), onlyVigilSutra: vsCodeFiles.size - inter(vsCodeFiles, sgFiles), onlySemgrep: sgFiles.size - inter(vsCodeFiles, sgFiles), semgrepFindings: sg.length }
   });
 }
 const sum = (sel) => rows.reduce((a, r) => a + sel(r), 0);

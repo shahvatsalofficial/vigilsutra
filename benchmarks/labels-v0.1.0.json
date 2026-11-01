@@ -138,9 +138,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/explorer/Dockerfile|15|VS-DOCKER-001": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-DOCKER-001",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|infrastructure/hunger-check/Dockerfile|1|VS-DOCKER-001": {
    "label": "TP",
@@ -158,9 +158,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/volumes/flexvolume/deploy/Dockerfile|15|VS-DOCKER-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-DOCKER-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|infrastructure/hidden-in-layers/Dockerfile|1|VS-DOCKER-002": {
    "label": "TP",
@@ -168,9 +168,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/https-nginx/Dockerfile|15|VS-DOCKER-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-DOCKER-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|infrastructure/health-check/Dockerfile|1|VS-DOCKER-002": {
    "label": "TP",
@@ -178,9 +178,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/volumes/nfs/nfs-data/Dockerfile|15|VS-DOCKER-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-DOCKER-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|infrastructure/build-code/Dockerfile|1|VS-DOCKER-002": {
    "label": "TP",
@@ -193,9 +193,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/meteor/dockerbase/Dockerfile|20|VS-DOCKER-003": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-DOCKER-003",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "docker__awesome-compose|wasmedge-mysql-nginx/backend/Dockerfile|14|VS-DOCKER-003": {
    "label": "TP",
@@ -243,9 +243,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|29|VS-K8S-001": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-001",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|41|VS-K8S-001": {
    "label": "TP",
@@ -253,9 +253,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/volumes/nfs/nfs-server-deployment.yaml|26|VS-K8S-001": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-001",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/health-check/deployment-simple-alternative.yaml|30|VS-K8S-001": {
    "label": "TP",
@@ -263,9 +263,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|26|VS-K8S-001": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-001",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/health-check/deployment.yaml|52|VS-K8S-001": {
    "label": "TP",
@@ -278,9 +278,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|21|VS-K8S-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/kube-bench-security/node-job.yaml|9|VS-K8S-002": {
    "label": "TP",
@@ -288,9 +288,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|19|VS-K8S-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|26|VS-K8S-002": {
    "label": "TP",
@@ -298,9 +298,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|20|VS-K8S-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|29|VS-K8S-002": {
    "label": "TP",
@@ -308,9 +308,9 @@
    "note": ""
   },
   "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|22|VS-K8S-002": {
-   "label": "TP",
+   "label": "TT",
    "rule": "VS-K8S-002",
-   "note": ""
+   "note": "archived example path; relabeled TT for consistency with the rubric"
   },
   "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|28|VS-K8S-002": {
    "label": "TP",

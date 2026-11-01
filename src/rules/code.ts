@@ -138,7 +138,9 @@ export const codeRules: Rule[] = [
     check: (f) =>
       lineRule(f, /\.innerHTML\s*=(?!=)|dangerouslySetInnerHTML\s*=|\bdocument\.write\s*\(/, {
         skipComments: true,
-        filter: (m, line) => !insideString(line, m.index)
+        // Skip text inside string literals, assignment of a constant string (for example clearing a node),
+        // and content passed through an obvious sanitizer.
+        filter: (m, line) => !insideString(line, m.index) && !/\.innerHTML\s*=\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*;?\s*(?:\/\/.*)?$/.test(line) && !/sanitiz|DOMPurify|escapeHtml|xss\(/i.test(line)
       })
   }
 ];

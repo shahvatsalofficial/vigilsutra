@@ -90,6 +90,9 @@ export interface ScopeStats {
   skippedUnreadable: number;
   truncated: boolean;
   truncatedReason?: string;
+  policy?: { source: string; userIgnorePatterns: number; disabledRules: string[]; limitsOverridden: boolean };
+  /** Findings dropped because one rule matched more than the per-file cap. */
+  cappedFindings?: number;
 }
 
 export interface ScanResult {

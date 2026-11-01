@@ -57,10 +57,9 @@ export const agentPrivacyRules: Rule[] = [
     applies: (f) => f.ext === ".json" && (/mcp/i.test(f.path) || /mcp/i.test(f.text)),
     check: (f) =>
       lineRule(f, /["']command["']\s*:\s*["'](?:npx|uvx|pipx)["']/, {
-        filter: (_m, line) => {
+        filter: (_m, _line, lineNo) => {
           // Look at this line and the next few for a version pin such as pkg@1.2.3.
-          const i = f.lines.indexOf(line);
-          const window = f.lines.slice(i, i + 5).join(" ");
+          const window = f.lines.slice(lineNo - 1, lineNo + 4).join(" ");
           return !/["'][^"'\s]+@\d[^"'\s]*["']/.test(window);
         }
       })

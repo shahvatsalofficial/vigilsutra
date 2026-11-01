@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync, writeFileSync, copyFileSync, rmdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { VERSION } from "./engine.js";
 
@@ -71,7 +71,10 @@ export function uninstallClaude(projectRoot: string): string[] {
   for (const rel of files) {
     const abs = resolve(projectRoot, rel);
     // Never delete outside the project's .claude/skills directory.
-    if (!abs.startsWith(resolve(projectRoot, ".claude", "skills"))) continue;
+    // Only ever remove <project>/.claude/skills/<name>/SKILL.md. The manifest lives in the project and
+    // could be edited by anyone, so it is validated rather than trusted.
+    const inside = relative(resolve(projectRoot, ".claude", "skills"), abs);
+    if (inside.startsWith("..") || isAbsolute(inside) || !/^[^/\\]+[/\\]SKILL\.md$/.test(inside)) continue;
     if (existsSync(abs)) {
       rmSync(abs);
       removed.push(rel);

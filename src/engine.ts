@@ -4,16 +4,23 @@ import { basename, join } from "node:path";
 import { ALL_RULES, CWE_NOTE, RULES_VERSION, findRule } from "./rules/index.js";
 import { isTestPath } from "./rules/util.js";
 import { inventory, type Inventory } from "./scope.js";
-import { loadPolicy, type Policy } from "./policy.js";
+import { DEFAULT_POLICY, loadPolicy, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
 export const VERSION = "0.1.0";
 
+/** Per rule, per file. Keeps one noisy file from producing an unbounded report. */
+export const MAX_PER_RULE_PER_FILE = 200;
+
 export interface AuditOptions {
   root: string;
   baselineFile?: string;
   policy?: Policy;
+  /** Use this policy file instead of the project's own. */
+  policyFile?: string;
+  /** Ignore the project's .vigilsutra.yml (use built-in defaults). */
+  ignoreProjectPolicy?: boolean;
 }
 
 function sha(s: string): string {
@@ -100,8 +107,9 @@ export function loadBaseline(file: string): Set<string> {
 
 export function audit(opts: AuditOptions): ScanResult {
   const root = realpathSync(opts.root);
-  const policy = opts.policy ?? loadPolicy(root);
+  const policy = opts.policy ?? loadPolicy(root, { explicitFile: opts.policyFile, ignoreProjectPolicy: opts.ignoreProjectPolicy });
   const inv: Inventory = inventory(root, policy);
+  let capped = 0;
   const disabled = new Set(policy.disableRules.map((r) => r.toUpperCase()));
   const rules = ALL_RULES.filter((r) => !disabled.has(r.id));
   const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
@@ -133,7 +141,12 @@ export function audit(opts: AuditOptions): ScanResult {
     }
     for (const { rule, hits } of raw) {
       const seen = new Map<string, number>();
-      for (const hit of hits) {
+      for (const [i, hit] of hits.entries()) {
+        // Bound output: one rule reporting thousands of lines in one file adds noise, not information.
+        if (i >= MAX_PER_RULE_PER_FILE) {
+          capped += hits.length - MAX_PER_RULE_PER_FILE;
+          break;
+        }
         const key = `${hit.excerpt ?? ""}`;
         const n = seen.get(key) ?? 0;
         seen.set(key, n + 1);
@@ -185,6 +198,16 @@ export function audit(opts: AuditOptions): ScanResult {
     "Absence of findings is not evidence of security."
   ];
   if (inv.stats.truncated) limitations.push(`Scan was truncated: ${inv.stats.truncatedReason}. Results are incomplete.`);
+  const limitsOverridden = policy.maxFileSize !== DEFAULT_POLICY.maxFileSize || policy.maxFiles !== DEFAULT_POLICY.maxFiles || policy.timeLimitMs !== DEFAULT_POLICY.timeLimitMs;
+  const narrowed = (policy.userIgnores ?? 0) > 0 || policy.disableRules.length > 0 || limitsOverridden;
+  if (narrowed) {
+    limitations.push(
+      `Scan scope was changed by ${policy.source}: ${policy.userIgnores ?? 0} extra ignore pattern(s), ${policy.disableRules.length} disabled rule(s)${limitsOverridden ? ", custom limits" : ""}. If you did not write this policy (for example when auditing someone else's repository), re-run with --no-policy.`
+    );
+  }
+  if (capped > 0) limitations.push(`${capped} additional finding(s) were not listed because a rule exceeded ${MAX_PER_RULE_PER_FILE} matches in one file.`);
+  inv.stats.policy = { source: policy.source ?? "built-in defaults", userIgnorePatterns: policy.userIgnores ?? 0, disabledRules: [...policy.disableRules], limitsOverridden };
+  if (capped > 0) inv.stats.cappedFindings = capped;
 
   return {
     schemaVersion: "1.0",

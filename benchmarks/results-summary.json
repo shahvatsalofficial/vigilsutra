@@ -1,0 +1,675 @@
+{
+ "generated": "2026-11-01T17:19:11.236Z",
+ "repos": [
+  {
+   "name": "juice-shop/juice-shop",
+   "kind": "vulnerable-by-design",
+   "commit": "717f5efa886b0417eeecb52378b03cf10567b7e2",
+   "files": 1172,
+   "mib": 13.6,
+   "ms": 436,
+   "truncated": false,
+   "skippedTooLarge": 2,
+   "total": 281,
+   "bySeverity": {
+    "critical": 3,
+    "high": 16,
+    "medium": 251,
+    "low": 11,
+    "info": 0
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "python",
+    "docker",
+    "terraform",
+    "github-actions",
+    "ai-agents"
+   ]
+  },
+  {
+   "name": "OWASP/NodeGoat",
+   "kind": "vulnerable-by-design",
+   "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+   "files": 92,
+   "mib": 0.3,
+   "ms": 13,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 20,
+   "bySeverity": {
+    "critical": 1,
+    "high": 3,
+    "medium": 9,
+    "low": 6,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "docker",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "appsecco/dvna",
+   "kind": "vulnerable-by-design",
+   "commit": "9ba473add536f66ac9007966acb2a775dd31277a",
+   "files": 126,
+   "mib": 0.8,
+   "ms": 21,
+   "truncated": false,
+   "skippedTooLarge": 1,
+   "total": 3,
+   "bySeverity": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "docker"
+   ]
+  },
+  {
+   "name": "bridgecrewio/terragoat",
+   "kind": "vulnerable-by-design",
+   "commit": "729f8da62c6a85ce4af5ad3d123de97776d954c4",
+   "files": 66,
+   "mib": 0.5,
+   "ms": 10,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 27,
+   "bySeverity": {
+    "critical": 0,
+    "high": 3,
+    "medium": 16,
+    "low": 7,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "python",
+    "docker",
+    "terraform",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "madhuakula/kubernetes-goat",
+   "kind": "vulnerable-by-design",
+   "commit": "723a0db478f050d173d23b4ce5044b65bce0bdd0",
+   "files": 243,
+   "mib": 1,
+   "ms": 31,
+   "truncated": false,
+   "skippedTooLarge": 9,
+   "total": 36,
+   "bySeverity": {
+    "critical": 0,
+    "high": 13,
+    "medium": 17,
+    "low": 5,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "python",
+    "docker",
+    "kubernetes"
+   ]
+  },
+  {
+   "name": "we45/Vulnerable-Flask-App",
+   "kind": "vulnerable-by-design",
+   "commit": "b6a4f97afd466e83e1f60781494252dec1c37039",
+   "files": 18,
+   "mib": 0.1,
+   "ms": 5,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 20,
+   "bySeverity": {
+    "critical": 0,
+    "high": 8,
+    "medium": 6,
+    "low": 5,
+    "info": 1
+   },
+   "detected": [
+    "python",
+    "docker",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "digininja/DVWA",
+   "kind": "vulnerable-by-design",
+   "commit": "a1978a2fed195acd093010af6395f86a281537ca",
+   "files": 233,
+   "mib": 1,
+   "ms": 27,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 20,
+   "bySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 7,
+    "low": 13,
+    "info": 0
+   },
+   "detected": [
+    "python",
+    "docker",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "expressjs/express",
+   "kind": "mainstream",
+   "commit": "1c6f1b0fe4000977b9a7b4f34097e4d527dd9824",
+   "files": 216,
+   "mib": 0.7,
+   "ms": 42,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 1,
+   "bySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "pallets/flask",
+   "kind": "mainstream",
+   "commit": "49943b5a94413a530761350f04e896f76e8d620e",
+   "files": 231,
+   "mib": 1.4,
+   "ms": 45,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 4,
+   "bySeverity": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 1,
+    "info": 1
+   },
+   "detected": [
+    "python",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "psf/requests",
+   "kind": "mainstream",
+   "commit": "3c7baaa05ab4aa49cc819ce3a819d260de19c157",
+   "files": 124,
+   "mib": 1.5,
+   "ms": 31,
+   "truncated": false,
+   "skippedTooLarge": 1,
+   "total": 8,
+   "bySeverity": {
+    "critical": 4,
+    "high": 4,
+    "medium": 0,
+    "low": 0,
+    "info": 0
+   },
+   "detected": [
+    "python",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "docker/awesome-compose",
+   "kind": "mainstream",
+   "commit": "30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562",
+   "files": 426,
+   "mib": 0.5,
+   "ms": 31,
+   "truncated": false,
+   "skippedTooLarge": 1,
+   "total": 36,
+   "bySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 35,
+    "low": 0,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "python",
+    "docker",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "actions/starter-workflows",
+   "kind": "mainstream",
+   "commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+   "files": 503,
+   "mib": 1.4,
+   "ms": 41,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 14,
+   "bySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 13,
+    "info": 1
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "terraform-aws-modules/terraform-aws-vpc",
+   "kind": "mainstream",
+   "commit": "b3abd6df2ecf052451a361ed55b8f06f8742a795",
+   "files": 111,
+   "mib": 0.9,
+   "ms": 19,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 78,
+   "bySeverity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 60,
+    "low": 17,
+    "info": 1
+   },
+   "detected": [
+    "terraform",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "kubernetes/examples",
+   "kind": "mainstream",
+   "commit": "22934a040acbb0c0aa103023ccbd871507bf17f6",
+   "files": 453,
+   "mib": 0.8,
+   "ms": 37,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 33,
+   "bySeverity": {
+    "critical": 0,
+    "high": 14,
+    "medium": 16,
+    "low": 3,
+    "info": 0
+   },
+   "detected": [
+    "python",
+    "docker",
+    "kubernetes"
+   ]
+  },
+  {
+   "name": "modelcontextprotocol/servers",
+   "kind": "mainstream",
+   "commit": "194cc86e3ae6400958555bd4116849d822d69263",
+   "files": 357,
+   "mib": 4,
+   "ms": 143,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 58,
+   "bySeverity": {
+    "critical": 0,
+    "high": 1,
+    "medium": 7,
+    "low": 50,
+    "info": 0
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "python",
+    "docker",
+    "github-actions",
+    "ai-agents"
+   ]
+  },
+  {
+   "name": "fastify/fastify",
+   "kind": "mainstream",
+   "commit": "5b9c009d9fc13d73bc48cf884778214402713739",
+   "files": 392,
+   "mib": 2.9,
+   "ms": 123,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 22,
+   "bySeverity": {
+    "critical": 0,
+    "high": 8,
+    "medium": 9,
+    "low": 5,
+    "info": 0
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "django/django",
+   "kind": "mainstream",
+   "commit": "a05e16a7230fe33d3f43f4a3aaed103cebb42efc",
+   "files": 5635,
+   "mib": 34.9,
+   "ms": 1327,
+   "truncated": false,
+   "skippedTooLarge": 0,
+   "total": 192,
+   "bySeverity": {
+    "critical": 0,
+    "high": 65,
+    "medium": 54,
+    "low": 73,
+    "info": 0
+   },
+   "detected": [
+    "node",
+    "python",
+    "github-actions"
+   ]
+  },
+  {
+   "name": "prometheus/prometheus",
+   "kind": "mainstream",
+   "commit": "ef78ff64267724c8ecd1a1283cad49b365a8b67f",
+   "files": 1707,
+   "mib": 17.6,
+   "ms": 364,
+   "truncated": false,
+   "skippedTooLarge": 2,
+   "total": 26,
+   "bySeverity": {
+    "critical": 5,
+    "high": 0,
+    "medium": 19,
+    "low": 2,
+    "info": 0
+   },
+   "detected": [
+    "node",
+    "typescript",
+    "python",
+    "docker",
+    "github-actions",
+    "kubernetes",
+    "ai-agents"
+   ]
+  }
+ ],
+ "findingsBefore": 1000,
+ "findingsAfter": 879,
+ "labeled": {
+  "n": 140,
+  "TP": 79,
+  "TT": 38,
+  "FP": 23,
+  "keptTP": 78,
+  "keptTT": 30,
+  "keptFP": 2,
+  "lowTT": 29
+ },
+ "perRule": {
+  "VS-CICD-001": {
+   "n": 8,
+   "TP": 7,
+   "TT": 0,
+   "FP": 1,
+   "keptTP": 7,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-CODE-001": {
+   "n": 8,
+   "TP": 2,
+   "TT": 4,
+   "FP": 2,
+   "keptTP": 2,
+   "keptTT": 4,
+   "keptFP": 0,
+   "lowTT": 3
+  },
+  "VS-CODE-002": {
+   "n": 1,
+   "TP": 1,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 1,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-CODE-003": {
+   "n": 8,
+   "TP": 1,
+   "TT": 7,
+   "FP": 0,
+   "keptTP": 1,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-CODE-004": {
+   "n": 8,
+   "TP": 5,
+   "TT": 3,
+   "FP": 0,
+   "keptTP": 5,
+   "keptTT": 3,
+   "keptFP": 0,
+   "lowTT": 3
+  },
+  "VS-CODE-006": {
+   "n": 8,
+   "TP": 2,
+   "TT": 3,
+   "FP": 3,
+   "keptTP": 2,
+   "keptTT": 3,
+   "keptFP": 2,
+   "lowTT": 3
+  },
+  "VS-CODE-007": {
+   "n": 8,
+   "TP": 4,
+   "TT": 2,
+   "FP": 2,
+   "keptTP": 4,
+   "keptTT": 2,
+   "keptFP": 0,
+   "lowTT": 2
+  },
+  "VS-DOCKER-001": {
+   "n": 8,
+   "TP": 7,
+   "TT": 1,
+   "FP": 0,
+   "keptTP": 7,
+   "keptTT": 1,
+   "keptFP": 0,
+   "lowTT": 1
+  },
+  "VS-DOCKER-002": {
+   "n": 8,
+   "TP": 7,
+   "TT": 1,
+   "FP": 0,
+   "keptTP": 7,
+   "keptTT": 1,
+   "keptFP": 0,
+   "lowTT": 1
+  },
+  "VS-DOCKER-003": {
+   "n": 4,
+   "TP": 3,
+   "TT": 0,
+   "FP": 1,
+   "keptTP": 3,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-IAC-001": {
+   "n": 8,
+   "TP": 5,
+   "TT": 0,
+   "FP": 3,
+   "keptTP": 5,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-IAC-002": {
+   "n": 1,
+   "TP": 1,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 1,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-IAC-003": {
+   "n": 2,
+   "TP": 1,
+   "TT": 0,
+   "FP": 1,
+   "keptTP": 1,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-K8S-001": {
+   "n": 8,
+   "TP": 7,
+   "TT": 1,
+   "FP": 0,
+   "keptTP": 7,
+   "keptTT": 1,
+   "keptFP": 0,
+   "lowTT": 1
+  },
+  "VS-K8S-002": {
+   "n": 8,
+   "TP": 8,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 8,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-K8S-003": {
+   "n": 2,
+   "TP": 2,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 2,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-PRIV-001": {
+   "n": 2,
+   "TP": 1,
+   "TT": 0,
+   "FP": 1,
+   "keptTP": 0,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-PROC-001": {
+   "n": 8,
+   "TP": 8,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 8,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-SECRET-001": {
+   "n": 1,
+   "TP": 1,
+   "TT": 0,
+   "FP": 0,
+   "keptTP": 1,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  },
+  "VS-SECRET-002": {
+   "n": 8,
+   "TP": 4,
+   "TT": 4,
+   "FP": 0,
+   "keptTP": 4,
+   "keptTT": 4,
+   "keptFP": 0,
+   "lowTT": 4
+  },
+  "VS-SECRET-004": {
+   "n": 8,
+   "TP": 2,
+   "TT": 4,
+   "FP": 2,
+   "keptTP": 2,
+   "keptTT": 4,
+   "keptFP": 0,
+   "lowTT": 4
+  },
+  "VS-CODE-005": {
+   "n": 8,
+   "TP": 0,
+   "TT": 7,
+   "FP": 1,
+   "keptTP": 0,
+   "keptTT": 7,
+   "keptFP": 0,
+   "lowTT": 7
+  },
+  "VS-SECRET-006": {
+   "n": 7,
+   "TP": 0,
+   "TT": 1,
+   "FP": 6,
+   "keptTP": 0,
+   "keptTT": 0,
+   "keptFP": 0,
+   "lowTT": 0
+  }
+ }
+}

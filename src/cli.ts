@@ -18,6 +18,8 @@ Commands:
       --out <file>        Write the report to a file instead of stdout
       --fail-on <sev>     Exit 1 if any finding is at/above critical|high|medium|low|info
       --baseline <file>   Suppress findings whose fingerprints are in this baseline
+      --policy <file>     Use this policy file instead of the project's .vigilsutra.yml
+      --no-policy         Ignore the project's .vigilsutra.yml (use when auditing code you do not own)
       --no-color          Plain output (also honours NO_COLOR)
   baseline [path] --out <file>   Record current findings as an accepted baseline
   verify [path] --previous <results.json>   Re-scan and compare with an earlier JSON result
@@ -38,7 +40,7 @@ interface Args {
   flags: Map<string, string | true>;
 }
 
-const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project"]);
+const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy"]);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -55,6 +57,11 @@ function parse(argv: string[]): Args {
     } else pos.push(a);
   }
   return { pos, flags };
+}
+
+function policyOpts(flags: Map<string, string | true>): { policyFile?: string; ignoreProjectPolicy?: boolean } {
+  const p = flags.get("policy");
+  return { policyFile: typeof p === "string" ? resolve(p) : undefined, ignoreProjectPolicy: flags.has("no-policy") };
 }
 
 function fail(msg: string): never {
@@ -100,8 +107,9 @@ function main(): void {
       const format = (flags.get("format") as string | undefined) ?? "text";
       if (!FORMATS.includes(format as Format)) fail(`unknown format "${format}"`);
       const baselineFile = flags.get("baseline");
-      const result = audit({ root, baselineFile: typeof baselineFile === "string" ? resolve(baselineFile) : undefined });
-      const failOn = sev(flags.get("fail-on")) ?? loadPolicy(root).failOn;
+      const pol = policyOpts(flags);
+      const result = audit({ root, baselineFile: typeof baselineFile === "string" ? resolve(baselineFile) : undefined, ...pol });
+      const failOn = sev(flags.get("fail-on")) ?? loadPolicy(root, { explicitFile: pol.policyFile, ignoreProjectPolicy: pol.ignoreProjectPolicy }).failOn;
       const out = flags.get("out");
       if (typeof out === "string") {
         writeOut(out, render(result, format as Format, false));
@@ -114,7 +122,7 @@ function main(): void {
       const root = checkRoot(pos[0] ?? ".");
       const out = flags.get("out");
       if (typeof out !== "string") fail("baseline needs --out <file>");
-      const result = audit({ root });
+      const result = audit({ root, ...policyOpts(flags) });
       writeOut(out, JSON.stringify({ tool: "vigilsutra", version: VERSION, createdAt: result.generatedAt, fingerprints: result.findings.map((f) => f.fingerprint).sort() }, null, 2) + "\n");
       process.stdout.write(`Baseline of ${result.findings.length} finding(s) written to ${out}\n`);
       return;
@@ -130,7 +138,7 @@ function main(): void {
         fail(`cannot read previous results: ${(e as Error).message}`);
       }
       if (!Array.isArray(prev.findings)) fail("previous file is not a VigilSutra JSON result");
-      const now = audit({ root });
+      const now = audit({ root, ...policyOpts(flags) });
       const before = new Map(prev.findings.map((f) => [f.fingerprint, f]));
       const after = new Map(now.findings.map((f) => [f.fingerprint, f]));
       const resolved = [...before.values()].filter((f) => !after.has(f.fingerprint));

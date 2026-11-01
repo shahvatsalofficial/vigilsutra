@@ -1,0 +1,366 @@
+{
+ "unit": "files with at least one finding, per repo",
+ "rows": [
+  {
+   "repo": "actions__starter-workflows",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 9,
+    "semgrepFiles": 1,
+    "both": 0,
+    "onlyVigilSutra": 9,
+    "onlySemgrep": 1,
+    "semgrepFindings": 1
+   }
+  },
+  {
+   "repo": "appsecco__dvna",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 2,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 2,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "bridgecrewio__terragoat",
+   "secrets": {
+    "vigilsutra": 3,
+    "gitleaks": 2,
+    "both": 2,
+    "onlyVigilSutra": 1,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 10,
+    "semgrepFiles": 1,
+    "both": 1,
+    "onlyVigilSutra": 9,
+    "onlySemgrep": 1,
+    "semgrepFindings": 1
+   }
+  },
+  {
+   "repo": "digininja__DVWA",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 1,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 1
+   },
+   "code": {
+    "vigilsutraFiles": 9,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 9,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "django__django",
+   "secrets": {
+    "vigilsutra": 20,
+    "gitleaks": 5,
+    "both": 2,
+    "onlyVigilSutra": 18,
+    "onlyGitleaks": 3
+   },
+   "code": {
+    "vigilsutraFiles": 57,
+    "semgrepFiles": 128,
+    "both": 11,
+    "onlyVigilSutra": 46,
+    "onlySemgrep": 128,
+    "semgrepFindings": 470
+   }
+  },
+  {
+   "repo": "docker__awesome-compose",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 33,
+    "semgrepFiles": 10,
+    "both": 0,
+    "onlyVigilSutra": 33,
+    "onlySemgrep": 10,
+    "semgrepFindings": 16
+   }
+  },
+  {
+   "repo": "expressjs__express",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 0,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "fastify__fastify",
+   "secrets": {
+    "vigilsutra": 2,
+    "gitleaks": 1,
+    "both": 0,
+    "onlyVigilSutra": 2,
+    "onlyGitleaks": 1
+   },
+   "code": {
+    "vigilsutraFiles": 4,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 4,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "juice-shop__juice-shop",
+   "secrets": {
+    "vigilsutra": 64,
+    "gitleaks": 24,
+    "both": 16,
+    "onlyVigilSutra": 48,
+    "onlyGitleaks": 8
+   },
+   "code": {
+    "vigilsutraFiles": 31,
+    "semgrepFiles": 6,
+    "both": 1,
+    "onlyVigilSutra": 30,
+    "onlySemgrep": 6,
+    "semgrepFindings": 6
+   }
+  },
+  {
+   "repo": "kubernetes__examples",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 11,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 11
+   },
+   "code": {
+    "vigilsutraFiles": 21,
+    "semgrepFiles": 2,
+    "both": 0,
+    "onlyVigilSutra": 21,
+    "onlySemgrep": 2,
+    "semgrepFindings": 3
+   }
+  },
+  {
+   "repo": "madhuakula__kubernetes-goat",
+   "secrets": {
+    "vigilsutra": 1,
+    "gitleaks": 3,
+    "both": 1,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 2
+   },
+   "code": {
+    "vigilsutraFiles": 20,
+    "semgrepFiles": 2,
+    "both": 0,
+    "onlyVigilSutra": 20,
+    "onlySemgrep": 2,
+    "semgrepFindings": 3
+   }
+  },
+  {
+   "repo": "modelcontextprotocol__servers",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 1,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 1
+   },
+   "code": {
+    "vigilsutraFiles": 17,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 17,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "OWASP__NodeGoat",
+   "secrets": {
+    "vigilsutra": 8,
+    "gitleaks": 3,
+    "both": 3,
+    "onlyVigilSutra": 5,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 3,
+    "semgrepFiles": 1,
+    "both": 0,
+    "onlyVigilSutra": 3,
+    "onlySemgrep": 1,
+    "semgrepFindings": 1
+   }
+  },
+  {
+   "repo": "pallets__flask",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 2,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 2
+   },
+   "code": {
+    "vigilsutraFiles": 3,
+    "semgrepFiles": 3,
+    "both": 3,
+    "onlyVigilSutra": 0,
+    "onlySemgrep": 3,
+    "semgrepFindings": 3
+   }
+  },
+  {
+   "repo": "prometheus__prometheus",
+   "secrets": {
+    "vigilsutra": 10,
+    "gitleaks": 18,
+    "both": 7,
+    "onlyVigilSutra": 3,
+    "onlyGitleaks": 11
+   },
+   "code": {
+    "vigilsutraFiles": 7,
+    "semgrepFiles": 20,
+    "both": 0,
+    "onlyVigilSutra": 7,
+    "onlySemgrep": 20,
+    "semgrepFindings": 42
+   }
+  },
+  {
+   "repo": "psf__requests",
+   "secrets": {
+    "vigilsutra": 4,
+    "gitleaks": 4,
+    "both": 4,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 1,
+    "semgrepFiles": 2,
+    "both": 0,
+    "onlyVigilSutra": 1,
+    "onlySemgrep": 2,
+    "semgrepFindings": 9
+   }
+  },
+  {
+   "repo": "terraform-aws-modules__terraform-aws-vpc",
+   "secrets": {
+    "vigilsutra": 0,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 0,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 10,
+    "semgrepFiles": 0,
+    "both": 0,
+    "onlyVigilSutra": 10,
+    "onlySemgrep": 0,
+    "semgrepFindings": 0
+   }
+  },
+  {
+   "repo": "we45__Vulnerable-Flask-App",
+   "secrets": {
+    "vigilsutra": 2,
+    "gitleaks": 0,
+    "both": 0,
+    "onlyVigilSutra": 2,
+    "onlyGitleaks": 0
+   },
+   "code": {
+    "vigilsutraFiles": 5,
+    "semgrepFiles": 2,
+    "both": 1,
+    "onlyVigilSutra": 4,
+    "onlySemgrep": 2,
+    "semgrepFindings": 6
+   }
+  }
+ ],
+ "totals": {
+  "secrets": {
+   "vigilsutra": 114,
+   "gitleaks": 75,
+   "both": 35,
+   "onlyVigilSutra": 79,
+   "onlyGitleaks": 40
+  },
+  "code": {
+   "vigilsutraFiles": 242,
+   "semgrepFiles": 178,
+   "both": 17,
+   "onlyVigilSutra": 225,
+   "onlySemgrep": 178,
+   "semgrepFindings": 561
+  }
+ },
+ "gitleaksRulesVigilSutraMissed": {
+  "generic-api-key": 33,
+  "jwt": 5,
+  "kubernetes-secret-yaml": 1,
+  "curl-auth-user": 1
+ },
+ "topSemgrepRules": {
+  "custom-expression-as-sql": 162,
+  "template-blocktranslate-no-escape": 86,
+  "extends-custom-expression": 60,
+  "avoid-mark-safe": 50,
+  "var-in-href": 48,
+  "use-of-unsafe-block": 34,
+  "template-unescaped-with-safe": 16,
+  "avoid-pickle": 15,
+  "template-translate-as-no-escape": 10,
+  "unquoted-attribute-var": 9,
+  "use-tls": 8,
+  "avoid-raw-sql": 6
+ }
+}

@@ -51,7 +51,7 @@
     "semgrepFiles": 1,
     "both": 1,
     "onlyVigilSutra": 9,
-    "onlySemgrep": 1,
+    "onlySemgrep": 0,
     "semgrepFindings": 1
    }
   },
@@ -87,7 +87,7 @@
     "semgrepFiles": 128,
     "both": 11,
     "onlyVigilSutra": 45,
-    "onlySemgrep": 128,
+    "onlySemgrep": 117,
     "semgrepFindings": 470
    }
   },
@@ -159,7 +159,7 @@
     "semgrepFiles": 6,
     "both": 1,
     "onlyVigilSutra": 30,
-    "onlySemgrep": 6,
+    "onlySemgrep": 5,
     "semgrepFindings": 6
    }
   },
@@ -249,7 +249,7 @@
     "semgrepFiles": 3,
     "both": 3,
     "onlyVigilSutra": 0,
-    "onlySemgrep": 3,
+    "onlySemgrep": 0,
     "semgrepFindings": 3
    }
   },
@@ -321,7 +321,7 @@
     "semgrepFiles": 2,
     "both": 1,
     "onlyVigilSutra": 4,
-    "onlySemgrep": 2,
+    "onlySemgrep": 1,
     "semgrepFindings": 6
    }
   }
@@ -339,7 +339,7 @@
    "semgrepFiles": 179,
    "both": 17,
    "onlyVigilSutra": 222,
-   "onlySemgrep": 179,
+   "onlySemgrep": 162,
    "semgrepFindings": 562
   }
  },

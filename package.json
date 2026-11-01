@@ -1,6 +1,6 @@
 {
   "name": "vigilsutra",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
   "keywords": [
     "security",

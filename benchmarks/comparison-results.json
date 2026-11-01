@@ -83,10 +83,10 @@
     "onlyGitleaks": 3
    },
    "code": {
-    "vigilsutraFiles": 57,
+    "vigilsutraFiles": 56,
     "semgrepFiles": 128,
     "both": 11,
-    "onlyVigilSutra": 46,
+    "onlyVigilSutra": 45,
     "onlySemgrep": 128,
     "semgrepFindings": 470
    }
@@ -148,10 +148,10 @@
   {
    "repo": "juice-shop__juice-shop",
    "secrets": {
-    "vigilsutra": 64,
+    "vigilsutra": 49,
     "gitleaks": 24,
     "both": 16,
-    "onlyVigilSutra": 48,
+    "onlyVigilSutra": 33,
     "onlyGitleaks": 8
    },
    "code": {
@@ -263,12 +263,12 @@
     "onlyGitleaks": 11
    },
    "code": {
-    "vigilsutraFiles": 7,
-    "semgrepFiles": 20,
+    "vigilsutraFiles": 5,
+    "semgrepFiles": 21,
     "both": 0,
-    "onlyVigilSutra": 7,
-    "onlySemgrep": 20,
-    "semgrepFindings": 42
+    "onlyVigilSutra": 5,
+    "onlySemgrep": 21,
+    "semgrepFindings": 43
    }
   },
   {
@@ -328,25 +328,25 @@
  ],
  "totals": {
   "secrets": {
-   "vigilsutra": 114,
+   "vigilsutra": 99,
    "gitleaks": 75,
    "both": 35,
-   "onlyVigilSutra": 79,
+   "onlyVigilSutra": 64,
    "onlyGitleaks": 40
   },
   "code": {
-   "vigilsutraFiles": 242,
-   "semgrepFiles": 178,
+   "vigilsutraFiles": 239,
+   "semgrepFiles": 179,
    "both": 17,
-   "onlyVigilSutra": 225,
-   "onlySemgrep": 178,
-   "semgrepFindings": 561
+   "onlyVigilSutra": 222,
+   "onlySemgrep": 179,
+   "semgrepFindings": 562
   }
  },
  "gitleaksRulesVigilSutraMissed": {
-  "generic-api-key": 33,
+  "generic-api-key": 30,
   "jwt": 5,
-  "kubernetes-secret-yaml": 1,
+  "kubernetes-secret-yaml": 4,
   "curl-auth-user": 1
  },
  "topSemgrepRules": {

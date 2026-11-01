@@ -7,7 +7,7 @@ Please report vulnerabilities in VigilSutra privately through GitHub: **Security
 
 Do not open a public issue for a security bug. Include the version (`vigilsutra --version`), a minimal reproduction, and the impact. Never include real secrets or personal data.
 
-Expect an acknowledgement within 7 days. This is a volunteer project and no fixed fix time is promised.
+Expect an acknowledgement within 7 days and a confirm-or-reject within 14. This is a volunteer project and no fixed fix time is promised. Reports, fixes and independent reviews are recorded publicly in [docs/security-advisories.md](docs/security-advisories.md); want to review the code? See [docs/assurance/REVIEW-REQUEST.md](docs/assurance/REVIEW-REQUEST.md).
 
 ## Supported versions
 

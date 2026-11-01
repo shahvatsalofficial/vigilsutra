@@ -81,11 +81,11 @@ A string matching a Slack token format (xox?-…) is committed.
 
 ### VS-SECRET-006: Environment file present in scanned tree
 
-A `.env`-style file exists in the scanned tree. If it is tracked by git it exposes whatever it contains. File contents are not echoed.
+A `.env`-style file exists in the scanned tree and contains at least one secret-named variable with a non-placeholder value. If it is tracked by git it exposes that value. File contents are not echoed.
 
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
-- **False positives:** Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell.
+- **False positives:** Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell. Files holding only placeholders or non-secret settings are not reported.
 
 ### VS-CICD-001: GitHub Action not pinned to a commit SHA
 

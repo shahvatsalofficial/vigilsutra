@@ -213,9 +213,9 @@
    "note": "egress rule (type = egress), not ingress; originally mislabeled TP, corrected after the regression check"
   },
   "juice-shop__juice-shop|data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf|85|VS-IAC-001": {
-   "label": "TP",
+   "label": "FP",
    "rule": "VS-IAC-001",
-   "note": ""
+   "note": "egress rule (protocol -1 outbound), not ingress; originally mislabeled TP, corrected after the regression check"
   },
   "terraform-aws-modules__terraform-aws-vpc|variables.tf|1041|VS-IAC-001": {
    "label": "TP",
@@ -228,9 +228,9 @@
    "note": ""
   },
   "juice-shop__juice-shop|data/static/codefixes/iacLeakedKeyChallenge_2.tf|85|VS-IAC-001": {
-   "label": "TP",
+   "label": "FP",
    "rule": "VS-IAC-001",
-   "note": ""
+   "note": "egress rule (protocol -1 outbound), not ingress; originally mislabeled TP, corrected after the regression check"
   },
   "bridgecrewio__terragoat|terraform/alicloud/bucket.tf|7|VS-IAC-002": {
    "label": "TP",

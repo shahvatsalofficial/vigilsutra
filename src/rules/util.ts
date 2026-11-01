@@ -28,7 +28,7 @@ export function isPlaceholder(value: string): boolean {
   );
 }
 
-export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: boolean; filter?: (m: RegExpExecArray, line: string) => boolean; secretGroup?: number } = {}): Hit[] {
+export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: boolean; filter?: (m: RegExpExecArray, line: string, lineNo: number) => boolean; secretGroup?: number } = {}): Hit[] {
   const hits: Hit[] = [];
   const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
   file.lines.forEach((line, i) => {
@@ -37,7 +37,7 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
     g.lastIndex = 0;
     const m = g.exec(line);
     if (!m) return;
-    if (opts.filter && !opts.filter(m, line)) return;
+    if (opts.filter && !opts.filter(m, line, i + 1)) return;
     const hit: Hit = { line: i + 1, excerpt: line };
     if (opts.secretGroup !== undefined) {
       const val = m[opts.secretGroup];

@@ -116,6 +116,8 @@ export const infraRules: Rule[] = [
       const froms = f.lines.map((l, i) => (/^\s*FROM\s/i.test(l) ? i : -1)).filter((i) => i >= 0);
       if (!froms.length) return [];
       const last = froms[froms.length - 1];
+      // Images published as non-root (for example distroless ":nonroot" tags) already default to an unprivileged user.
+      if (/nonroot|rootless/i.test(f.lines[last])) return [];
       const user = f.lines.slice(last).find((l) => /^\s*USER\s+(?!root\b|0\b)\S+/i.test(l));
       return user ? [] : [{ line: last + 1, excerpt: f.lines[last] }];
     }
@@ -225,10 +227,10 @@ export const infraRules: Rule[] = [
     check: (f) =>
       lineRule(f, /["'](?:0\.0\.0\.0\/0|::\/0)["']/, {
         skipComments: true,
-        filter: (_m, line) => {
+        filter: (_m, line, lineNo) => {
           // Routes and egress rules are not internet-facing ingress.
           if (/destination_(?:ipv6_)?cidr_block/.test(line)) return false;
-          return !lookBack(f, f.lines.indexOf(line) + 1, 6, /^\s*(?:route|egress)\s*\{|type\s*=\s*["']egress["']|egress_/);
+          return !lookBack(f, lineNo, 6, /^\s*(?:route|egress)\s*\{|type\s*=\s*["']egress["']|egress_/);
         }
       })
   },
@@ -263,7 +265,7 @@ export const infraRules: Rule[] = [
     check: (f) =>
       lineRule(f, /["']?(?:Action|actions)["']?\s*[:=]\s*(?:\[\s*)?["']\*["']/, {
         // A Deny statement with a wildcard is a guardrail, not a grant.
-        filter: (_m, line) => !lookBack(f, f.lines.indexOf(line) + 1, 4, /\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/)
+        filter: (_m, _line, lineNo) => !lookBack(f, lineNo, 4, /\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/)
       })
   }
 ];

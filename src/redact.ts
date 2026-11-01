@@ -6,7 +6,8 @@ export function redactSpan(text: string, span?: [number, number]): string {
 
 /** Collapse whitespace and cap length so excerpts stay small and diff-stable. */
 export function tidy(excerpt: string, max = 200): string {
-  const t = excerpt.replace(/\s+/g, " ").trim();
+  // Control characters (for example ANSI escapes) in scanned files must never reach a terminal or report.
+  const t = excerpt.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, "?").replace(/\s+/g, " ").trim();
   return t.length > max ? t.slice(0, max) + "…" : t;
 }
 

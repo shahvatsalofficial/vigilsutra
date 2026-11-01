@@ -1,0 +1,347 @@
+{
+ "version": "after round-1 fixes",
+ "labeledBy": "the maintainer's AI assistant (Claude), not an independent human reviewer",
+ "rubric": "see labels-v0.1.0.json",
+ "labels": {
+  "OWASP__NodeGoat|.github/workflows/e2e-test.yml|26|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "actions__starter-workflows|.github/workflows/validate-data.yaml|13|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|.github/workflows/pull_request.yaml|10|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "digininja__DVWA|.github/workflows/shiftleft-analysis.yml|19|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "django__django|.github/workflows/postgis.yml|44|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|app/routes/contributions.js|32|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "pallets__flask|src/flask/config.py|209|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "django__django|django/core/cache/backends/filebased.py|71|VS-CODE-003": {
+   "label": "TP",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|django/core/cache/backends/redis.py|29|VS-CODE-003": {
+   "label": "TP",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/loginBenderChallenge_1.ts|18|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/dbSchemaChallenge_3.ts|11|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|lib/insecurity.ts|41|VS-CODE-006": {
+   "label": "TP",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "digininja__DVWA|vulnerabilities/authbypass/authbypass.js|49|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "docker__awesome-compose|django/app/Dockerfile|12|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "kubernetes__examples|web/guestbook/php-redis/Dockerfile|15|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/hidden-in-layers/Dockerfile|1|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "modelcontextprotocol__servers|src/git/Dockerfile|24|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/goat-home/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/batch-check/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/aws/ec2.tf|88|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf|71|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "terraform-aws-modules__terraform-aws-vpc|wrappers/main.tf|79|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/aws/ec2.tf|95|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|56|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|70|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|27|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/kube-bench-security/master-job.yaml|9|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "terraform-aws-modules__terraform-aws-vpc|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|artifacts/db-reset.js|27|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/azure/mssql.tf|64|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "django__django|tests/deprecation/test_warn_about_external_use.py|160|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/static/loader.js|41|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "django__django|tests/template_tests/test_response.py|363|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/queryset_pickle/tests.py|104|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/queryset_pickle/tests.py|413|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/backends/tests.py|564|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|tests/backends/tests.py|557|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|tests/backends/tests.py|296|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "fastify__fastify|test/http2/secure-with-fallback.test.js|105|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|3015|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|tests/e2e_zap.py|18|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "fastify__fastify|test/http2/secure-with-fallback.test.js|87|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|tests/e2e_zap.py|29|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "django__django|tests/file_uploads/tests.py|121|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "fastify__fastify|test/reply-trailers.test.js|441|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "fastify__fastify|test/reply-trailers.test.js|426|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "juice-shop__juice-shop|frontend/src/assets/private/three.js|11375|VS-CODE-007": {
+   "label": "TT",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/static/loader.js|50|VS-CODE-007": {
+   "label": "TT",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/sysdig-cloud/sysdig-daemonset.yaml|44|VS-K8S-001": {
+   "label": "TT",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/volumes/flexvolume/deploy/ds.yaml|17|VS-K8S-001": {
+   "label": "TT",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|23|VS-K8S-002": {
+   "label": "TT",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/sysdig-cloud/sysdig-daemonset.yaml|39|VS-K8S-002": {
+   "label": "TT",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/sysdig-cloud/sysdig-daemonset.yaml|38|VS-K8S-002": {
+   "label": "TT",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "prometheus__prometheus|docs/configuration/configuration.md|3323|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "psf__requests|tests/certs/valid/server/server.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "prometheus__prometheus|scrape/testdata/servername.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "psf__requests|tests/certs/expired/server/server.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "prometheus__prometheus|scrape/testdata/client.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "django__django|tests/dbshell/test_mysql.py|172|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "fastify__fastify|test/constrained-routes.test.js|1018|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|routes/captcha.ts|22|VS-CODE-001": {
+   "label": "FP",
+   "rule": "VS-CODE-001",
+   "note": "eval of an expression built from server-generated numbers, not request data"
+  },
+  "django__django|django/template/loaders/cached.py|96|VS-CODE-006": {
+   "label": "FP",
+   "rule": "VS-CODE-006",
+   "note": "sha1 used for a cache key, not security"
+  },
+  "django__django|django/contrib/admin/static/admin/js/SelectBox.js|28|VS-CODE-007": {
+   "label": "FP",
+   "rule": "VS-CODE-007",
+   "note": "innerHTML = empty string"
+  },
+  "prometheus__prometheus|web/ui/react-app/src/pages/flags/Flags.tsx|108|VS-CODE-007": {
+   "label": "FP",
+   "rule": "VS-CODE-007",
+   "note": "content passed through sanitizeHTML"
+  },
+  "prometheus__prometheus|Dockerfile.distroless|4|VS-DOCKER-001": {
+   "label": "FP",
+   "rule": "VS-DOCKER-001",
+   "note": "distroless nonroot base image already sets a non-root user"
+  },
+  "juice-shop__juice-shop|terraform/networking.tf|239|VS-IAC-001": {
+   "label": "FP",
+   "rule": "VS-IAC-001",
+   "note": "egress rule; the filter looked up the wrong line (indexOf bug, fixed)"
+  },
+  "juice-shop__juice-shop|frontend/src/assets/i18n/zh_TW.json|97|VS-SECRET-004": {
+   "label": "FP",
+   "rule": "VS-SECRET-004",
+   "note": "UI label text in a translation file"
+  }
+ }
+}

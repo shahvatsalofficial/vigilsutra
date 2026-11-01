@@ -1,5 +1,5 @@
-import { lstatSync, readdirSync, readFileSync, realpathSync, openSync, readSync, closeSync } from "node:fs";
-import { join, basename, extname } from "node:path";
+import { lstatSync, readdirSync, realpathSync, openSync, readSync, closeSync, fstatSync, type Stats } from "node:fs";
+import { join, basename, extname, relative, isAbsolute } from "node:path";
 import type { ScannedFile, ScopeStats } from "./types.js";
 import { makeIgnoreMatcher, type Policy } from "./policy.js";
 
@@ -10,13 +10,33 @@ export interface Inventory {
   allPaths: Set<string>;
 }
 
-function looksBinary(abs: string): boolean {
+/** True when `p` is `root` or lies beneath it (case-insensitive on Windows). */
+export function isInside(root: string, p: string): boolean {
+  const fix = (s: string): string => (process.platform === "win32" ? s.toLowerCase() : s);
+  const rel = relative(fix(root), fix(p));
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+/**
+ * Opens the file once and reads it through that descriptor. Defence against a time-of-check/time-of-use
+ * swap: if the path was replaced by a symlink after the earlier lstat, the descriptor refers to a
+ * different file, so its device/inode no longer match and the file is refused.
+ */
+function readChecked(abs: string, expected: Stats): string | "binary" | "swapped" {
   const fd = openSync(abs, "r");
   try {
-    const buf = Buffer.alloc(8192);
-    const n = readSync(fd, buf, 0, 8192, 0);
-    for (let i = 0; i < n; i++) if (buf[i] === 0) return true;
-    return false;
+    const now = fstatSync(fd);
+    if (!now.isFile() || (expected.ino !== 0 && (now.ino !== expected.ino || now.dev !== expected.dev))) return "swapped";
+    const buf = Buffer.alloc(now.size);
+    let off = 0;
+    while (off < buf.length) {
+      const n = readSync(fd, buf, off, buf.length - off, off);
+      if (n === 0) break;
+      off += n;
+    }
+    const head = Math.min(off, 8192);
+    for (let i = 0; i < head; i++) if (buf[i] === 0) return "binary";
+    return buf.toString("utf8", 0, off);
   } finally {
     closeSync(fd);
   }
@@ -98,11 +118,16 @@ export function inventory(rootInput: string, policy: Policy): Inventory {
         return;
       }
       try {
-        if (looksBinary(abs)) {
+        const got = readChecked(abs, st);
+        if (got === "swapped") {
+          stats.skippedSymlinks++;
+          continue;
+        }
+        if (got === "binary") {
           stats.skippedBinary++;
           continue;
         }
-        const text = readFileSync(abs, "utf8");
+        const text = got;
         files.push({
           path: rel,
           name: e.name.toLowerCase(),

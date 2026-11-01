@@ -61,13 +61,14 @@ export const secretRules: Rule[] = [
     status: "potential",
     description: "A variable or key named like a password, secret, token or API key is assigned a non-placeholder string literal.",
     falsePositives: "Test data, example config, i18n labels. Values that look like placeholders, environment lookups or templates are skipped.",
-    applies: (f) => !/\.(md|txt|lock)$/.test(f.name),
+    applies: (f) => !/\.(md|txt|lock)$/.test(f.name) && !/(^|\/)(i18n|locales?|lang|translations?)\//i.test(f.path),
     check: (f) =>
       lineRule(f, /(?:pass(?:word|wd)?|secret|api[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret)["']?\s*[:=]\s*["']([^"'\s]{8,})["']/i, {
         skipComments: true,
         secretGroup: 1,
         // Skip placeholders and variable references such as '$password' used in templates or SQL text.
-        filter: (m) => !isPlaceholder(m[1]) && !/^\$\{?\w+\}?$/.test(m[1])
+        // A real credential contains ASCII letters or digits; UI labels in other scripts do not.
+        filter: (m) => !isPlaceholder(m[1]) && !/^\$\{?\w+\}?$/.test(m[1]) && /[A-Za-z0-9]/.test(m[1])
       })
   },
   {

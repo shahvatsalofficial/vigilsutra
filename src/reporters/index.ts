@@ -12,16 +12,18 @@ export function toJson(r: ScanResult): string {
 
 export function toText(r: ScanResult, color = false): string {
   const c = (code: string, s: string): string => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
+  // File names come from the scanned project and are untrusted: neutralize terminal control characters.
+  const safe = (t: string): string => t.replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, "?");
   const paint: Record<Severity, string> = { critical: "1;31", high: "31", medium: "33", low: "36", info: "2" };
   const out: string[] = [];
-  out.push(`VigilSutra AI ${r.tool.version} - local read-only audit of "${r.project.name}"`);
+  out.push(`VigilSutra AI ${r.tool.version} - local read-only audit of "${safe(r.project.name)}"`);
   out.push(`Scanned ${r.scope.filesScanned} files (${r.scope.bytesScanned} bytes). Skipped: ${r.scope.skippedIgnored} ignored, ${r.scope.skippedSymlinks} symlinks, ${r.scope.skippedTooLarge} too large, ${r.scope.skippedBinary} binary.`);
   if (r.project.detected.length) out.push(`Detected: ${r.project.detected.join(", ")}`);
   out.push("");
   if (!r.findings.length) out.push("No findings from the implemented rules. This is not proof of security; see limitations.");
   for (const f of r.findings) {
     out.push(`${c(paint[f.severity], f.severity.toUpperCase().padEnd(8))} ${f.ruleId}  ${f.title}`);
-    out.push(`         ${f.path}:${f.startLine}  [${f.status}, confidence ${f.confidence}]`);
+    out.push(`         ${safe(f.path)}:${f.startLine}  [${f.status}, confidence ${f.confidence}]`);
     out.push(`         evidence: ${f.excerpt}`);
   }
   out.push("");
@@ -30,6 +32,8 @@ export function toText(r: ScanResult, color = false): string {
   return out.join("\n") + "\n";
 }
 
+/** Text placed inside an inline code span must not contain backticks or line breaks (file names can). */
+const mdCode = (s: string): string => s.replace(/[`\r\n]/g, "'");
 const mdEsc = (s: string): string => s.replace(/[\\`*_{}[\]<>#|]/g, "\\$&");
 
 export function toMarkdown(r: ScanResult): string {
@@ -44,7 +48,7 @@ export function toMarkdown(r: ScanResult): string {
   const top = r.findings.filter((f) => f.severity === "critical" || f.severity === "high").slice(0, 5);
   if (top.length) {
     o.push("### Top priorities", "");
-    top.forEach((f, i) => o.push(`${i + 1}. **${f.ruleId}** ${mdEsc(f.title)} at \`${f.path}:${f.startLine}\``));
+    top.forEach((f, i) => o.push(`${i + 1}. **${f.ruleId}** ${mdEsc(f.title)} at \`${mdCode(f.path)}:${f.startLine}\``));
     o.push("");
   }
   o.push("### Scope and limits", "");
@@ -56,7 +60,7 @@ export function toMarkdown(r: ScanResult): string {
   for (const f of r.findings) {
     o.push(`### ${f.ruleId}: ${mdEsc(f.title)}`, "");
     o.push(`- Severity: **${f.severity}** | Confidence: **${f.confidence}** | Status: **${f.status}**`);
-    o.push(`- Location: \`${f.path}:${f.startLine}\``, `- Fingerprint: \`${f.fingerprint}\`${f.cwe.length ? ` | ${f.cwe.join(", ")} (orientation only)` : ""}`);
+    o.push(`- Location: \`${mdCode(f.path)}:${f.startLine}\``, `- Fingerprint: \`${f.fingerprint}\`${f.cwe.length ? ` | ${f.cwe.join(", ")} (orientation only)` : ""}`);
     o.push("- Evidence" + (f.redacted ? " (redacted)" : "") + ":", "", "  ```text", "  " + f.excerpt.replace(/`/g, "'"), "  ```", "");
     o.push(`**Why it matters.** ${f.description}`, "", `**Fix.** ${f.remediation}`, "", `**Verify.** ${f.verification}`, "", `**May be a false positive when.** ${f.falsePositives}`, "");
   }
@@ -90,7 +94,7 @@ export function toSarif(r: ScanResult): string {
           locations: [
             {
               physicalLocation: {
-                artifactLocation: { uri: f.path === "." ? "." : f.path, uriBaseId: "%SRCROOT%" },
+                artifactLocation: { uri: f.path === "." ? "." : f.path.split("/").map(encodeURIComponent).join("/"), uriBaseId: "%SRCROOT%" },
                 region: { startLine: f.startLine, endLine: f.endLine }
               }
             }

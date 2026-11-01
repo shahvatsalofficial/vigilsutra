@@ -1,16 +1,17 @@
 // Builds a deterministic labeling sample: up to N findings per rule, with redacted context.
-// Usage: node benchmarks/sample.mjs <resultsDir> <workDir> <N> <outFile>
+// Usage: node benchmarks/sample.mjs <resultsDir> <workDir> <N> <outFile> [labelsToExclude.json]
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-const [resDir, workDir, nArg, outFile] = process.argv.slice(2);
+const [resDir, workDir, nArg, outFile, excludeFile] = process.argv.slice(2);
+const exclude = new Set(excludeFile ? Object.keys(JSON.parse(readFileSync(excludeFile, "utf8")).labels) : []);
 const N = Number(nArg ?? 8);
 const { scrubTokens } = await import(pathToFileURL(resolve("dist/redact.js")).href);
 const all = [];
 for (const f of readdirSync(resDir).filter((x) => x.endsWith(".json") && x !== "summary.json")) {
   const r = JSON.parse(readFileSync(join(resDir, f), "utf8"));
   const repo = f.replace(".json", "");
-  for (const x of r.findings) all.push({ repo, ...x });
+  for (const x of r.findings) if (!exclude.has(`${repo}|${x.path}|${x.startLine}|${x.ruleId}`)) all.push({ repo, ...x });
 }
 const byRule = {};
 for (const f of all) (byRule[f.ruleId] ??= []).push(f);

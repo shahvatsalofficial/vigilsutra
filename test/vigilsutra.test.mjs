@@ -157,7 +157,7 @@ test("default ignores skip node_modules at any depth but not .env", () => {
 });
 
 test("HTML report escapes untrusted content", () => {
-  const r = scan({ ["x onerror=alert&1.js"]: "el.innerHTML = '<script>alert(1)</script>'" });
+  const r = scan({ ["x onerror=alert&1.js"]: "el.innerHTML = '<script>alert(1)</script>' + userInput" });
   const html = render(r, "html");
   assert.ok(!html.includes("<script>alert(1)</script>"));
   assert.ok(html.includes("x onerror=alert&amp;1.js"));
@@ -317,7 +317,12 @@ const FP_REGRESSIONS = [
   ["VS-IAC-001", { "m.tf": 'resource "aws_route_table" "t" {\n  route {\n    cidr_block = "0.0.0.0/0"\n  }\n}' }],
   ["VS-IAC-003", { "m.tf": 'statement {\n  effect    = "Deny"\n  actions   = ["*"]\n}' }],
   ["VS-PRIV-001", { "a.js": "logger.warn('Failed to record chat token usage metrics: ' + summarize(err))" }],
-  ["VS-SECRET-004", { "a.html": "<pre>WHERE password = '$password'</pre>" }]
+  ["VS-SECRET-004", { "a.html": "<pre>WHERE password = '$password'</pre>" }],
+  ["VS-DOCKER-001", { Dockerfile: "FROM gcr.io/distroless/static-debian13:nonroot-amd64\nCOPY a /a" }],
+  ["VS-CODE-007", { "a.js": "box.innerHTML = \"\";" }],
+  ["VS-CODE-007", { "a.tsx": "<span dangerouslySetInnerHTML={{ __html: sanitizeHTML(x) }} />" }],
+  ["VS-SECRET-004", { "ui/i18n/zh.json": "{ \"NEW_PASSWORD\": \"Abc12345xyz\" }" }],
+  ["VS-SECRET-004", { "a.json": "{ \"MANDATORY_NEW_PASSWORD\": \"請提供新的密碼.\" }" }]
 ];
 for (const [id, files] of FP_REGRESSIONS) {
   test(`false-positive regression: ${id} does not fire on ${JSON.stringify(Object.values(files)[0]).slice(0, 48)}`, () => {
@@ -334,6 +339,12 @@ test("true positives next to the false-positive cases are still reported", () =>
   for (const id of ["VS-CODE-001", "VS-PRIV-001", "VS-CODE-005", "VS-CODE-006", "VS-IAC-001"]) assert.ok(ids(r).includes(id), id);
 });
 
+test("IAC-001 uses the real line: an egress block is skipped even when an identical ingress line appears earlier", () => {
+  const tf = 'resource "aws_security_group" "g" {\n  ingress {\n    cidr_blocks = ["0.0.0.0/0"]\n  }\n\n  description = "x"\n  vpc_id = "v"\n  tags = {}\n  egress {\n    from_port = 0\n    cidr_blocks = ["0.0.0.0/0"]\n  }\n}';
+  const hits = scan({ "m.tf": tf }).findings.filter((f) => f.ruleId === "VS-IAC-001");
+  assert.deepEqual(hits.map((h) => h.startLine), [3]);
+});
+
 test("findings in test, example or vendored paths stay visible but get low confidence", () => {
   const r = scan({ "tests/a.test.js": "eval(x)", "src/a.js": "eval(x)" });
   const t = r.findings.find((f) => f.path === "tests/a.test.js" && f.ruleId === "VS-CODE-001");
@@ -342,6 +353,78 @@ test("findings in test, example or vendored paths stay visible but get low confi
   assert.equal(t.pathContext, "test-or-example");
   assert.equal(s.confidence, "medium");
   assert.equal(s.pathContext, undefined);
+});
+
+// ---- Findings from the internal security review (docs/assurance/internal-review.md) ----
+
+test("review: adapter uninstall refuses manifest entries outside .claude/skills/<name>/SKILL.md", () => {
+  const root = project({ "a.txt": "x", ".claude/skills-evil/x/SKILL.md": "keep", "outside.txt": "keep", ".claude/skills/other/notes.md": "keep" });
+  writeFileSync(join(root, ".claude", "skills", ".vigilsutra-managed.json"), JSON.stringify({ files: [".claude/skills-evil/x/SKILL.md", "../outside.txt", "outside.txt", ".claude/skills/other/notes.md", ".claude/skills/../../a.txt"] }));
+  cli(["adapters", "uninstall", "claude", "--project", root]);
+  for (const p of [".claude/skills-evil/x/SKILL.md", "outside.txt", ".claude/skills/other/notes.md", "a.txt"]) assert.ok(existsSync(join(root, p)), `${p} must survive`);
+});
+
+test("review: a project policy that narrows scope is disclosed, and --no-policy ignores it", () => {
+  const root = project({ "a.js": "eval(x)", ".vigilsutra.yml": "ignore:\n  - '**'\ndisableRules:\n  - VS-CODE-001\n" });
+  const quiet = JSON.parse(cli(["audit", root, "--format", "json"]).stdout);
+  assert.ok(!quiet.findings.some((f) => f.ruleId === "VS-CODE-001"));
+  assert.match(quiet.limitations.join(" "), /scope was changed by project \.vigilsutra\.yml/);
+  assert.equal(quiet.scope.policy.source, "project .vigilsutra.yml");
+  const open = JSON.parse(cli(["audit", root, "--format", "json", "--no-policy"]).stdout);
+  assert.ok(open.findings.some((f) => f.ruleId === "VS-CODE-001"));
+  const trusted = join(root, "..", "trusted.yml");
+  writeFileSync(trusted, "version: 1\n");
+  const viaFile = JSON.parse(cli(["audit", root, "--format", "json", "--policy", trusted]).stdout);
+  assert.ok(viaFile.findings.some((f) => f.ruleId === "VS-CODE-001"));
+});
+
+test("review: SARIF file locations are percent-encoded URIs", () => {
+  const s = JSON.parse(render(scan({ "my dir/a#b %c.js": "eval(x)" }), "sarif"));
+  const uri = s.runs[0].results.find((x) => x.ruleId === "VS-CODE-001").locations[0].physicalLocation.artifactLocation.uri;
+  assert.equal(uri, "my%20dir/a%23b%20%25c.js");
+});
+
+test("review: Markdown report cannot be broken out of a code span by a file name", () => {
+  const md = render(scan({ "a`b.js": "eval(x)" }), "markdown");
+  assert.ok(!md.includes("a`b.js"));
+  assert.ok(md.includes("a'b.js"));
+});
+
+test("review: terminal control characters in paths and excerpts are neutralized in text output", () => {
+  const r = scan({ "a.js": "eval(x) // \u001b[31mRED\u001b]0;pwned\u0007" });
+  r.findings[0].path = "evil\u001b[2Jname.js";
+  const out = render(r, "text");
+  assert.ok(!out.includes("\u001b"), "no ESC may reach the terminal");
+  assert.ok(!out.includes("\u0007"));
+});
+
+test("review: one rule matching thousands of lines in a file is capped and disclosed", () => {
+  const r = scan({ "a.js": Array.from({ length: 900 }, (_, i) => `eval(x${i})`).join("\n") });
+  assert.equal(r.findings.filter((f) => f.ruleId === "VS-CODE-001").length, 200);
+  assert.equal(r.scope.cappedFindings, 700);
+  assert.match(r.limitations.join(" "), /700 additional finding/);
+});
+
+test("review: a directory junction pointing outside the project is not followed", (t) => {
+  const outside = project({ "secret.js": "eval(x)" }, "outside-j");
+  const root = project({ "a.txt": "hi" });
+  try {
+    symlinkSync(outside, join(root, "jlink"), "junction");
+  } catch {
+    t.skip("cannot create junctions or symlinks on this system");
+    return;
+  }
+  const r = audit({ root });
+  assert.ok(!ids(r).includes("VS-CODE-001"));
+  assert.ok(r.scope.skippedSymlinks >= 1);
+});
+
+test("review: isInside rejects siblings that merely share a name prefix", async () => {
+  const { isInside } = await import("../dist/scope.js");
+  assert.ok(isInside("/p/root", "/p/root/a/b"));
+  assert.ok(isInside("/p/root", "/p/root"));
+  assert.ok(!isInside("/p/root", "/p/root-evil/a"));
+  assert.ok(!isInside("/p/root", "/p/other"));
 });
 
 test("repo self-audit finds no high-or-above issues", () => {

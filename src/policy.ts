@@ -9,6 +9,9 @@ export interface Policy {
   timeLimitMs: number;
   failOn?: Severity;
   disableRules: string[];
+  /** Where the policy came from; reported so a hostile project policy cannot silently narrow a scan. */
+  source?: string;
+  userIgnores?: number;
 }
 
 export const DEFAULT_IGNORE = [
@@ -88,15 +91,23 @@ function stripQuotes(s: string): string {
   return /^(['"]).*\1$/.test(s) ? s.slice(1, -1) : s;
 }
 
-export function loadPolicy(root: string): Policy {
-  const file = join(root, ".vigilsutra.yml");
-  if (!existsSync(file)) return { ...DEFAULT_POLICY };
+/**
+ * Loads policy. By default the project's own `.vigilsutra.yml` is used, but that file is controlled by
+ * whoever owns the project, so a report always states when it changed scope. Use `explicitFile` to
+ * apply a policy you trust, or `ignoreProjectPolicy` to ignore the project's file entirely.
+ */
+export function loadPolicy(root: string, opts: { explicitFile?: string; ignoreProjectPolicy?: boolean } = {}): Policy {
+  const file = opts.explicitFile ?? join(root, ".vigilsutra.yml");
+  if (opts.ignoreProjectPolicy && !opts.explicitFile) return { ...DEFAULT_POLICY, source: "built-in defaults (project policy ignored)", userIgnores: 0 };
+  if (!existsSync(file)) return { ...DEFAULT_POLICY, source: "built-in defaults", userIgnores: 0 };
   const user = parsePolicy(readFileSync(file, "utf8"));
   return {
     ...DEFAULT_POLICY,
     ...user,
     // User ignores extend, never replace, the safe defaults.
-    ignore: [...DEFAULT_IGNORE, ...(user.ignore ?? [])]
+    ignore: [...DEFAULT_IGNORE, ...(user.ignore ?? [])],
+    source: opts.explicitFile ? "explicit --policy file" : "project .vigilsutra.yml",
+    userIgnores: user.ignore?.length ?? 0
   };
 }
 

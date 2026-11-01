@@ -12,7 +12,7 @@ Everything on this page can be re-run. Where something has **not** been verified
 | Few false positives on real code | Benchmark on 18 public repositories with a labeled sample, a holdout sample and a regression check: [benchmark.md](benchmark.md) | `node benchmarks/run.mjs` |
 | How it compares | Same commits scanned with Gitleaks and Semgrep: [benchmark.md](benchmark.md#comparison-with-other-open-source-scanners) | **benchmark** workflow |
 | Small, auditable supply chain | Zero runtime dependencies, SBOMs, `npm audit` clean, pinned Actions: [supply-chain.md](supply-chain.md) | `npm sbom`, `npm audit` |
-| Reviewed for security flaws | Internal review, nine fixes with tests: [internal-review.md](internal-review.md). **Not independent.** | read the tests |
+| Reviewed for security flaws | Internal review plus CodeQL, ten fixes with tests: [internal-review.md](internal-review.md). **Not independent.** | read the tests |
 | Name conflicts | Preliminary search, **not clearance**: [trademark-search.md](trademark-search.md) | |
 | How vulnerabilities are handled | [SECURITY.md](../../SECURITY.md) and the public ledger [security-advisories.md](../security-advisories.md) | |
 

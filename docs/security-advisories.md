@@ -8,7 +8,7 @@ None published. As of 2026-11-01 no vulnerability has been reported externally.
 
 ## Fixes found by the project's own review
 
-Nine issues found during the maintainer's internal review were fixed before any external report. They are listed with tests in [assurance/internal-review.md](assurance/internal-review.md).
+Ten issues found during the maintainer's internal review and by CodeQL were fixed before any external report. They are listed with tests in [assurance/internal-review.md](assurance/internal-review.md).
 
 ## Independent reviews
 

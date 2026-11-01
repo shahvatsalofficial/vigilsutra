@@ -183,8 +183,9 @@ Everything here can be re-run; the full evidence index is [docs/assurance](docs/
 | Fuzzing / ReDoS | 16 adversarial shapes x 32 rules x 12 file kinds; found and fixed two real quadratic regexes; slowest rule 94 ms per 1,000 hostile lines ([details](docs/assurance/fuzzing.md)) |
 | Real-world accuracy | Run on **18 public repositories** (Juice Shop, NodeGoat, TerraGoat, Kubernetes Goat, Django, Prometheus and more). 240 findings labeled in three samples: false-positive share **18 %** with the released rules, **10 %** after round 1, **0 of 32** on a final untouched sample (95 % upper bound about 9 %) ([method and caveats](docs/assurance/benchmark.md)) |
 | Compared with other tools | Same commits through Gitleaks and Semgrep. Gitleaks finds more secret types; Semgrep covers code VigilSutra does not; overlap is small. Use them together ([results](docs/assurance/benchmark.md#comparison-with-other-open-source-scanners)) |
+| Independent static analysis | GitHub CodeQL (`security-extended`) runs on every push; its 5 alerts were fixed or dismissed with reasons. OpenSSF Scorecard result is public: 5.5 / 10 at first run (weak spots: no branch protection or code review requirement, repository age, no OpenSSF best-practices badge) |
 | Supply chain | Zero runtime dependencies, SBOMs published, `npm audit` clean, Actions pinned to SHAs ([details](docs/assurance/supply-chain.md)) |
-| Security review | Internal review with nine fixes, each with a test ([details](docs/assurance/internal-review.md)). **Not independent**; [reviewers wanted](docs/assurance/REVIEW-REQUEST.md) |
+| Security review | Internal review plus GitHub CodeQL on every push; ten fixes, each with a test ([details](docs/assurance/internal-review.md)). **Not independent**; [reviewers wanted](docs/assurance/REVIEW-REQUEST.md) |
 | Speed | 18 repositories (up to 5,600 files) scanned on a Linux runner; Django in about 1.3 s |
 
 **Not measured:** recall (how many real problems are missed), independent labels, independent review, Trivy/CodeQL comparison, very large monorepos. Labels were assigned by an AI assistant, not an independent human.

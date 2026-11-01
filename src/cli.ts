@@ -198,12 +198,17 @@ function main(): void {
     case "init": {
       const root = checkRoot(pos[0] ?? ".");
       const file = join(root, ".vigilsutra.yml");
-      if (existsSync(file)) {
-        process.stdout.write(".vigilsutra.yml already exists; not modified.\n");
-        return;
-      }
       const tpl = readFileSync(join(PACKAGE_ROOT, "policies", "safe-default.yaml"), "utf8");
-      writeFileSync(file, tpl);
+      try {
+        // "wx" creates the file only if it does not exist, atomically (no check-then-write race).
+        writeFileSync(file, tpl, { flag: "wx" });
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "EEXIST") {
+          process.stdout.write(".vigilsutra.yml already exists; not modified.\n");
+          return;
+        }
+        throw e;
+      }
       process.stdout.write(`Created ${file}\n`);
       return;
     }

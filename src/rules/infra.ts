@@ -230,7 +230,7 @@ export const infraRules: Rule[] = [
         filter: (_m, line, lineNo) => {
           // Routes and egress rules are not internet-facing ingress.
           if (/destination_(?:ipv6_)?cidr_block/.test(line)) return false;
-          return !lookBack(f, lineNo, 6, /^\s*(?:route|egress)\s*\{|type\s*=\s*["']egress["']|egress_/);
+          return !(lookBack(f, lineNo, 6, /^\s*(?:route|egress)\s*\{/) || lookBack(f, lineNo, 6, /type\s*=\s*["']egress["']|egress_/));
         }
       })
   },

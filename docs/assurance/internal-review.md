@@ -18,7 +18,9 @@ Date: 2026-11-01. Scope: all of `src/` (about 1,900 lines), the CLI contract, re
 | IR-8 | medium | **Two quadratic regular expressions** (found by the fuzz tests): `^\s*-?\s*uses:` on whitespace-only lines and multi-line `\s*` that spans newlines in YAML detection. One crafted 2 MB file took 4 seconds. | Anchored patterns without overlapping quantifiers; `[ \t]*` for same-line whitespace | `ReDoS guard: each rule handles 1,000 adversarial 1,990-character lines quickly` |
 | IR-9 | low | **Wrong line used by look-back filters.** Rules located the matched line with `indexOf(line)`, which returns the first identical line in the file, so a later egress block was judged by an earlier ingress block. Found by the holdout benchmark. | Filters receive the real line number | `IAC-001 uses the real line ...` |
 
-All nine were fixed in the same change set and each has a test. The test suite grew from 56 to 94 tests as a result of this work.
+| IR-10 | low | **Check-then-write races in `init` and the adapter** (reported by GitHub CodeQL, an independent static analyzer, after it was added to CI). `existsSync` followed by a write could overwrite a file created in between. | `init` creates with the exclusive `wx` flag; adapter installs use `COPYFILE_EXCL` for new files and treat "already exists" as skip | `init creates policy once and never overwrites`, `adapters: claude install is previewable, non-destructive ...` |
+
+All ten were fixed and each has a test (IR-10 reuses existing no-overwrite tests). The test suite grew from 56 to 94 tests as a result of this work. CodeQL's other alerts were a regular expression it judged unanchored (rewritten), a documentation-generator escaping bug (fixed, it would have mis-rendered pipe characters in `docs/rules.md`) and a race in a test helper (dismissed: test code).
 
 ## Checked and found acceptable
 

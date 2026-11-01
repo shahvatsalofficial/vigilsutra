@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync, writeFileSync, copyFileSync, rmdirSync } from "node:fs";
+import { constants, existsSync, mkdirSync, readFileSync, rmSync, readdirSync, writeFileSync, copyFileSync, rmdirSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { VERSION } from "./engine.js";
@@ -51,12 +51,26 @@ export function installClaude(projectRoot: string, force: boolean): Plan[] {
   for (const p of plan) {
     if (p.action === "skip-exists") continue;
     mkdirSync(dirname(p.to), { recursive: true });
-    copyFileSync(p.from, p.to);
+    try {
+      // A new file is created exclusively, so a file that appears after the plan was made is never overwritten.
+      copyFileSync(p.from, p.to, p.action === "create" ? constants.COPYFILE_EXCL : 0);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "EEXIST") {
+        p.action = "skip-exists";
+        continue;
+      }
+      throw e;
+    }
     written.push(p.to.slice(projectRoot.length + 1).replace(/\\/g, "/"));
   }
   if (written.length) {
     const manifestPath = join(projectRoot, ".claude", "skills", MANIFEST);
-    const prev: string[] = existsSync(manifestPath) ? (JSON.parse(readFileSync(manifestPath, "utf8")).files ?? []) : [];
+    let prev: string[] = [];
+    try {
+      prev = JSON.parse(readFileSync(manifestPath, "utf8")).files ?? [];
+    } catch {
+      /* no manifest yet */
+    }
     writeFileSync(manifestPath, JSON.stringify({ tool: "vigilsutra", version: VERSION, files: [...new Set([...prev, ...written])] }, null, 2) + "\n");
   }
   return plan;

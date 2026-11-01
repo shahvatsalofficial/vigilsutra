@@ -1,0 +1,23 @@
+{
+  "note": "Public repositories used for the real-world benchmark. 'kind' is context only; vulnerable-by-design repos are expected to contain real weaknesses, mainstream repos are not.",
+  "repos": [
+    { "name": "juice-shop/juice-shop", "kind": "vulnerable-by-design" },
+    { "name": "OWASP/NodeGoat", "kind": "vulnerable-by-design" },
+    { "name": "appsecco/dvna", "kind": "vulnerable-by-design" },
+    { "name": "bridgecrewio/terragoat", "kind": "vulnerable-by-design" },
+    { "name": "madhuakula/kubernetes-goat", "kind": "vulnerable-by-design" },
+    { "name": "we45/Vulnerable-Flask-App", "kind": "vulnerable-by-design" },
+    { "name": "digininja/DVWA", "kind": "vulnerable-by-design" },
+    { "name": "expressjs/express", "kind": "mainstream" },
+    { "name": "pallets/flask", "kind": "mainstream" },
+    { "name": "psf/requests", "kind": "mainstream" },
+    { "name": "docker/awesome-compose", "kind": "mainstream" },
+    { "name": "actions/starter-workflows", "kind": "mainstream" },
+    { "name": "terraform-aws-modules/terraform-aws-vpc", "kind": "mainstream" },
+    { "name": "kubernetes/examples", "kind": "mainstream" },
+    { "name": "modelcontextprotocol/servers", "kind": "mainstream" },
+    { "name": "fastify/fastify", "kind": "mainstream" },
+    { "name": "django/django", "kind": "mainstream" },
+    { "name": "prometheus/prometheus", "kind": "mainstream" }
+  ]
+}

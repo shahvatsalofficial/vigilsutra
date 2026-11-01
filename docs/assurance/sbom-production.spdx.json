@@ -1,0 +1,44 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "vigilsutra@0.1.0",
+  "documentNamespace": "http://spdx.org/spdxdocs/vigilsutra-0.1.0-97011b1a-3cca-42f4-839e-aa63aa0ba763",
+  "creationInfo": {
+    "created": "2026-11-01T16:57:56.163Z",
+    "creators": [
+      "Tool: npm/cli-11.13.0"
+    ]
+  },
+  "documentDescribes": [
+    "SPDXRef-Package-vigilsutra-0.1.0"
+  ],
+  "packages": [
+    {
+      "name": "vigilsutra",
+      "SPDXID": "SPDXRef-Package-vigilsutra-0.1.0",
+      "versionInfo": "0.1.0",
+      "packageFileName": "",
+      "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
+      "primaryPackagePurpose": "LIBRARY",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "homepage": "https://github.com/shahvatsalofficial/vigilsutra#readme",
+      "licenseDeclared": "Apache-2.0",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:npm/vigilsutra@0.1.0"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relatedSpdxElement": "SPDXRef-Package-vigilsutra-0.1.0",
+      "relationshipType": "DESCRIBES"
+    }
+  ]
+}

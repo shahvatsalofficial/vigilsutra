@@ -1,5 +1,5 @@
 import type { Hit, Rule } from "../types.js";
-import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule } from "./util.js";
+import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack } from "./util.js";
 
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
 const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
@@ -21,9 +21,9 @@ export const infraRules: Rule[] = [
     verification: "Every `uses:` line for a non-local action ends in @<40 hex>.",
     applies: isWorkflow,
     check: (f) =>
-      lineRule(f, /^\s*-?\s*uses:\s*([^\s#]+)/, {
+      lineRule(f, /^\s*(?:-\s*)?uses:\s*([^\s#]+)/, {
         filter: (m) => {
-          const ref = m[1];
+          const ref = m[1].replace(/^['"]|['"]$/g, "");
           if (ref.startsWith("./") || ref.startsWith("docker://")) return false;
           return !/@[0-9a-f]{40}$/.test(ref);
         }
@@ -43,7 +43,7 @@ export const infraRules: Rule[] = [
     verification: "Confirm no step after the checkout executes files from the PR head, or remove the head checkout.",
     applies: isWorkflow,
     check: (f) => {
-      if (!/^\s*pull_request_target\s*:|\bon:\s*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
+      if (!/^[ \t]*pull_request_target[ \t]*:|\bon:[ \t]*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
       return lineRule(f, /ref:\s*\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}/);
     }
   },
@@ -162,7 +162,7 @@ export const infraRules: Rule[] = [
     falsePositives: "Installers from a source you control and trust. Still no integrity verification.",
     verification: "No `| sh` / `| bash` remains; a checksum verification step precedes execution.",
     applies: (f) => isDockerfile(f) || f.ext === ".sh",
-    check: (f) => lineRule(f, /\b(?:curl|wget)\b[^|\n]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b/, { skipComments: true })
+    check: (f) => lineRule(f, /\b(?:curl|wget)\b[^|\n]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b/, { skipComments: true, filter: (_m, line) => !/\becho\s+["']/.test(line) })
   },
   {
     ...k8,
@@ -222,7 +222,15 @@ export const infraRules: Rule[] = [
     falsePositives: "Intentionally public web ports (80/443) and egress rules. Review the port and direction.",
     verification: "Ingress CIDRs are restricted or documented as intentionally public.",
     applies: isTerraform,
-    check: (f) => lineRule(f, /["'](?:0\.0\.0\.0\/0|::\/0)["']/, { skipComments: true })
+    check: (f) =>
+      lineRule(f, /["'](?:0\.0\.0\.0\/0|::\/0)["']/, {
+        skipComments: true,
+        filter: (_m, line) => {
+          // Routes and egress rules are not internet-facing ingress.
+          if (/destination_(?:ipv6_)?cidr_block/.test(line)) return false;
+          return !lookBack(f, f.lines.indexOf(line) + 1, 6, /^\s*(?:route|egress)\s*\{|type\s*=\s*["']egress["']|egress_/);
+        }
+      })
   },
   {
     ...iac,
@@ -252,7 +260,11 @@ export const infraRules: Rule[] = [
     falsePositives: "Deny statements and break-glass roles that are tightly controlled. Check Effect.",
     verification: "Wildcard replaced with an explicit action list.",
     applies: (f) => isTerraform(f) || f.ext === ".json" || isYaml(f),
-    check: (f) => lineRule(f, /["']?(?:Action|actions)["']?\s*[:=]\s*(?:\[\s*)?["']\*["']/)
+    check: (f) =>
+      lineRule(f, /["']?(?:Action|actions)["']?\s*[:=]\s*(?:\[\s*)?["']\*["']/, {
+        // A Deny statement with a wildcard is a guardrail, not a grant.
+        filter: (_m, line) => !lookBack(f, f.lines.indexOf(line) + 1, 4, /\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/)
+      })
   }
 ];
 

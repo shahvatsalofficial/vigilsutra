@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, join } from "node:path";
 import { ALL_RULES, CWE_NOTE, RULES_VERSION, findRule } from "./rules/index.js";
+import { isTestPath } from "./rules/util.js";
 import { inventory, type Inventory } from "./scope.js";
 import { loadPolicy, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
@@ -47,6 +48,7 @@ function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: num
   let excerpt = tidy(redactAll(hit.excerpt ?? "", spans));
   excerpt = scrubTokens(excerpt);
   const fp = fingerprint(rule, file.path, hit, occurrence, spans);
+  const testCtx = file.path !== "." && isTestPath(file.path) && rule.category !== "process";
   return {
     id: `${rule.id}-${fp.slice(0, 8)}`,
     fingerprint: fp,
@@ -55,7 +57,8 @@ function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: num
     title: rule.title,
     category: rule.category,
     severity: hit.severity ?? rule.severity,
-    confidence: hit.confidence ?? rule.confidence,
+    // Constructs in tests, examples and vendored code are real but rarely actionable: lower confidence, keep visible.
+    confidence: testCtx ? "low" : hit.confidence ?? rule.confidence,
     status: rule.status,
     agent: rule.agent,
     path: file.path,
@@ -70,7 +73,8 @@ function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: num
     verification: rule.verification,
     cwe: rule.cwe ?? [],
     mappingNote: CWE_NOTE,
-    note: hit.note
+    note: testCtx ? [hit.note, "Located in a test, example, archived or vendored path; confidence lowered."].filter(Boolean).join(" ") : hit.note,
+    ...(testCtx ? { pathContext: "test-or-example" as const } : {})
   };
 }
 
@@ -83,7 +87,7 @@ export function detectProject(files: ScannedFile[]): string[] {
   if (has(/(^|\/)dockerfile/i)) out.push("docker");
   if (has(/\.tf$/)) out.push("terraform");
   if (has(/^\.github\/workflows\//)) out.push("github-actions");
-  if (files.some((f) => /\.ya?ml$/.test(f.path) && /^\s*apiVersion:/m.test(f.text) && /^\s*kind:/m.test(f.text))) out.push("kubernetes");
+  if (files.some((f) => /\.ya?ml$/.test(f.path) && /^[ \t]*apiVersion:/m.test(f.text) && /^[ \t]*kind:/m.test(f.text))) out.push("kubernetes");
   if (has(/(^|\/)(agents\.md|claude\.md|\.cursorrules|skill\.md)$/i) || has(/mcp.*\.json$/i)) out.push("ai-agents");
   return out;
 }

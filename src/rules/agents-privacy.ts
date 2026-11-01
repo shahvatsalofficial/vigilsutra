@@ -1,5 +1,5 @@
 import type { Rule } from "../types.js";
-import { isCode, lineRule } from "./util.js";
+import { isCode, lineRule, stripStrings } from "./util.js";
 
 const ag = { version: "1.0.0", category: "ai-agents", agent: "AgentShield" };
 const pv = { version: "1.0.0", category: "privacy", agent: "PrivacyLens" };
@@ -81,7 +81,8 @@ export const agentPrivacyRules: Rule[] = [
     check: (f) =>
       lineRule(f, /\b(?:console\.(?:log|info|debug|warn|error)|logger\.\w+|logging\.\w+|print)\s*\([^)]*\b(?:password|passwd|secret|token|ssn|credit_?card|card_?number|aadhaar)\b(?!["'`]\s*[,)])/i, {
         skipComments: true,
-        filter: (_m, line) => !/["'`][^"'`]*\b(?:password|token|secret)\b[^"'`]*["'`]\s*\)\s*;?\s*$/.test(line)
+        // The sensitive word must be an identifier being logged, not just words inside a message string.
+        filter: (_m, line) => /\b(?:password|passwd|secret|token|ssn|credit_?card|card_?number|aadhaar)\b/i.test(stripStrings(line))
       })
   },
   {

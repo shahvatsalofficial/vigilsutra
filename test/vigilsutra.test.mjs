@@ -46,7 +46,8 @@ const PAIRS = [
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],
   ["VS-SECRET-004", { "a.js": `const password = "${PASS}";` }, { "a.js": 'const password = "changeme123"; const x = process.env.PASSWORD;' }],
   ["VS-SECRET-005", { "a.js": "const s = 'xoxb-" + "1234567890-abcdefghij';" }, { "a.js": "const s = 'xoxb';" }],
-  ["VS-SECRET-006", { ".env": "A=1" }, { ".env.example": "A=1" }],
+  ["VS-SECRET-006", { ".env": "API_TOKEN=" + PASS }, { ".env": "API_TOKEN=changeme\nTZ=Etc/UTC" }],
+  ["VS-SECRET-006", { ".env": "export DB_PASSWORD=" + PASS }, { ".env.example": "DB_PASSWORD=" + PASS }],
   ["VS-CICD-001", { ".github/workflows/a.yml": "jobs:\n  b:\n    steps:\n      - uses: foo/bar@v1" }, { ".github/workflows/a.yml": "jobs:\n  b:\n    steps:\n      - uses: foo/bar@" + "a".repeat(40) }],
   ["VS-CICD-002", { ".github/workflows/a.yml": "on: pull_request_target\njobs:\n  b:\n    steps:\n      - uses: actions/checkout@" + "a".repeat(40) + "\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}" }, { ".github/workflows/a.yml": "on: pull_request\njobs:\n  b:\n    steps:\n      - uses: actions/checkout@" + "a".repeat(40) + "\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}" }],
   ["VS-CICD-003", { ".github/workflows/a.yml": "permissions: write-all" }, { ".github/workflows/a.yml": "permissions:\n  contents: read" }],
@@ -150,7 +151,7 @@ test("size limit and binary files are skipped and counted", () => {
 });
 
 test("default ignores skip node_modules at any depth but not .env", () => {
-  const r = scan({ "node_modules/x/a.js": "eval(1)", "pkg/node_modules/y/a.js": "eval(1)", ".env": "A=1" });
+  const r = scan({ "node_modules/x/a.js": "eval(1)", "pkg/node_modules/y/a.js": "eval(1)", ".env": "API_TOKEN=" + PASS });
   assert.ok(!ids(r).includes("VS-CODE-001"));
   assert.ok(ids(r).includes("VS-SECRET-006"));
 });
@@ -300,6 +301,47 @@ test("every shipped SKILL.md has valid frontmatter and a registry entry", () => 
     const t = readFileSync(p, "utf8");
     assert.match(t, new RegExp(String.raw`^---\r?\nname: ${a.name}\r?\ndescription: .{20,}\r?\n---\r?\n`));
   }
+});
+
+// Each case below came from a false positive found by the real-world benchmark (benchmarks/).
+const FP_REGRESSIONS = [
+  ["VS-CICD-001", { ".github/workflows/a.yml": "jobs:\n  b:\n    uses: './.github/workflows/c.yml'" }],
+  ["VS-CODE-001", { "a.js": "var B = eval(\"require('buffer').Buffer\");" }],
+  ["VS-CODE-001", { "a.js": "var x = 'javascript:eval(document.body.innerHTML)';" }],
+  ["VS-CODE-005", { "a.py": "decoded = jwt.decode(token, verify = False)" }],
+  ["VS-CODE-006", { "a.py": "return hashlib.sha1(x, usedforsecurity=False).hexdigest()" }],
+  ["VS-CODE-007", { "a.js": "var s = `<script>document.write(\"x\")</script>`;" }],
+  ["VS-CODE-003", { "a.py": "restored = pickle.loads(pickle.dumps(obj))" }],
+  ["VS-DOCKER-003", { Dockerfile: "FROM a:1\nRUN echo \"curl -sSL https://x.invalid/s && echo id | sh\" > /usr/bin/x\nUSER u" }],
+  ["VS-IAC-001", { "m.tf": 'resource "aws_route" "r" {\n  destination_cidr_block = "0.0.0.0/0"\n}' }],
+  ["VS-IAC-001", { "m.tf": 'resource "aws_route_table" "t" {\n  route {\n    cidr_block = "0.0.0.0/0"\n  }\n}' }],
+  ["VS-IAC-003", { "m.tf": 'statement {\n  effect    = "Deny"\n  actions   = ["*"]\n}' }],
+  ["VS-PRIV-001", { "a.js": "logger.warn('Failed to record chat token usage metrics: ' + summarize(err))" }],
+  ["VS-SECRET-004", { "a.html": "<pre>WHERE password = '$password'</pre>" }]
+];
+for (const [id, files] of FP_REGRESSIONS) {
+  test(`false-positive regression: ${id} does not fire on ${JSON.stringify(Object.values(files)[0]).slice(0, 48)}`, () => {
+    assert.ok(!ids(scan(files)).includes(id));
+  });
+}
+
+test("true positives next to the false-positive cases are still reported", () => {
+  const r = scan({
+    "a.js": "eval(req.body.x);\nconsole.log(token);",
+    "b.py": "requests.get(u, verify=False)\nx = hashlib.md5(pw)",
+    "m.tf": 'resource "aws_security_group_rule" "i" {\n  type = "ingress"\n  cidr_blocks = ["0.0.0.0/0"]\n}'
+  });
+  for (const id of ["VS-CODE-001", "VS-PRIV-001", "VS-CODE-005", "VS-CODE-006", "VS-IAC-001"]) assert.ok(ids(r).includes(id), id);
+});
+
+test("findings in test, example or vendored paths stay visible but get low confidence", () => {
+  const r = scan({ "tests/a.test.js": "eval(x)", "src/a.js": "eval(x)" });
+  const t = r.findings.find((f) => f.path === "tests/a.test.js" && f.ruleId === "VS-CODE-001");
+  const s = r.findings.find((f) => f.path === "src/a.js" && f.ruleId === "VS-CODE-001");
+  assert.equal(t.confidence, "low");
+  assert.equal(t.pathContext, "test-or-example");
+  assert.equal(s.confidence, "medium");
+  assert.equal(s.pathContext, undefined);
 });
 
 test("repo self-audit finds no high-or-above issues", () => {

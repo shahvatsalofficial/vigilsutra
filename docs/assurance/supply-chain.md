@@ -29,7 +29,7 @@ Full dev SBOM: [sbom-full-dev.cdx.json](sbom-full-dev.cdx.json). All licenses ar
 | Dependabot for Actions and npm | enabled |
 | Workflow permissions | `contents: read` by default; `id-token: write` and `security-events: write` only where needed |
 | OpenSSF Scorecard workflow | added; first result pending |
-| npm provenance (attestation linking the package to this repository and workflow) | **workflow written, not yet exercised.** Requires the owner to configure Trusted Publishing on npmjs.com; see [releasing.md](../releasing.md). The published 0.1.0 was uploaded by hand and has no provenance |
+| npm provenance (attestation linking the package to this repository and workflow) | **workflow written, not yet exercised.** Requires the owner to configure Trusted Publishing on npmjs.com; see [releasing.md](../releasing.md). Versions 0.1.0 and 0.1.1 were uploaded by hand and have no provenance |
 | Reproducible builds | not verified |
 | Package contents | 44 files in `dist`, `agents`, `adapters`, `policies`, `schemas`, `docs`, `templates` and top-level docs; no source maps, no tests |
 

@@ -178,7 +178,7 @@ Everything here can be re-run; the full evidence index is [docs/assurance](docs/
 |---|---|
 | Automated tests (`npm test`) | 94 tests: **93 passed, 0 failed, 1 skipped** (file-symlink test; Windows denied symlink creation, the directory-junction case does run) |
 | Test coverage | **98.4 % lines, 89.6 % branches** ([details](docs/assurance/coverage.md)) |
-| CI | GitHub Actions on Ubuntu, macOS and Windows with Node 20 and 22: all jobs passed on the latest commit, plus an audit inside a Linux network namespace with no network |
+| CI | GitHub Actions on Ubuntu, macOS and Windows with Node 20, 22, 24 and 26 (current LTS): all jobs passed on the latest commit, plus an audit inside a Linux network namespace with no network |
 | Offline claim | Runtime test blocks network, DNS and subprocess APIs and fails if any attempt is made ([how](docs/assurance/offline-verification.md)) |
 | Fuzzing / ReDoS | 16 adversarial shapes x 32 rules x 12 file kinds; found and fixed two real quadratic regexes; slowest rule 94 ms per 1,000 hostile lines ([details](docs/assurance/fuzzing.md)) |
 | Real-world accuracy | Run on **18 public repositories** (Juice Shop, NodeGoat, TerraGoat, Kubernetes Goat, Django, Prometheus and more). 240 findings labeled in three samples: false-positive share **18 %** with the released rules, **10 %** after round 1, **0 of 32** on a final untouched sample (95 % upper bound about 9 %) ([method and caveats](docs/assurance/benchmark.md)) |

@@ -1,5 +1,5 @@
 import type { Rule } from "../types.js";
-import { isJs, isPy, isCode, lineRule } from "./util.js";
+import { isJs, isPy, isCode, lineRule, insideString } from "./util.js";
 
 const b = { version: "1.0.0", category: "code", agent: "CodeGuard" };
 
@@ -18,7 +18,11 @@ export const codeRules: Rule[] = [
     verification: "The call is removed or its argument is proven constant; add a test with a malicious input.",
     applies: isCode,
     check: (f) =>
-      lineRule(f, isPy(f) ? /(?<![\w.])(?:eval|exec)\s*\(\s*(?!["'][^"']*["']\s*\))/ : /(?<![\w.])(?:eval\s*\(|new\s+Function\s*\()/, { skipComments: true })
+      lineRule(f, isPy(f) ? /(?<![\w.])(?:eval|exec)\s*\(\s*(?!["'][^"']*["']\s*\))/ : /(?<![\w.])(?:eval\s*\(|new\s+Function\s*\()/, {
+            skipComments: true,
+            // Not a call when the text sits inside a string literal, and eval of a constant string is not injectable.
+            filter: (m, line) => !insideString(line, m.index) && !/\beval\s*\(\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*\)/.test(line)
+          })
   },
   {
     ...b,
@@ -52,7 +56,11 @@ export const codeRules: Rule[] = [
     verification: "Replaced with a safe loader; tests cover malformed input.",
     applies: isPy,
     check: (f) =>
-      lineRule(f, /\bpickle\.loads?\s*\(|\byaml\.load\s*\((?![^)]*(?:SafeLoader|safe_load))/, { skipComments: true })
+      lineRule(f, /\bpickle\.loads?\s*\(|\byaml\.load\s*\((?![^)]*(?:SafeLoader|safe_load))/, {
+        skipComments: true,
+        // pickle.loads(pickle.dumps(x)) round-trips the program's own data and is not deserialization of input.
+        filter: (_m, line) => !/pickle\.loads?\s*\(\s*pickle\.dumps?\s*\(/.test(line)
+      })
   },
   {
     ...b,
@@ -89,7 +97,11 @@ export const codeRules: Rule[] = [
     falsePositives: "Local development against a self-signed server; it must never ship to production.",
     verification: "Option removed; request to a bad-cert host now fails.",
     applies: isCode,
-    check: (f) => lineRule(f, /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0|\bverify\s*=\s*False\b/, { skipComments: true })
+    check: (f) => lineRule(f, /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0|\bverify\s*=\s*False\b/, {
+        skipComments: true,
+        // jwt.decode(..., verify=False) disables token-signature checks, which is a different weakness.
+        filter: (_m, line) => !/\bjwt\b|\bdecode\s*\(/i.test(line)
+      })
   },
   {
     ...b,
@@ -104,7 +116,11 @@ export const codeRules: Rule[] = [
     falsePositives: "Non-security uses such as cache keys or legacy protocol checksums.",
     verification: "Algorithm replaced for security-relevant uses; confirm context.",
     applies: isCode,
-    check: (f) => lineRule(f, /createHash\(\s*["'](?:md5|sha1)["']\s*\)|hashlib\.(?:md5|sha1)\s*\(/i, { skipComments: true })
+    check: (f) =>
+      lineRule(f, /createHash\(\s*["'](?:md5|sha1)["']\s*\)|hashlib\.(?:md5|sha1)\s*\(/i, {
+        skipComments: true,
+        filter: (_m, line) => !/usedforsecurity\s*=\s*False/.test(line)
+      })
   },
   {
     ...b,
@@ -119,6 +135,10 @@ export const codeRules: Rule[] = [
     falsePositives: "Constant markup or content already sanitised.",
     verification: "Sink removed or input proven sanitised; test with a `<script>` payload.",
     applies: isJs,
-    check: (f) => lineRule(f, /\.innerHTML\s*=(?!=)|dangerouslySetInnerHTML\s*=|\bdocument\.write\s*\(/, { skipComments: true })
+    check: (f) =>
+      lineRule(f, /\.innerHTML\s*=(?!=)|dangerouslySetInnerHTML\s*=|\bdocument\.write\s*\(/, {
+        skipComments: true,
+        filter: (m, line) => !insideString(line, m.index)
+      })
   }
 ];

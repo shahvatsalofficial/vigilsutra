@@ -74,6 +74,8 @@ export interface Finding {
   cwe: string[];
   mappingNote: string;
   note?: string;
+  /** "test-or-example" when the path looks like a test, fixture, example, archive or vendored code. */
+  pathContext?: "test-or-example";
   baseline?: boolean;
 }
 

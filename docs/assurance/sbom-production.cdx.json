@@ -1,0 +1,61 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:67824959-3f9f-4018-b830-744860474de2",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-01T16:57:47.786Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.13.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "vigilsutra@0.1.0",
+      "type": "library",
+      "name": "VigilSutra-AI",
+      "version": "0.1.0",
+      "scope": "required",
+      "author": "Vatsal Shah",
+      "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
+      "purl": "pkg:npm/vigilsutra@0.1.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/shahvatsalofficial/vigilsutra.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/shahvatsalofficial/vigilsutra#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/shahvatsalofficial/vigilsutra/issues"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    }
+  },
+  "components": [],
+  "dependencies": [
+    {
+      "ref": "vigilsutra@0.1.0",
+      "dependsOn": []
+    }
+  ]
+}

@@ -66,7 +66,8 @@ export const secretRules: Rule[] = [
       lineRule(f, /(?:pass(?:word|wd)?|secret|api[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret)["']?\s*[:=]\s*["']([^"'\s]{8,})["']/i, {
         skipComments: true,
         secretGroup: 1,
-        filter: (m) => !isPlaceholder(m[1])
+        // Skip placeholders and variable references such as '$password' used in templates or SQL text.
+        filter: (m) => !isPlaceholder(m[1]) && !/^\$\{?\w+\}?$/.test(m[1])
       })
   },
   {
@@ -89,9 +90,15 @@ export const secretRules: Rule[] = [
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-312", "CWE-798"],
-    description: "A `.env`-style file exists in the scanned tree. If it is tracked by git it exposes whatever it contains. File contents are not echoed.",
-    falsePositives: "Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell.",
+    description: "A `.env`-style file exists in the scanned tree and contains at least one secret-named variable with a non-placeholder value. If it is tracked by git it exposes that value. File contents are not echoed.",
+    falsePositives: "Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell. Files holding only placeholders or non-secret settings are not reported.",
     applies: (f) => /^\.env(\..+)?$/.test(f.name) && !/\.(example|sample|template)$/.test(f.name),
-    check: (f) => [{ line: 1, excerpt: "(file contents not shown)" }]
+    check: (f) => {
+      const idx = f.lines.findIndex((l) => {
+        const m = /^\s*(?:export\s+)?([A-Za-z_][\w.]*)\s*=\s*["']?([^"'#\s]+)/.exec(l);
+        return !!m && /pass|secret|token|key|credential|private|auth/i.test(m[1]) && !isPlaceholder(m[2]) && !/^<.*>$/.test(m[2]);
+      });
+      return idx >= 0 ? [{ line: idx + 1, excerpt: "(file contents not shown)" }] : [];
+    }
   }
 ];

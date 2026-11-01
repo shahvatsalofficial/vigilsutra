@@ -1,0 +1,711 @@
+{
+ "version": "0.1.0",
+ "labeledBy": "the maintainer's AI assistant (Claude), not an independent human reviewer; method in docs/assurance/benchmark.md",
+ "rubric": {
+  "TP": "reviewing it would plausibly reveal a real weakness in the project's own code or config",
+  "TT": "construct is real but only in tests, fixtures, testdata, archived examples or vendored/minified code",
+  "FP": "rule misread the code, or the construct is not a security issue in context"
+ },
+ "labels": {
+  "OWASP__NodeGoat|.github/workflows/e2e-test.yml|21|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "actions__starter-workflows|.github/workflows/labeler-triage.yml|14|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|.github/workflows/semgrep.yml|13|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "digininja__DVWA|.github/workflows/codeql-analysis.yml|37|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "django__django|.github/workflows/schedules.yml|25|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|.github/workflows/image_actions.yml|30|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "modelcontextprotocol__servers|.github/workflows/python.yml|182|VS-CICD-001": {
+   "label": "TP",
+   "rule": "VS-CICD-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|app/routes/contributions.js|33|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "pallets__flask|src/flask/cli.py|1022|VS-CODE-001": {
+   "label": "TP",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "appsecco__dvna|core/appHandler.js|39|VS-CODE-002": {
+   "label": "TP",
+   "rule": "VS-CODE-002",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/app.py|329|VS-CODE-003": {
+   "label": "TP",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/loginAdminChallenge_1.ts|18|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/loginBenderChallenge_4.ts|15|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/loginAdminChallenge_2.ts|15|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|django/contrib/gis/db/backends/postgis/operations.py|334|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/unionSqlInjectionChallenge_3.ts|10|VS-CODE-004": {
+   "label": "TP",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|django/contrib/auth/hashers.py|665|VS-CODE-006": {
+   "label": "TP",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/app.py|141|VS-CODE-006": {
+   "label": "TP",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "digininja__DVWA|vulnerabilities/csp/source/impossible.js|9|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "juice-shop__juice-shop|frontend/src/hacking-instructor/index.ts|126|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "prometheus__prometheus|web/ui/react-app/src/pages/graph/MetricsExplorer.tsx|49|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "digininja__DVWA|vulnerabilities/authbypass/authbypass.js|43|VS-CODE-007": {
+   "label": "TP",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "appsecco__dvna|Dockerfile|3|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/aws/resources/Dockerfile|1|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "digininja__DVWA|Dockerfile|1|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "docker__awesome-compose|angular/angular/Dockerfile|18|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/explorer/Dockerfile|15|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/hunger-check/Dockerfile|1|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "modelcontextprotocol__servers|src/sequentialthinking/Dockerfile|12|VS-DOCKER-001": {
+   "label": "TP",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|Dockerfile|22|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/volumes/flexvolume/deploy/Dockerfile|15|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/hidden-in-layers/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/https-nginx/Dockerfile|15|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/health-check/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/volumes/nfs/nfs-data/Dockerfile|15|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/build-code/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TP",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "docker__awesome-compose|wasmedge-kafka-mysql/etl/Dockerfile|12|VS-DOCKER-003": {
+   "label": "TP",
+   "rule": "VS-DOCKER-003",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/meteor/dockerbase/Dockerfile|20|VS-DOCKER-003": {
+   "label": "TP",
+   "rule": "VS-DOCKER-003",
+   "note": ""
+  },
+  "docker__awesome-compose|wasmedge-mysql-nginx/backend/Dockerfile|14|VS-DOCKER-003": {
+   "label": "TP",
+   "rule": "VS-DOCKER-003",
+   "note": ""
+  },
+  "terraform-aws-modules__terraform-aws-vpc|wrappers/main.tf|140|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/aws/db-app.tf|150|VS-IAC-001": {
+   "label": "FP",
+   "rule": "VS-IAC-001",
+   "note": "egress rule (type = egress), not ingress; originally mislabeled TP, corrected after the regression check"
+  },
+  "juice-shop__juice-shop|data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf|85|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "terraform-aws-modules__terraform-aws-vpc|variables.tf|1041|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/gcp/gke.tf|19|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|data/static/codefixes/iacLeakedKeyChallenge_2.tf|85|VS-IAC-001": {
+   "label": "TP",
+   "rule": "VS-IAC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/alicloud/bucket.tf|7|VS-IAC-002": {
+   "label": "TP",
+   "rule": "VS-IAC-002",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/azure/roles.tf|9|VS-IAC-003": {
+   "label": "TP",
+   "rule": "VS-IAC-003",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|29|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|41|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/volumes/nfs/nfs-server-deployment.yaml|26|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/health-check/deployment-simple-alternative.yaml|30|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|26|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/health-check/deployment.yaml|52|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/health-check/deployment.yaml|64|VS-K8S-001": {
+   "label": "TP",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|21|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/kube-bench-security/node-job.yaml|9|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|19|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|26|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic-infrastructure/newrelic-infra-daemonset.yaml|20|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|29|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/newrelic/newrelic-daemonset.yaml|22|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|28|VS-K8S-002": {
+   "label": "TP",
+   "rule": "VS-K8S-002",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/system-monitor/deployment.yaml|40|VS-K8S-003": {
+   "label": "TP",
+   "rule": "VS-K8S-003",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|scenarios/docker-bench-security/deployment.yaml|31|VS-K8S-003": {
+   "label": "TP",
+   "rule": "VS-K8S-003",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/app.py|87|VS-PRIV-001": {
+   "label": "TP",
+   "rule": "VS-PRIV-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "actions__starter-workflows|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "appsecco__dvna|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "docker__awesome-compose|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "expressjs__express|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "pallets__flask|.|1|VS-PROC-001": {
+   "label": "TP",
+   "rule": "VS-PROC-001",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/aws/ec2.tf|15|VS-SECRET-001": {
+   "label": "TP",
+   "rule": "VS-SECRET-001",
+   "note": ""
+  },
+  "OWASP__NodeGoat|artifacts/cert/server.key|1|VS-SECRET-002": {
+   "label": "TP",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "juice-shop__juice-shop|lib/insecurity.ts|21|VS-SECRET-002": {
+   "label": "TP",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "juice-shop__juice-shop|terraform/networking.tf|171|VS-SECRET-002": {
+   "label": "TP",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "juice-shop__juice-shop|infrastructure/terraform/networking.tf|171|VS-SECRET-002": {
+   "label": "TP",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "bridgecrewio__terragoat|terraform/azure/mssql.tf|83|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "madhuakula__kubernetes-goat|infrastructure/users-repo/Dockerfile|4|VS-SECRET-004": {
+   "label": "TP",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "django__django|tests/view_tests/tests/test_debug.py|919|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|test/cypress/e2e/contact.spec.ts|267|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "modelcontextprotocol__servers|scripts/claude-workflow.test.mjs|57|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/static/loader.js|26|VS-CODE-001": {
+   "label": "TT",
+   "rule": "VS-CODE-001",
+   "note": ""
+  },
+  "django__django|tests/queryset_pickle/tests.py|378|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|1562|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/model_regress/test_pickle.py|50|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|1554|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/mail/tests.py|888|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|1550|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/validation/test_picklable.py|10|VS-CODE-003": {
+   "label": "TT",
+   "rule": "VS-CODE-003",
+   "note": ""
+  },
+  "django__django|tests/backends/mysql/test_introspection.py|117|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|tests/backends/oracle/test_introspection.py|58|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "django__django|tests/backends/tests.py|471|VS-CODE-004": {
+   "label": "TT",
+   "rule": "VS-CODE-004",
+   "note": ""
+  },
+  "fastify__fastify|test/https/https.test.js|108|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|3055|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "fastify__fastify|test/https/https.test.js|59|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|2949|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|tests/e2e_zap.py|45|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "fastify__fastify|test/https/https.test.js|43|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "psf__requests|tests/test_requests.py|2982|VS-CODE-005": {
+   "label": "TT",
+   "rule": "VS-CODE-005",
+   "note": ""
+  },
+  "fastify__fastify|test/reply-trailers.test.js|110|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "django__django|tests/utils_tests/test_crypto.py|45|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "fastify__fastify|test/reply-trailers.test.js|117|VS-CODE-006": {
+   "label": "TT",
+   "rule": "VS-CODE-006",
+   "note": ""
+  },
+  "django__django|js_tests/gis/mapwidget.test.js|229|VS-CODE-007": {
+   "label": "TT",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "we45__Vulnerable-Flask-App|app/static/loader.js|153|VS-CODE-007": {
+   "label": "TT",
+   "rule": "VS-CODE-007",
+   "note": ""
+  },
+  "juice-shop__juice-shop|test/smoke/Dockerfile|1|VS-DOCKER-001": {
+   "label": "TT",
+   "rule": "VS-DOCKER-001",
+   "note": ""
+  },
+  "juice-shop__juice-shop|test/smoke/Dockerfile|1|VS-DOCKER-002": {
+   "label": "TT",
+   "rule": "VS-DOCKER-002",
+   "note": ""
+  },
+  "kubernetes__examples|_archived/podsecuritypolicy/rbac/pod_priv.yaml|14|VS-K8S-001": {
+   "label": "TT",
+   "rule": "VS-K8S-001",
+   "note": ""
+  },
+  "prometheus__prometheus|scrape/testdata/server.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "psf__requests|tests/certs/expired/ca/ca-private.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "prometheus__prometheus|scrape/testdata/ca.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "psf__requests|tests/certs/mtls/client/client.key|1|VS-SECRET-002": {
+   "label": "TT",
+   "rule": "VS-SECRET-002",
+   "note": ""
+  },
+  "django__django|tests/auth_tests/test_management.py|718|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "fastify__fastify|test/schema-serialization.test.js|1267|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "juice-shop__juice-shop|test/api/quantity.test.ts|231|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "prometheus__prometheus|config/config_test.go|897|VS-SECRET-004": {
+   "label": "TT",
+   "rule": "VS-SECRET-004",
+   "note": ""
+  },
+  "pallets__flask|tests/test_apps/.env|1|VS-SECRET-006": {
+   "label": "TT",
+   "rule": "VS-SECRET-006",
+   "note": ""
+  },
+  "fastify__fastify|.github/workflows/citgm.yml|103|VS-CICD-001": {
+   "label": "FP",
+   "rule": "VS-CICD-001",
+   "note": "quoted local reusable workflow path treated as third-party action"
+  },
+  "digininja__DVWA|vulnerabilities/javascript/source/high_unobfuscated.js|84|VS-CODE-001": {
+   "label": "FP",
+   "rule": "VS-CODE-001",
+   "note": "eval of constant string literal"
+  },
+  "expressjs__express|test/res.redirect.js|116|VS-CODE-001": {
+   "label": "FP",
+   "rule": "VS-CODE-001",
+   "note": "'eval(' inside a string literal"
+  },
+  "we45__Vulnerable-Flask-App|app/app.py|97|VS-CODE-005": {
+   "label": "FP",
+   "rule": "VS-CODE-005",
+   "note": "jwt.decode(verify=False) is JWT signature, not TLS verification"
+  },
+  "juice-shop__juice-shop|scripts/package.mjs|121|VS-CODE-006": {
+   "label": "FP",
+   "rule": "VS-CODE-006",
+   "note": "md5 used as non-security file checksum"
+  },
+  "pallets__flask|src/flask/sessions.py|281|VS-CODE-006": {
+   "label": "FP",
+   "rule": "VS-CODE-006",
+   "note": "sha1 inside HMAC-based session digest"
+  },
+  "psf__requests|src/requests/auth.py|187|VS-CODE-006": {
+   "label": "FP",
+   "rule": "VS-CODE-006",
+   "note": "hashlib.sha1(usedforsecurity=False)"
+  },
+  "OWASP__NodeGoat|config/env/development.js|11|VS-CODE-007": {
+   "label": "FP",
+   "rule": "VS-CODE-007",
+   "note": "document.write text inside a string literal"
+  },
+  "expressjs__express|test/res.redirect.js|115|VS-CODE-007": {
+   "label": "FP",
+   "rule": "VS-CODE-007",
+   "note": "'innerHTML=' inside a string literal"
+  },
+  "madhuakula__kubernetes-goat|infrastructure/batch-check/Dockerfile|5|VS-DOCKER-003": {
+   "label": "FP",
+   "rule": "VS-DOCKER-003",
+   "note": "curl|sh text inside a quoted echo, not executed at build"
+  },
+  "bridgecrewio__terragoat|terraform/aws/ec2.tf|222|VS-IAC-001": {
+   "label": "FP",
+   "rule": "VS-IAC-001",
+   "note": "route table default route, not ingress"
+  },
+  "juice-shop__juice-shop|infrastructure/terraform/networking.tf|46|VS-IAC-001": {
+   "label": "FP",
+   "rule": "VS-IAC-001",
+   "note": "route block default route, not ingress"
+  },
+  "terraform-aws-modules__terraform-aws-vpc|examples/complete/main.tf|339|VS-IAC-003": {
+   "label": "FP",
+   "rule": "VS-IAC-003",
+   "note": "Effect Deny statement"
+  },
+  "juice-shop__juice-shop|routes/chat.ts|255|VS-PRIV-001": {
+   "label": "FP",
+   "rule": "VS-PRIV-001",
+   "note": "'token' word inside log message text"
+  },
+  "OWASP__NodeGoat|app/views/tutorial/a1.html|220|VS-SECRET-004": {
+   "label": "FP",
+   "rule": "VS-SECRET-004",
+   "note": "password in HTML tutorial text"
+  },
+  "digininja__DVWA|vulnerabilities/captcha/source/low.php|60|VS-SECRET-004": {
+   "label": "FP",
+   "rule": "VS-SECRET-004",
+   "note": "SQL string interpolation variable, not a credential"
+  },
+  "docker__awesome-compose|pihole-cloudflared-DoH/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "placeholder values only"
+  },
+  "madhuakula__kubernetes-goat|platforms/aws-setup/aws-kind-ec2-cdk/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "placeholder values only"
+  },
+  "prometheus__prometheus|web/ui/react-app/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "no secrets in file"
+  },
+  "docker__awesome-compose|plex/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "no secrets in file"
+  },
+  "docker__awesome-compose|postgresql-pgadmin/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "placeholder values only"
+  },
+  "docker__awesome-compose|wireguard/.env|1|VS-SECRET-006": {
+   "label": "FP",
+   "rule": "VS-SECRET-006",
+   "note": "no secrets in file"
+  }
+ }
+}

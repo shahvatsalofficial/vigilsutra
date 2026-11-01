@@ -1,0 +1,130 @@
+[
+  {
+    "rule": "VS-SECRET-001",
+    "worstMs": 3
+  },
+  {
+    "rule": "VS-SECRET-002",
+    "worstMs": 1
+  },
+  {
+    "rule": "VS-SECRET-003",
+    "worstMs": 7
+  },
+  {
+    "rule": "VS-SECRET-004",
+    "worstMs": 13
+  },
+  {
+    "rule": "VS-SECRET-005",
+    "worstMs": 5
+  },
+  {
+    "rule": "VS-SECRET-006",
+    "worstMs": 0
+  },
+  {
+    "rule": "VS-CICD-001",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-CICD-002",
+    "worstMs": 6
+  },
+  {
+    "rule": "VS-CICD-003",
+    "worstMs": 6
+  },
+  {
+    "rule": "VS-CICD-004",
+    "worstMs": 7
+  },
+  {
+    "rule": "VS-DOCKER-001",
+    "worstMs": 2
+  },
+  {
+    "rule": "VS-DOCKER-002",
+    "worstMs": 22
+  },
+  {
+    "rule": "VS-DOCKER-003",
+    "worstMs": 5
+  },
+  {
+    "rule": "VS-K8S-001",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-K8S-002",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-K8S-003",
+    "worstMs": 2
+  },
+  {
+    "rule": "VS-IAC-001",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-IAC-002",
+    "worstMs": 2
+  },
+  {
+    "rule": "VS-IAC-003",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-CODE-001",
+    "worstMs": 4
+  },
+  {
+    "rule": "VS-CODE-002",
+    "worstMs": 10
+  },
+  {
+    "rule": "VS-CODE-003",
+    "worstMs": 9
+  },
+  {
+    "rule": "VS-CODE-004",
+    "worstMs": 6
+  },
+  {
+    "rule": "VS-CODE-005",
+    "worstMs": 9
+  },
+  {
+    "rule": "VS-CODE-006",
+    "worstMs": 5
+  },
+  {
+    "rule": "VS-CODE-007",
+    "worstMs": 7
+  },
+  {
+    "rule": "VS-AGENT-001",
+    "worstMs": 6
+  },
+  {
+    "rule": "VS-AGENT-002",
+    "worstMs": 16
+  },
+  {
+    "rule": "VS-AGENT-003",
+    "worstMs": 3
+  },
+  {
+    "rule": "VS-PRIV-001",
+    "worstMs": 14
+  },
+  {
+    "rule": "VS-PRIV-002",
+    "worstMs": 12
+  },
+  {
+    "rule": "VS-PROC-001",
+    "worstMs": 0
+  }
+]

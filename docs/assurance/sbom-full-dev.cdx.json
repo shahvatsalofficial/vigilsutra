@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:7236448f-28eb-47b7-b03c-a078c675ee4a",
+  "serialNumber": "urn:uuid:a6af414a-eb9a-4cac-a6d7-06f1b624cd72",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-01T17:29:25.217Z",
+    "timestamp": "2026-11-02T19:30:12.772Z",
     "lifecycles": [
       {
         "phase": "build"
@@ -19,14 +19,14 @@
       }
     ],
     "component": {
-      "bom-ref": "vigilsutra@0.1.0",
+      "bom-ref": "vigilsutra@0.1.2",
       "type": "library",
       "name": "VigilSutra-AI",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "scope": "required",
       "author": "Vatsal Shah",
       "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
-      "purl": "pkg:npm/vigilsutra@0.1.0",
+      "purl": "pkg:npm/vigilsutra@0.1.2",
       "properties": [],
       "externalReferences": [
         {
@@ -95,14 +95,14 @@
       ]
     },
     {
-      "bom-ref": "typescript@5.9.3",
+      "bom-ref": "@typescript/typescript-win32-x64@7.0.2",
       "type": "library",
-      "name": "typescript",
-      "version": "5.9.3",
-      "scope": "required",
+      "name": "@typescript/typescript-win32-x64",
+      "version": "7.0.2",
+      "scope": "optional",
       "author": "Microsoft Corp.",
       "description": "TypeScript is a language for application scale JavaScript development",
-      "purl": "pkg:npm/typescript@5.9.3",
+      "purl": "pkg:npm/%40typescript/typescript-win32-x64@7.0.2",
       "properties": [
         {
           "name": "cdx:npm:package:development",
@@ -112,7 +112,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"
+          "url": "https://registry.npmjs.org/@typescript/typescript-win32-x64/-/typescript-win32-x64-7.0.2.tgz"
         },
         {
           "type": "vcs",
@@ -130,7 +130,54 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b"
+          "content": "d014371e40071e528b4a9d6a46f7f7494846a46b03ba107f8e0170ef982ecaa6f126a11a4b40b0fd514ef22da71e094953340246d30c47f20100a137113302e2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "typescript@7.0.2",
+      "type": "library",
+      "name": "typescript",
+      "version": "7.0.2",
+      "scope": "required",
+      "author": "Microsoft Corp.",
+      "description": "TypeScript is a language for application scale JavaScript development",
+      "purl": "pkg:npm/typescript@7.0.2",
+      "properties": [
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/microsoft/TypeScript.git"
+        },
+        {
+          "type": "website",
+          "url": "https://www.typescriptlang.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/microsoft/TypeScript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f0561abbdea8dcd28e85b8ca8bfa8dbc6fd6e63873c646dd9b9b23f406d9ff94f9b16aa7de12602df1b1dbbb11299593bf2cc23fc74b4414dfe6d05349155434"
         }
       ],
       "licenses": [
@@ -190,10 +237,10 @@
   ],
   "dependencies": [
     {
-      "ref": "vigilsutra@0.1.0",
+      "ref": "vigilsutra@0.1.2",
       "dependsOn": [
         "@types/node@22.20.5",
-        "typescript@5.9.3"
+        "typescript@7.0.2"
       ]
     },
     {
@@ -203,8 +250,14 @@
       ]
     },
     {
-      "ref": "typescript@5.9.3",
+      "ref": "@typescript/typescript-win32-x64@7.0.2",
       "dependsOn": []
+    },
+    {
+      "ref": "typescript@7.0.2",
+      "dependsOn": [
+        "@typescript/typescript-win32-x64@7.0.2"
+      ]
     },
     {
       "ref": "undici-types@6.21.0",

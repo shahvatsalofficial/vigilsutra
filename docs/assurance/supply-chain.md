@@ -10,8 +10,8 @@ Date 2026-11-01. Package `vigilsutra@0.1.0`.
 
 | Package | Version | License |
 |---|---|---|
-| typescript | 5.9.3 | Apache-2.0 |
-| @types/node | 22.20.5 | MIT |
+| typescript | 7.0.2 (latest; native compiler, platform binary via `@typescript/typescript-<platform>`, Apache-2.0) | Apache-2.0 |
+| @types/node | 22.20.5 (typed against Node 22 on purpose: Node 20 is end-of-life but still supported, so the types must not expose newer-only APIs) | MIT |
 | undici-types (via @types/node) | 6.21.0 | MIT |
 
 Full dev SBOM: [sbom-full-dev.cdx.json](sbom-full-dev.cdx.json). All licenses are compatible with Apache-2.0 distribution.

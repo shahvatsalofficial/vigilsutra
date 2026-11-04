@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 - 2026-11-04
 
 - Build with TypeScript 7.0.2 (`tsconfig.json` now lists `"types": ["node"]`); GitHub Actions updated to current majors (checkout 7, setup-node 7, codeql-action 4, upload-artifact 7), still pinned to commit SHAs.
 

@@ -427,6 +427,64 @@ test("review: isInside rejects siblings that merely share a name prefix", async 
   assert.ok(!isInside("/p/root", "/p/other"));
 });
 
+// ---- Report files (Markdown + HTML), added after user feedback ----
+
+test("report command writes Markdown, HTML, JSON and SARIF plus a .gitignore, without secrets", () => {
+  const root = project({ "a.js": `eval(req.body.x)\nconst password = "${PASS}";\nconst k = "${AWS}";` });
+  const cwd = join(root, "..", "cwd");
+  mkdirSync(cwd);
+  const r = cli(["report", root, "--no-color"], cwd);
+  assert.equal(r.status, 0);
+  const dir = join(cwd, "vigilsutra-report");
+  for (const f of ["report.md", "report.html", "results.json", "results.sarif", ".gitignore"]) assert.ok(existsSync(join(dir, f)), f);
+  assert.match(readFileSync(join(dir, ".gitignore"), "utf8"), /^\*$/m);
+  const md = readFileSync(join(dir, "report.md"), "utf8");
+  const html = readFileSync(join(dir, "report.html"), "utf8");
+  assert.match(md, /## At a glance/);
+  assert.match(md, /## How to read this report/);
+  assert.match(md, /## Next steps/);
+  assert.match(html, /Content-Security-Policy/);
+  assert.match(html, /<details/);
+  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html, /https?:\/\//, "HTML report must not load or link remote resources");
+  for (const f of ["report.md", "report.html", "results.json", "results.sarif"]) {
+    const t = readFileSync(join(dir, f), "utf8");
+    for (const s of [PASS, AWS]) assert.ok(!t.includes(s), `${f} leaked a secret`);
+  }
+  assert.equal(JSON.parse(readFileSync(join(dir, "results.sarif"), "utf8")).version, "2.1.0");
+});
+
+test("audit writes report files only when asked (non-interactive default stays pure)", () => {
+  const root = project({ "a.js": "eval(x)" });
+  const cwd = join(root, "..", "cwd2");
+  mkdirSync(cwd);
+  assert.equal(cli(["audit", root], cwd).status, 0);
+  assert.ok(!existsSync(join(cwd, "vigilsutra-report")), "piped audit must not write files by default");
+  assert.equal(cli(["audit", root, "--report"], cwd).status, 0);
+  assert.ok(existsSync(join(cwd, "vigilsutra-report", "report.html")));
+  const custom = join(cwd, "out-dir");
+  assert.equal(cli(["audit", root, "--format", "json", "--report-dir", custom], cwd).status, 0);
+  assert.ok(existsSync(join(custom, "report.md")));
+});
+
+test("a vigilsutra-report folder inside the project is never scanned again", () => {
+  const root = project({ "a.js": "eval(x)" });
+  assert.equal(cli(["report", root], root).status, 0);
+  assert.ok(existsSync(join(root, "vigilsutra-report", "results.json")));
+  const again = audit({ root });
+  assert.ok(!again.findings.some((f) => f.path.startsWith("vigilsutra-report")));
+  assert.equal(again.findings.filter((f) => f.ruleId === "VS-CODE-001").length, 1);
+});
+
+test("Markdown and HTML reports give a plain-language summary and handle an empty result", () => {
+  const empty = scan({ "SECURITY.md": "x" });
+  assert.match(render(empty, "markdown"), /No problems were found/);
+  assert.match(render(empty, "html"), /No findings from the implemented rules/);
+  const bad = scan({ "a.js": "eval(x)" });
+  assert.match(render(bad, "markdown"), /Start with the 1 critical and high item/);
+  assert.match(render(bad, "html"), /<span class="sev high">high<\/span>/);
+});
+
 test("repo self-audit finds no high-or-above issues", () => {
   const r = audit({ root: resolve(".") });
   assert.deepEqual(r.findings.filter((f) => f.severity === "high" || f.severity === "critical"), []);

@@ -8,7 +8,7 @@ import { DEFAULT_POLICY, loadPolicy, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
-export const VERSION = "0.1.3";
+export const VERSION = "0.2.0";
 
 /** Per rule, per file. Keeps one noisy file from producing an unbounded report. */
 export const MAX_PER_RULE_PER_FILE = 200;

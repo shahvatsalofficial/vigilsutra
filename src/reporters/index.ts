@@ -1,5 +1,8 @@
 import { ALL_RULES } from "../rules/index.js";
 import type { Finding, ScanResult, Severity } from "../types.js";
+import { toHtml, toMarkdown, htmlEsc } from "./rich.js";
+
+export { toHtml, toMarkdown, htmlEsc };
 
 export type Format = "text" | "json" | "markdown" | "sarif" | "html";
 export const FORMATS: Format[] = ["text", "json", "markdown", "sarif", "html"];
@@ -30,42 +33,6 @@ export function toText(r: ScanResult, color = false): string {
   out.push(`Summary: ${SEV.map((s) => `${r.summary.bySeverity[s]} ${s}`).join(", ")}${r.summary.baselineSuppressed ? `; ${r.summary.baselineSuppressed} suppressed by baseline` : ""}`);
   out.push("Limits: pattern-based, offline, no taint analysis. Run `vigilsutra explain <RULE-ID>` for fixes.");
   return out.join("\n") + "\n";
-}
-
-/** Text placed inside an inline code span must not contain backticks or line breaks (file names can). */
-const mdCode = (s: string): string => s.replace(/[`\r\n]/g, "'");
-const mdEsc = (s: string): string => s.replace(/[\\`*_{}[\]<>#|]/g, "\\$&");
-
-export function toMarkdown(r: ScanResult): string {
-  const o: string[] = [];
-  o.push(`# VigilSutra AI audit report: ${mdEsc(r.project.name)}`, "");
-  o.push(`- Generated: ${r.generatedAt}`, `- Tool: vigilsutra ${r.tool.version} (rules ${r.tool.rulesVersion})`, `- Mode: ${r.mode} (read-only, offline)`, `- Detected: ${r.project.detected.join(", ") || "none"}`, "");
-  o.push("## Executive summary", "");
-  o.push(`${r.summary.total} finding(s): ${SEV.map((s) => `${r.summary.bySeverity[s]} ${s}`).join(", ")}.`);
-  const confirmed = r.summary.byStatus["confirmed"] ?? 0;
-  const potential = r.summary.byStatus["potential"] ?? 0;
-  o.push(`Confirmed by evidence: ${confirmed}. Potential (needs human verification): ${potential}.`, "");
-  const top = r.findings.filter((f) => f.severity === "critical" || f.severity === "high").slice(0, 5);
-  if (top.length) {
-    o.push("### Top priorities", "");
-    top.forEach((f, i) => o.push(`${i + 1}. **${f.ruleId}** ${mdEsc(f.title)} at \`${mdCode(f.path)}:${f.startLine}\``));
-    o.push("");
-  }
-  o.push("### Scope and limits", "");
-  o.push(`Scanned ${r.scope.filesScanned} files. Skipped: ${r.scope.skippedIgnored} ignored, ${r.scope.skippedSymlinks} symlinks (never followed), ${r.scope.skippedTooLarge} too large, ${r.scope.skippedBinary} binary.`, "");
-  o.push("Assessed: " + r.categoriesAssessed.join(", ") + ".", "", "Not assessed: " + r.notAssessed.join("; ") + ".", "");
-  r.limitations.forEach((l) => o.push(`- ${l}`));
-  o.push("", "## Findings", "");
-  if (!r.findings.length) o.push("No findings from the implemented rules. This is not proof of security.", "");
-  for (const f of r.findings) {
-    o.push(`### ${f.ruleId}: ${mdEsc(f.title)}`, "");
-    o.push(`- Severity: **${f.severity}** | Confidence: **${f.confidence}** | Status: **${f.status}**`);
-    o.push(`- Location: \`${mdCode(f.path)}:${f.startLine}\``, `- Fingerprint: \`${f.fingerprint}\`${f.cwe.length ? ` | ${f.cwe.join(", ")} (orientation only)` : ""}`);
-    o.push("- Evidence" + (f.redacted ? " (redacted)" : "") + ":", "", "  ```text", "  " + f.excerpt.replace(/`/g, "'"), "  ```", "");
-    o.push(`**Why it matters.** ${f.description}`, "", `**Fix.** ${f.remediation}`, "", `**Verify.** ${f.verification}`, "", `**May be a false positive when.** ${f.falsePositives}`, "");
-  }
-  o.push("---", "Created by Vatsal Shah. VigilSutra reports engineering evidence, not certification or legal advice.", "");
-  return o.join("\n");
 }
 
 const level = (s: Severity): "error" | "warning" | "note" => (s === "critical" || s === "high" ? "error" : s === "medium" ? "warning" : "note");
@@ -106,33 +73,6 @@ export function toSarif(r: ScanResult): string {
     ]
   };
   return JSON.stringify(sarif, null, 2) + "\n";
-}
-
-export const htmlEsc = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
-export function toHtml(r: ScanResult): string {
-  const rows = r.findings
-    .map(
-      (f) =>
-        `<tr><td>${htmlEsc(f.severity)}</td><td>${htmlEsc(f.ruleId)}</td><td>${htmlEsc(f.title)}</td><td><code>${htmlEsc(f.path)}:${f.startLine}</code></td><td>${htmlEsc(f.status)} / ${htmlEsc(f.confidence)}</td><td><code>${htmlEsc(f.excerpt)}</code></td></tr>`
-    )
-    .join("\n");
-  return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>VigilSutra AI report - ${htmlEsc(r.project.name)}</title>
-<style>body{font:14px/1.5 system-ui,sans-serif;margin:2rem auto;max-width:72rem;padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border:1px solid #888;padding:.35rem;text-align:left;vertical-align:top}code{word-break:break-all}</style>
-</head><body>
-<h1>VigilSutra AI report: ${htmlEsc(r.project.name)}</h1>
-<p>${r.summary.total} finding(s). Generated ${htmlEsc(r.generatedAt)} by vigilsutra ${htmlEsc(r.tool.version)}. Offline, read-only, pattern-based; not a certification.</p>
-<table><thead><tr><th>Severity</th><th>Rule</th><th>Title</th><th>Location</th><th>Status / confidence</th><th>Evidence (redacted)</th></tr></thead><tbody>
-${rows}
-</tbody></table>
-<h2>Limitations</h2><ul>${r.limitations.map((l) => `<li>${htmlEsc(l)}</li>`).join("")}</ul>
-<p>Created by Vatsal Shah.</p>
-</body></html>
-`;
 }
 
 export function render(r: ScanResult, f: Format, color = false): string {

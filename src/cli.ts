@@ -20,7 +20,11 @@ Commands:
       --baseline <file>   Suppress findings whose fingerprints are in this baseline
       --policy <file>     Use this policy file instead of the project's .vigilsutra.yml
       --no-policy         Ignore the project's .vigilsutra.yml (use when auditing code you do not own)
+      --report            Also write report.md, report.html, results.json, results.sarif to ./vigilsutra-report/
+      --report-dir <dir>  Same, into <dir>
+      --no-report         Do not write report files (they are written by default when you run audit in a terminal without --format/--out)
       --no-color          Plain output (also honours NO_COLOR)
+  report [path]           Scan and write the report files (Markdown + HTML + JSON + SARIF), then print the summary
   baseline [path] --out <file>   Record current findings as an accepted baseline
   verify [path] --previous <results.json>   Re-scan and compare with an earlier JSON result
   rules list              List implemented rules
@@ -40,7 +44,7 @@ interface Args {
   flags: Map<string, string | true>;
 }
 
-const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy"]);
+const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir"]);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -75,6 +79,16 @@ function checkRoot(p: string): string {
   return realpathSync(abs);
 }
 
+/** Writes report.md, report.html, results.json and results.sarif. The folder gets a .gitignore so reports are not committed by accident. */
+function writeReportFolder(dir: string, result: ScanResult): void {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "report.md"), render(result, "markdown"));
+  writeFileSync(join(dir, "report.html"), render(result, "html"));
+  writeFileSync(join(dir, "results.json"), render(result, "json"));
+  writeFileSync(join(dir, "results.sarif"), render(result, "sarif"));
+  writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
+}
+
 function writeOut(file: string, data: string): void {
   const abs = resolve(file);
   mkdirSync(dirname(abs), { recursive: true });
@@ -102,7 +116,8 @@ function main(): void {
   const color = !flags.has("no-color") && !process.env.NO_COLOR && !!process.stdout.isTTY;
 
   switch (cmd) {
-    case "audit": {
+    case "audit":
+    case "report": {
       const root = checkRoot(pos[0] ?? ".");
       const format = (flags.get("format") as string | undefined) ?? "text";
       if (!FORMATS.includes(format as Format)) fail(`unknown format "${format}"`);
@@ -115,6 +130,21 @@ function main(): void {
         writeOut(out, render(result, format as Format, false));
         process.stderr.write(`Report written to ${out} (${result.summary.total} findings)\n`);
       } else process.stdout.write(render(result, format as Format, color));
+      // Reports as files: always for `report`, on request, and by default for an interactive `audit` with no explicit format or file.
+      const explicitOutput = flags.has("format") || typeof out === "string";
+      const dirFlag = flags.get("report-dir");
+      const wantReport =
+        cmd === "report" || flags.has("report") || typeof dirFlag === "string" || (!flags.has("no-report") && !explicitOutput && !!process.stdout.isTTY);
+      if (wantReport) {
+        const dir = resolve(typeof dirFlag === "string" ? dirFlag : "vigilsutra-report");
+        writeReportFolder(dir, result);
+        process.stdout.write(`
+Reports written to ${dir}
+  report.html  open this in a browser
+  report.md    Markdown version
+  results.json, results.sarif  for tools and CI
+`);
+      }
       if (failOn && exceeds(result, failOn)) process.exit(1);
       return;
     }

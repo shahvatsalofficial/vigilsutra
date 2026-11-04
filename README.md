@@ -69,6 +69,8 @@ node dist/cli.js audit examples/intentionally-insecure
 
 > Published on npm: <https://www.npmjs.com/package/vigilsutra>. You can also install from GitHub: `npm install -g github:shahvatsalofficial/vigilsutra`. Try the demo project after cloning: `vigilsutra audit examples/intentionally-insecure`.
 
+**Reports as files (easy to read and share).** Run `vigilsutra report .` (or `vigilsutra audit .` in a terminal) and open `vigilsutra-report/report.html` in a browser. The folder also has `report.md`, `results.json` and `results.sarif`, and a `.gitignore` so reports are not committed by accident.
+
 Everyday use:
 
 ```bash
@@ -103,13 +105,14 @@ Summary: 0 critical, 8 high, 5 medium, 2 low, 1 info
 
 ![Terminal output of vigilsutra auditing the intentionally insecure demo (real output)](docs/assets/demo.svg)
 
-Full sample reports (labelled as samples, generated from the demo project): [Markdown](examples/sample-reports/insecure-demo.md) · [SARIF](examples/sample-reports/insecure-demo.sarif) · [JSON](examples/sample-reports/insecure-demo.json). The matching clean project is [examples/secure-config](examples/secure-config).
+Full sample reports (labelled as samples, generated from the demo project): [HTML](examples/sample-reports/insecure-demo.html) · [Markdown](examples/sample-reports/insecure-demo.md) · [SARIF](examples/sample-reports/insecure-demo.sarif) · [JSON](examples/sample-reports/insecure-demo.json). The matching clean project is [examples/secure-config](examples/secure-config).
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `vigilsutra audit [path]` | Read-only scan. Formats: `text`, `json`, `markdown`, `sarif`, `html`. Flags: `--out`, `--fail-on`, `--baseline`, `--no-color`. |
+| `vigilsutra report [path]` | Scan and write `report.md`, `report.html`, `results.json`, `results.sarif` to `./vigilsutra-report/` (or `--report-dir`). |
+| `vigilsutra audit [path]` | Read-only scan. Formats: `text`, `json`, `markdown`, `sarif`, `html`. Flags: `--out`, `--fail-on`, `--baseline`, `--policy`, `--no-policy`, `--report`, `--report-dir`, `--no-report`, `--no-color`. In a terminal, with no `--format` or `--out`, it also writes the report folder. |
 | `vigilsutra baseline --out f.json` | Record current findings as accepted, so CI fails only on new ones. |
 | `vigilsutra verify --previous results.json` | Re-scan and show what is no longer detected, remaining, or new. |
 | `vigilsutra rules list` / `explain <ID>` | Browse rules, fixes and false-positive notes. |

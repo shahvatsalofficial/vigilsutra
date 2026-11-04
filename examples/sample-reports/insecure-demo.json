@@ -2,10 +2,10 @@
   "schemaVersion": "1.0",
   "tool": {
     "name": "vigilsutra",
-    "version": "0.1.0",
+    "version": "0.1.3",
     "rulesVersion": "1.0.0"
   },
-  "generatedAt": "2026-10-30T19:49:45.760Z",
+  "generatedAt": "2026-11-04T17:54:06.307Z",
   "mode": "local",
   "project": {
     "name": "intentionally-insecure",
@@ -25,7 +25,13 @@
     "skippedTooLarge": 0,
     "skippedBinary": 0,
     "skippedUnreadable": 0,
-    "truncated": false
+    "truncated": false,
+    "policy": {
+      "source": "built-in defaults",
+      "userIgnorePatterns": 0,
+      "disabledRules": [],
+      "limitsOverridden": false
+    }
   },
   "summary": {
     "total": 16,

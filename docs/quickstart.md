@@ -37,6 +37,12 @@ No official image is published yet (planned). To run in a container yourself, mo
 docker run --rm --network none -v "$PWD":/work:ro -v /path/to/vigilsutra:/vs:ro -w /work node:22 node /vs/dist/cli.js audit .
 ```
 
+## Get a readable report
+```bash
+vigilsutra report .      # writes ./vigilsutra-report/report.html, report.md, results.json, results.sarif
+```
+Open `report.html` in a browser, or `report.md` in any Markdown viewer. The folder has its own `.gitignore`; reports contain file paths and redacted excerpts, so do not publish them for private projects.
+
 ## Next steps
 1. `vigilsutra init` to create `.vigilsutra.yml`.
 2. `vigilsutra audit . --format sarif --out vigilsutra.sarif` for code scanning.

@@ -27,6 +27,7 @@ export const DEFAULT_IGNORE = [
   "**/coverage/**",
   "**/.next/**",
   "**/target/**",
+  "**/vigilsutra-report/**",
   "*.min.js",
   "package-lock.json",
   "yarn.lock",

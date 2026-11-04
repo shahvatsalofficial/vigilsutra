@@ -9,3 +9,4 @@ coverage/
 vigilsutra-report.*
 vigilsutra-results.json
 vigilsutra.sarif
+vigilsutra-report/

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta name="color-scheme" content="light dark">
+<title>VigilSutra AI audit report - intentionally-insecure</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#161a2b;--muted:#586079;--line:#dde1ee;--accent:#3b46d9;--crit:#7a0f1a;--high:#c0392b;--med:#b9770e;--low:#2563eb;--info:#6b7280;--ok:#0f7a4d}
+@media (prefers-color-scheme:dark){:root{--bg:#0d111c;--card:#151b2e;--text:#e8ebf7;--muted:#9aa4c2;--line:#27304f;--accent:#8c96ff;--crit:#ff6b7d;--high:#ff8a80;--med:#f2c35b;--low:#7aa7ff;--info:#9aa4c2;--ok:#52d6a0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:62rem;margin:0 auto;padding:1.5rem 1rem 4rem}h1{font-size:1.9rem;margin:.2rem 0}h2{margin:2.2rem 0 .7rem;font-size:1.35rem}
+.meta{color:var(--muted);font-size:.9rem}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem 1.2rem;margin:.8rem 0}
+.lead{font-size:1.15rem;font-weight:600}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.7rem}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem 1rem}.stat b{display:block;font-size:1.7rem;line-height:1.1}.stat span{color:var(--muted);font-size:.85rem}
+.bar{height:.5rem;border-radius:99px;background:var(--line);margin-top:.5rem;overflow:hidden}.bar i{display:block;height:100%}
+.sev{display:inline-block;padding:.05rem .55rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:#fff}
+.critical{background:var(--crit)}.high{background:var(--high)}.medium{background:var(--med)}.low{background:var(--low)}.info{background:var(--info)}
+.chip{display:inline-block;padding:.05rem .55rem;border-radius:99px;border:1px solid var(--line);font-size:.78rem;color:var(--muted);margin-right:.3rem}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:.5rem 0;padding:.1rem 1rem}summary{cursor:pointer;padding:.7rem 0;font-weight:600}
+summary:focus-visible{outline:3px solid var(--accent);border-radius:6px}.where{font-family:ui-monospace,Consolas,monospace;font-size:.88rem;color:var(--muted);word-break:break-all}
+pre,code{font-family:ui-monospace,Consolas,monospace}pre{background:#0f1424;color:#e7ebfa;padding:.7rem .9rem;border-radius:8px;overflow:auto;font-size:.85rem;white-space:pre-wrap;word-break:break-word}
+code{background:color-mix(in srgb,var(--line) 55%,transparent);padding:.1em .35em;border-radius:5px;font-size:.88em}table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border-bottom:1px solid var(--line);padding:.45rem .5rem;text-align:left;vertical-align:top}th{color:var(--muted);font-size:.75rem;text-transform:uppercase}.tw{overflow-x:auto}
+a{color:var(--accent)}dt{font-weight:700;margin-top:.5rem}dd{margin:0 0 .3rem 0;color:var(--muted)}footer{color:var(--muted);font-size:.85rem;margin-top:2.5rem}
+@media print{details{break-inside:avoid}details>*{display:block}}</style></head><body><main>
+<p class="meta">VigilSutra AI 0.1.3 &middot; rules 1.0.0 &middot; 2026-11-04T17:54:06.307Z &middot; offline, read-only</p>
+<h1>Audit report: intentionally-insecure</h1>
+<p class="meta">Detected: docker, terraform, github-actions, kubernetes</p>
+<div class="card"><p class="lead">Start with the 8 critical and high items. They are the most likely to cause real harm. The rest can be scheduled afterwards.</p>
+<p class="meta">Confirmed by evidence: <strong>6</strong> &middot; Potential (needs a person to confirm): <strong>9</strong> &middot; Total: <strong>16</strong></p></div>
+<div class="grid"><div class="stat"><b>0</b><span>Critical</span><div class="bar"><i class="critical" style="width:0%"></i></div></div><div class="stat"><b>8</b><span>High</span><div class="bar"><i class="high" style="width:100%"></i></div></div><div class="stat"><b>5</b><span>Medium</span><div class="bar"><i class="medium" style="width:63%"></i></div></div><div class="stat"><b>2</b><span>Low</span><div class="bar"><i class="low" style="width:25%"></i></div></div><div class="stat"><b>1</b><span>Info</span><div class="bar"><i class="info" style="width:13%"></i></div></div></div>
+<h2>Top priorities</h2><ol><li><a href="#f-11e3248dc10a"><strong>VS-CICD-002</strong> pull_request_target workflow checks out pull-request code</a> <span class="where">.github/workflows/ci.yml:10</span></li><li><a href="#f-3bcdb287dbc0"><strong>VS-CICD-004</strong> Untrusted GitHub context interpolated into a shell step</a> <span class="where">.github/workflows/ci.yml:11</span></li><li><a href="#f-e8757449db9c"><strong>VS-K8S-002</strong> Pod shares host network, PID or IPC namespace</a> <span class="where">deployment.yaml:8</span></li><li><a href="#f-872a8614818c"><strong>VS-K8S-001</strong> Kubernetes container runs privileged</a> <span class="where">deployment.yaml:13</span></li><li><a href="#f-acd7e6c2c716"><strong>VS-IAC-002</strong> Public-read or public-write storage ACL</a> <span class="where">main.tf:9</span></li></ol>
+<h2>How to read this report</h2>
+<dl><dt>Severity</dt><dd>How bad it would be if the finding is real: critical, high, medium, low or info.</dd><dt>Confidence</dt><dd>How reliable the check is: high, medium or low. Findings in test, example or vendored folders are marked low.</dd><dt>Status</dt><dd><strong>confirmed</strong>: the evidence alone is conclusive. <strong>potential</strong>: a pattern match that a person must confirm. <strong>informational</strong>: a note, not a defect.</dd><dt>Evidence</dt><dd>The line that triggered the finding. Secret values are always replaced with [REDACTED].</dd></dl>
+<h2>All findings</h2>
+<div class="tw card"><table><thead><tr><th>#</th><th>Severity</th><th>Rule</th><th>What</th><th>Where</th><th>Status</th></tr></thead><tbody><tr><td>1</td><td><span class="sev high">high</span></td><td>VS-CICD-002</td><td>pull_request_target workflow checks out pull-request code</td><td class="where"><a href="#f-11e3248dc10a">.github/workflows/ci.yml:10</a></td><td>potential</td></tr><tr><td>2</td><td><span class="sev high">high</span></td><td>VS-CICD-004</td><td>Untrusted GitHub context interpolated into a shell step</td><td class="where"><a href="#f-3bcdb287dbc0">.github/workflows/ci.yml:11</a></td><td>potential</td></tr><tr><td>3</td><td><span class="sev high">high</span></td><td>VS-K8S-002</td><td>Pod shares host network, PID or IPC namespace</td><td class="where"><a href="#f-e8757449db9c">deployment.yaml:8</a></td><td>confirmed</td></tr><tr><td>4</td><td><span class="sev high">high</span></td><td>VS-K8S-001</td><td>Kubernetes container runs privileged</td><td class="where"><a href="#f-872a8614818c">deployment.yaml:13</a></td><td>confirmed</td></tr><tr><td>5</td><td><span class="sev high">high</span></td><td>VS-IAC-002</td><td>Public-read or public-write storage ACL</td><td class="where"><a href="#f-acd7e6c2c716">main.tf:9</a></td><td>confirmed</td></tr><tr><td>6</td><td><span class="sev high">high</span></td><td>VS-CODE-002</td><td>Shell command built from a dynamic string</td><td class="where"><a href="#f-5f4c07837cbb">server.js:5</a></td><td>potential</td></tr><tr><td>7</td><td><span class="sev high">high</span></td><td>VS-CODE-004</td><td>SQL query built with string concatenation or interpolation</td><td class="where"><a href="#f-821316a53c54">server.js:6</a></td><td>potential</td></tr><tr><td>8</td><td><span class="sev high">high</span></td><td>VS-CODE-001</td><td>Dynamic code execution (eval / new Function / exec)</td><td class="where"><a href="#f-a53ed37df0b7">server.js:7</a></td><td>potential</td></tr><tr><td>9</td><td><span class="sev medium">medium</span></td><td>VS-CICD-003</td><td>Workflow grants write-all permissions</td><td class="where"><a href="#f-55d0df202ef3">.github/workflows/ci.yml:3</a></td><td>confirmed</td></tr><tr><td>10</td><td><span class="sev medium">medium</span></td><td>VS-DOCKER-001</td><td>Container runs as root (no USER instruction)</td><td class="where"><a href="#f-b8e95fb4db1d">Dockerfile:1</a></td><td>confirmed</td></tr><tr><td>11</td><td><span class="sev medium">medium</span></td><td>VS-DOCKER-003</td><td>Remote script piped into a shell during build</td><td class="where"><a href="#f-018c189f742c">Dockerfile:2</a></td><td>potential</td></tr><tr><td>12</td><td><span class="sev medium">medium</span></td><td>VS-IAC-001</td><td>Security group or firewall open to the whole internet</td><td class="where"><a href="#f-3a0a43d3f328">main.tf:6</a></td><td>potential</td></tr><tr><td>13</td><td><span class="sev medium">medium</span></td><td>VS-SECRET-004</td><td>Hardcoded credential assigned to a secret-named variable</td><td class="where"><a href="#f-18d98d5cedc5">server.js:3</a></td><td>potential</td></tr><tr><td>14</td><td><span class="sev low">low</span></td><td>VS-CICD-001</td><td>GitHub Action not pinned to a commit SHA</td><td class="where"><a href="#f-78b329a94b37">.github/workflows/ci.yml:8</a></td><td>potential</td></tr><tr><td>15</td><td><span class="sev low">low</span></td><td>VS-DOCKER-002</td><td>Base image uses :latest or no tag</td><td class="where"><a href="#f-a44375af9a3b">Dockerfile:1</a></td><td>confirmed</td></tr><tr><td>16</td><td><span class="sev info">info</span></td><td>VS-PROC-001</td><td>No security policy file found</td><td class="where"><a href="#f-dc01ae019e23">.:1</a></td><td>informational</td></tr></tbody></table></div>
+<h2>Details</h2>
+
+<h3>High (8)</h3>
+<details id="f-11e3248dc10a" open>
+<summary><span class="sev high">high</span> VS-CICD-002: pull_request_target workflow checks out pull-request code</summary>
+<p class="where">.github/workflows/ci.yml:10</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-829</span><span class="chip">CWE-94</span></p>
+<p><strong>Evidence</strong></p><pre>ref: ${{ github.event.pull_request.head.sha }}</pre>
+<dl><dt>Why it matters</dt><dd>A workflow triggered by `pull_request_target` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.</dd><dt>Fix</dt><dd>Use `pull_request` for untrusted code. If `pull_request_target` is required, do not check out or execute PR-controlled content, and keep permissions minimal.</dd><dt>Verify</dt><dd>Confirm no step after the checkout executes files from the PR head, or remove the head checkout.</dd><dt>May be a false positive when</dt><dd>Workflows that check out the PR head but never build, run or source it (for example, labelling only).</dd></dl>
+<p class="meta">Finding 1. Fingerprint <code>11e3248dc10a2e4d5f1a7ca3436ca693</code></p>
+</details>
+<details id="f-3bcdb287dbc0" open>
+<summary><span class="sev high">high</span> VS-CICD-004: Untrusted GitHub context interpolated into a shell step</summary>
+<p class="where">.github/workflows/ci.yml:11</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-78</span><span class="chip">CWE-77</span></p>
+<p><strong>Evidence</strong></p><pre>- run: echo &quot;Title is ${{ github.event.pull_request.title }}&quot;</pre>
+<dl><dt>Why it matters</dt><dd>Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands.</dd><dt>Fix</dt><dd>Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `&quot;$TITLE&quot;` in the script.</dd><dt>Verify</dt><dd>The expression no longer appears inside a `run:` body.</dd><dt>May be a false positive when</dt><dd>Fields restricted by GitHub to safe characters. Only matches inside run blocks are reported when detectable; verify context.</dd></dl>
+<p class="meta">Finding 2. Fingerprint <code>3bcdb287dbc0be65a5784aaa62a0ac9b</code></p>
+</details>
+<details id="f-e8757449db9c" open>
+<summary><span class="sev high">high</span> VS-K8S-002: Pod shares host network, PID or IPC namespace</summary>
+<p class="where">deployment.yaml:8</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-653</span></p>
+<p><strong>Evidence</strong></p><pre>hostNetwork: true</pre>
+<dl><dt>Why it matters</dt><dd>hostNetwork, hostPID or hostIPC removes namespace isolation between the pod and the node.</dd><dt>Fix</dt><dd>Remove the host namespace flags unless the workload is a vetted node agent.</dd><dt>Verify</dt><dd>Flags removed; workload tested.</dd><dt>May be a false positive when</dt><dd>Node-level infrastructure agents.</dd></dl>
+<p class="meta">Finding 3. Fingerprint <code>e8757449db9c9c28022eceed1a643272</code></p>
+</details>
+<details id="f-872a8614818c" open>
+<summary><span class="sev high">high</span> VS-K8S-001: Kubernetes container runs privileged</summary>
+<p class="where">deployment.yaml:13</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-250</span></p>
+<p><strong>Evidence</strong></p><pre>privileged: true</pre>
+<dl><dt>Why it matters</dt><dd>`privileged: true` gives the container nearly all host capabilities and device access, so a container escape is trivial.</dd><dt>Fix</dt><dd>Remove `privileged: true`. Add only the specific capabilities needed and set `allowPrivilegeEscalation: false`.</dd><dt>Verify</dt><dd>Manifest has no `privileged: true`; workload still starts.</dd><dt>May be a false positive when</dt><dd>Node-level system agents (CNI, storage drivers) that genuinely require it; keep them isolated.</dd></dl>
+<p class="meta">Finding 4. Fingerprint <code>872a8614818c1adfd9352829ee453c5f</code></p>
+</details>
+<details id="f-acd7e6c2c716" open>
+<summary><span class="sev high">high</span> VS-IAC-002: Public-read or public-write storage ACL</summary>
+<p class="where">main.tf:9</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-732</span></p>
+<p><strong>Evidence</strong></p><pre>acl = &quot;public-read&quot;</pre>
+<dl><dt>Why it matters</dt><dd>A storage bucket ACL is set to a public canned ACL, exposing objects to anyone.</dd><dt>Fix</dt><dd>Use `private`, enable block-public-access, and serve public assets through a CDN with origin access control.</dd><dt>Verify</dt><dd>ACL is private and public access block is enabled.</dd><dt>May be a false positive when</dt><dd>Buckets deliberately serving public static assets with no sensitive content.</dd></dl>
+<p class="meta">Finding 5. Fingerprint <code>acd7e6c2c716833b88217086f1c02364</code></p>
+</details>
+<details id="f-5f4c07837cbb" open>
+<summary><span class="sev high">high</span> VS-CODE-002: Shell command built from a dynamic string</summary>
+<p class="where">server.js:5</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-78</span></p>
+<p><strong>Evidence</strong></p><pre>exec(`ping -c 1 ${req.query.host}`, () =&gt; res.send(&quot;ok&quot;));</pre>
+<dl><dt>Why it matters</dt><dd>A shell is invoked with an interpolated or concatenated command string (or Python `shell=True`). Untrusted input can inject extra commands.</dd><dt>Fix</dt><dd>Use an argument array without a shell: `execFile(cmd, [args])` in Node, `subprocess.run([cmd, *args])` in Python. Validate inputs against an allowlist.</dd><dt>Verify</dt><dd>Command uses an argument array; a test confirms metacharacters are not interpreted.</dd><dt>May be a false positive when</dt><dd>Fully constant commands. Interpolated values that are validated constants.</dd></dl>
+<p class="meta">Finding 6. Fingerprint <code>5f4c07837cbbbd543925e4c2c6d365b1</code></p>
+</details>
+<details id="f-821316a53c54" open>
+<summary><span class="sev high">high</span> VS-CODE-004: SQL query built with string concatenation or interpolation</summary>
+<p class="where">server.js:6</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-89</span></p>
+<p><strong>Evidence</strong></p><pre>db.query(&quot;SELECT * FROM users WHERE id = &quot; + req.query.id);</pre>
+<dl><dt>Why it matters</dt><dd>A SQL statement is assembled from variables instead of bound parameters, which can allow SQL injection when any value is user-controlled.</dd><dt>Fix</dt><dd>Use parameterised queries or a query builder that binds values (`?`, `$1`, `%s` placeholders passed separately).</dd><dt>Verify</dt><dd>Query text is a constant; values passed as parameters; test with a quote-containing input.</dd><dt>May be a false positive when</dt><dd>Interpolated identifiers that come from a fixed allowlist, or constants.</dd></dl>
+<p class="meta">Finding 7. Fingerprint <code>821316a53c548a607dd94a1fd5c6919e</code></p>
+</details>
+<details id="f-a53ed37df0b7" open>
+<summary><span class="sev high">high</span> VS-CODE-001: Dynamic code execution (eval / new Function / exec)</summary>
+<p class="where">server.js:7</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-95</span></p>
+<p><strong>Evidence</strong></p><pre>eval(req.body.expr);</pre>
+<dl><dt>Why it matters</dt><dd>Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. This rule matches the call, not the data flow.</dd><dt>Fix</dt><dd>Replace with a data-driven approach (lookup table, JSON.parse, ast.literal_eval). Never pass user input to an evaluator.</dd><dt>Verify</dt><dd>The call is removed or its argument is proven constant; add a test with a malicious input.</dd><dt>May be a false positive when</dt><dd>Constant strings, build tooling, or sandboxed evaluators. Trace the argument to confirm.</dd></dl>
+<p class="meta">Finding 8. Fingerprint <code>a53ed37df0b77f8d570605e2df75ad47</code></p>
+</details>
+<h3>Medium (5)</h3>
+<details id="f-55d0df202ef3">
+<summary><span class="sev medium">medium</span> VS-CICD-003: Workflow grants write-all permissions</summary>
+<p class="where">.github/workflows/ci.yml:3</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-250</span><span class="chip">CWE-732</span></p>
+<p><strong>Evidence</strong></p><pre>permissions: write-all</pre>
+<dl><dt>Why it matters</dt><dd>`permissions: write-all` gives every job a token that can modify repository contents, packages and more.</dd><dt>Fix</dt><dd>Declare `permissions: contents: read` at the top level and grant additional scopes per job only where required.</dd><dt>Verify</dt><dd>No `write-all` remains and the workflow still passes.</dd><dt>May be a false positive when</dt><dd>None expected; the setting is explicit.</dd></dl>
+<p class="meta">Finding 9. Fingerprint <code>55d0df202ef3630a18b3c2bd9bfc28a9</code></p>
+</details>
+<details id="f-b8e95fb4db1d">
+<summary><span class="sev medium">medium</span> VS-DOCKER-001: Container runs as root (no USER instruction)</summary>
+<p class="where">Dockerfile:1</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-250</span></p>
+<p><strong>Evidence</strong></p><pre>FROM node:latest</pre>
+<dl><dt>Why it matters</dt><dd>The Dockerfile never sets a non-root USER, so the final image runs as root by default. A compromise of the app gives root inside the container.</dd><dt>Fix</dt><dd>Create an unprivileged user and add `USER &lt;name&gt;` before the final CMD/ENTRYPOINT.</dd><dt>Verify</dt><dd>`docker run --rm &lt;image&gt; id -u` returns a non-zero UID.</dd><dt>May be a false positive when</dt><dd>Images intentionally run as root for tooling or build-only stages.</dd></dl>
+<p class="meta">Finding 10. Fingerprint <code>b8e95fb4db1dcce6db599478c54f942f</code></p>
+</details>
+<details id="f-018c189f742c">
+<summary><span class="sev medium">medium</span> VS-DOCKER-003: Remote script piped into a shell during build</summary>
+<p class="where">Dockerfile:2</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-494</span></p>
+<p><strong>Evidence</strong></p><pre>RUN curl -fsSL https://example.invalid/install.sh | sh</pre>
+<dl><dt>Why it matters</dt><dd>`curl|sh` or `wget|sh` executes whatever the remote server returns at build time, with no integrity check.</dd><dt>Fix</dt><dd>Download to a file, verify a pinned checksum or signature, then execute. Prefer the distribution&#39;s package manager.</dd><dt>Verify</dt><dd>No `| sh` / `| bash` remains; a checksum verification step precedes execution.</dd><dt>May be a false positive when</dt><dd>Installers from a source you control and trust. Still no integrity verification.</dd></dl>
+<p class="meta">Finding 11. Fingerprint <code>018c189f742cf1fc9702bf7266200d45</code></p>
+</details>
+<details id="f-3a0a43d3f328">
+<summary><span class="sev medium">medium</span> VS-IAC-001: Security group or firewall open to the whole internet</summary>
+<p class="where">main.tf:6</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-284</span></p>
+<p><strong>Evidence</strong></p><pre>cidr_blocks = [&quot;0.0.0.0/0&quot;]</pre>
+<dl><dt>Why it matters</dt><dd>A Terraform rule allows 0.0.0.0/0 (or ::/0). Open ingress to administrative or database ports exposes them to internet scanning and attack.</dd><dt>Fix</dt><dd>Restrict CIDR ranges to known addresses or place the service behind a load balancer, VPN or bastion.</dd><dt>Verify</dt><dd>Ingress CIDRs are restricted or documented as intentionally public.</dd><dt>May be a false positive when</dt><dd>Intentionally public web ports (80/443) and egress rules. Review the port and direction.</dd></dl>
+<p class="meta">Finding 12. Fingerprint <code>3a0a43d3f3282b7189719f53a4405a85</code></p>
+</details>
+<details id="f-18d98d5cedc5">
+<summary><span class="sev medium">medium</span> VS-SECRET-004: Hardcoded credential assigned to a secret-named variable</summary>
+<p class="where">server.js:3</p>
+<p><span class="chip">potential</span><span class="chip">confidence medium</span><span class="chip">CWE-798</span></p>
+<p><strong>Evidence (redacted)</strong></p><pre>const db_password = &quot;[REDACTED]&quot;;</pre>
+<dl><dt>Why it matters</dt><dd>A variable or key named like a password, secret, token or API key is assigned a non-placeholder string literal.</dd><dt>Fix</dt><dd>Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.</dd><dt>Verify</dt><dd>Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.</dd><dt>May be a false positive when</dt><dd>Test data, example config, i18n labels. Values that look like placeholders, environment lookups or templates are skipped.</dd></dl>
+<p class="meta">Finding 13. Fingerprint <code>18d98d5cedc5076fd3c45eb622051cd6</code></p>
+</details>
+<h3>Low (2)</h3>
+<details id="f-78b329a94b37">
+<summary><span class="sev low">low</span> VS-CICD-001: GitHub Action not pinned to a commit SHA</summary>
+<p class="where">.github/workflows/ci.yml:8</p>
+<p><span class="chip">potential</span><span class="chip">confidence high</span><span class="chip">CWE-829</span></p>
+<p><strong>Evidence</strong></p><pre>- uses: actions/checkout@v4</pre>
+<dl><dt>Why it matters</dt><dd>A third-party action is referenced by a mutable tag or branch. If the tag is moved or the publisher is compromised, the workflow runs attacker-controlled code.</dd><dt>Fix</dt><dd>Pin third-party actions to a full 40-character commit SHA and keep a trailing comment with the version. Use Dependabot or Renovate to update pins.</dd><dt>Verify</dt><dd>Every `uses:` line for a non-local action ends in @&lt;40 hex&gt;.</dd><dt>May be a false positive when</dt><dd>First-party `actions/*` references are lower risk; local `./` actions and Docker digests are skipped.</dd></dl>
+<p class="meta">Finding 14. Fingerprint <code>78b329a94b37c68e38f24aed9717798c</code></p>
+</details>
+<details id="f-a44375af9a3b">
+<summary><span class="sev low">low</span> VS-DOCKER-002: Base image uses :latest or no tag</summary>
+<p class="where">Dockerfile:1</p>
+<p><span class="chip">confirmed</span><span class="chip">confidence high</span><span class="chip">CWE-829</span></p>
+<p><strong>Evidence</strong></p><pre>FROM node:latest</pre>
+<dl><dt>Why it matters</dt><dd>An unpinned base image changes without notice, which breaks reproducibility and can pull in vulnerable or malicious content.</dd><dt>Fix</dt><dd>Pin to a specific version and, for production, an image digest (`image@sha256:…`).</dd><dt>Verify</dt><dd>Every FROM line has an explicit tag or digest.</dd><dt>May be a false positive when</dt><dd>`FROM scratch` and references to earlier build stages are skipped.</dd></dl>
+<p class="meta">Finding 15. Fingerprint <code>a44375af9a3b7bae297ac58c69029c1a</code></p>
+</details>
+<h3>Info (1)</h3>
+<details id="f-dc01ae019e23">
+<summary><span class="sev info">info</span> VS-PROC-001: No security policy file found</summary>
+<p class="where">.:1</p>
+<p><span class="chip">informational</span><span class="chip">confidence high</span></p>
+<p><strong>Evidence</strong></p><pre>SECURITY.md not found</pre>
+<dl><dt>Why it matters</dt><dd>No SECURITY.md was found, so reporters have no documented way to disclose vulnerabilities privately.</dd><dt>Fix</dt><dd>Add SECURITY.md with a private contact or GitHub private vulnerability reporting link and a response expectation.</dd><dt>Verify</dt><dd>SECURITY.md exists at the repository root, `.github/` or `docs/`.</dd><dt>May be a false positive when</dt><dd>Policy kept in an org-level `.github` repository.</dd></dl>
+<p class="meta">Finding 16. Fingerprint <code>dc01ae019e233f9810fdf7da89927440</code></p>
+</details>
+<h2>Next steps</h2><ol><li>Fix critical and high items first. Each finding below has a <strong>Fix</strong> and a <strong>Verify</strong> step.</li><li>Treat any exposed secret as compromised: rotate or revoke it at the provider before deleting it from the code.</li><li>Items marked <em>potential</em> need a person to confirm; read <strong>May be a false positive when</strong> before acting.</li><li>After fixing, re-run the audit, or run <code>vigilsutra verify --previous &lt;results.json&gt;</code> to see what is gone and what is new.</li><li>To accept existing findings and fail only on new ones, create a baseline: <code>vigilsutra baseline --out .vigilsutra-baseline.json</code>.</li></ol>
+<h2>Scope and limits</h2>
+<div class="card"><p>Scanned 5 files. Skipped: 0 ignored, 0 symlinks (never followed), 0 too large, 0 binary.</p>
+<p><strong>Checked:</strong> secrets, cicd, containers, iac, code, ai-agents, privacy, process.</p><p><strong>Not checked:</strong> dependencies and advisories; git history; authentication and authorization design; runtime / cloud state; mobile apps; data-flow and taint analysis.</p>
+<ul><li>Pattern-based static review of text files only; no data-flow or taint analysis.</li><li>Source-pattern matches are reported as &#39;potential&#39; unless the evidence itself is conclusive (for example a token format or an explicit unsafe setting).</li><li>A match on a secret format shows the format, not that the credential is live. No credential was tested.</li><li>Git history, dependencies, advisories, running systems and remote cloud state were not inspected.</li><li>Absence of findings is not evidence of security.</li></ul></div>
+<footer>Created by Vatsal Shah. VigilSutra reports engineering evidence, not certification or legal advice. This file is self-contained and loads nothing from the network.</footer>
+</main></body></html>

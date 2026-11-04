@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rewrote the six agent skills (`agents/*/SKILL.md`): descriptions that trigger on what users actually say, the reason behind each safety rule, the new `vigilsutra report` command, `--no-policy` for code you do not own, `pathContext` triage, and explicit "not for" and limits sections.
+
 ## 0.2.0 - 2026-11-04
 
 - **Reports as files.** New `vigilsutra report` command, and `audit --report` / `--report-dir`, write `report.md`, `report.html`, `results.json` and `results.sarif` (plus a `.gitignore`) to `./vigilsutra-report/`. In an interactive terminal, `audit` without `--format` or `--out` now does this by default; piped or CI runs are unchanged. `--no-report` turns it off.

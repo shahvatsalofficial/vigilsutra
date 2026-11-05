@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 - 2026-11-06
+
+- Local `.env` files are no longer reviewed when git does not track them. `VS-SECRET-006` and the other rules see an environment file only if it is listed in the git index, or if the folder has no usable git index. `.env.example`, `.env.sample`, and `.env.template` are unchanged. The check reads the index file directly and does not run `git`. Path compare follows `core.ignorecase` (on by default for Windows and macOS).
+- Required CI is Ubuntu and Windows on Node 20, 22, 24 and 26. Hosted `macos-latest` jobs stayed queued and were cancelled with zero steps, which failed the check before any test ran. The suite is plain Node and has no native addon.
+
 ## 0.2.1 - 2026-11-04
 
 - Rewrote the six agent skills (`agents/*/SKILL.md`): descriptions that trigger on what users actually say, the reason behind each safety rule, the new `vigilsutra report` command, `--no-policy` for code you do not own, `pathContext` triage, and explicit "not for" and limits sections.

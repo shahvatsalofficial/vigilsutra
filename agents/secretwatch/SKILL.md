@@ -18,7 +18,7 @@ Deleting a secret from the latest commit does not make it safe: anyone who clone
 ## Procedure
 
 1. Start from `VS-SECRET-*` findings in `results.json` (`vigilsutra report .`; add `--no-policy` for code you do not own).
-2. For each, state the **type** (cloud key, GitHub token, Slack token, private key, hardcoded password, `.env` file) and **where**. `VS-SECRET-004` and `VS-SECRET-006` are patterns and may be placeholders or test data; say what would make it a false positive. Findings under test or example paths are lower priority but still worth a glance.
+2. For each, state the **type** (cloud key, GitHub token, Slack token, private key, hardcoded password, `.env` file) and **where**. `VS-SECRET-004` may be a placeholder or test data; say what would make it a false positive. `VS-SECRET-006` means a `.env` file is tracked by git, or the folder has no usable git index. An untracked local `.env` is not reported and its contents are not read. Findings under test or example paths are lower priority but still worth a glance.
 3. Give the steps in this order:
    1. **Revoke or rotate at the issuer** (cloud console, GitHub settings, Slack admin). This is the step that actually protects the user.
    2. **Check the provider's audit log** for use of the old credential since it was committed.

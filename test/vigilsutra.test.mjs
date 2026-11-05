@@ -4,10 +4,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, symlin
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { audit } from "../dist/engine.js";
 import { render } from "../dist/reporters/index.js";
 import { ALL_RULES } from "../dist/rules/index.js";
 import { parsePolicy } from "../dist/policy.js";
+import { createGitCache, gitTracks, parseGitIndex } from "../dist/git-index.js";
 
 const CLI = resolve("dist/cli.js");
 // Secret-shaped strings are assembled at runtime so no scanner flags this test file.
@@ -154,6 +156,99 @@ test("default ignores skip node_modules at any depth but not .env", () => {
   const r = scan({ "node_modules/x/a.js": "eval(1)", "pkg/node_modules/y/a.js": "eval(1)", ".env": "API_TOKEN=" + PASS });
   assert.ok(!ids(r).includes("VS-CODE-001"));
   assert.ok(ids(r).includes("VS-SECRET-006"));
+});
+
+/** Minimal git index (v2 or v4) with a valid checksum, so tests do not need the git binary. */
+function gitIndex(paths, version = 2) {
+  const hashLen = 20;
+  const flagAt = 40 + hashLen;
+  const parts = [];
+  let prev = "";
+  for (const p of paths) {
+    let nameBytes;
+    if (version === 4) {
+      let shared = 0;
+      while (shared < prev.length && shared < p.length && prev[shared] === p[shared]) shared++;
+      const strip = prev.length - shared;
+      nameBytes = Buffer.concat([Buffer.from(gitVarint(strip)), Buffer.from(p.slice(shared)), Buffer.from([0])]);
+    } else {
+      nameBytes = Buffer.concat([Buffer.from(p), Buffer.from([0])]);
+    }
+    const rawLen = flagAt + 2 + nameBytes.length;
+    const b = Buffer.alloc(version === 4 ? rawLen : (rawLen + 7) & ~7);
+    b.writeUInt32BE(0o100644, 24);
+    b.writeUInt16BE(Math.min(p.length, 0xfff), flagAt);
+    nameBytes.copy(b, flagAt + 2);
+    parts.push(b);
+    prev = p;
+  }
+  const header = Buffer.alloc(12);
+  header.write("DIRC", 0, "latin1");
+  header.writeUInt32BE(version, 4);
+  header.writeUInt32BE(paths.length, 8);
+  const body = Buffer.concat([header, ...parts]);
+  return Buffer.concat([body, createHash("sha1").update(body).digest()]);
+}
+
+/** Same byte layout as git's encode_varint. */
+function gitVarint(value) {
+  const bytes = [value & 127];
+  let n = value;
+  while ((n >>= 7) !== 0) bytes.unshift(128 | (--n & 127));
+  return bytes;
+}
+
+function withGit(files, tracked, version = 2) {
+  const root = project(files);
+  mkdirSync(join(root, ".git"));
+  writeFileSync(join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
+  writeFileSync(join(root, ".git", "index"), gitIndex(tracked, version));
+  return root;
+}
+
+test("untracked .env is not read; a git-tracked .env is a finding", () => {
+  const env = `API_TOKEN=${PASS}\nKEY=${AWS}\n`;
+  const untracked = audit({ root: withGit({ ".env": env, "a.js": "eval(1)" }, ["a.js"]) });
+  assert.ok(ids(untracked).includes("VS-CODE-001"));
+  assert.ok(!ids(untracked).includes("VS-SECRET-006"));
+  assert.ok(!ids(untracked).includes("VS-SECRET-001"));
+  assert.ok(!untracked.findings.some((f) => f.path === ".env"));
+  assert.ok(!render(untracked, "json").includes(PASS));
+  assert.ok(!render(untracked, "json").includes(AWS));
+
+  for (const version of [2, 4]) {
+    const tracked = audit({ root: withGit({ ".env": env, "sub/.env": env, "a.js": "eval(1)" }, [".env", "a.js", "sub/.env"], version) });
+    assert.ok(ids(tracked).includes("VS-SECRET-006"), `v${version}`);
+    assert.ok(ids(tracked).includes("VS-SECRET-001"), `v${version}`);
+    assert.equal(tracked.findings.filter((f) => f.ruleId === "VS-SECRET-006").length, 2);
+    assert.ok(!render(tracked, "json").includes(PASS));
+    assert.ok(!render(tracked, "json").includes(AWS));
+  }
+});
+
+test("tracked .env with only placeholders is not VS-SECRET-006", () => {
+  const root = withGit({ ".env": "API_TOKEN=changeme\nTZ=Etc/UTC\n" }, [".env"]);
+  assert.ok(!ids(audit({ root })).includes("VS-SECRET-006"));
+});
+
+test("tracked .env.example is not VS-SECRET-006", () => {
+  const root = withGit({ ".env.example": "API_TOKEN=" + PASS }, [".env.example"]);
+  assert.ok(!ids(audit({ root })).includes("VS-SECRET-006"));
+});
+
+test("v4 index round-trips tracked paths", () => {
+  const parsed = parseGitIndex(gitIndex([".env", "a.js", "sub/.env"], 4));
+  assert.ok(parsed);
+  assert.deepEqual([...parsed].sort(), [".env", "a.js", "sub/.env"].sort());
+});
+
+test("this repository does not track an environment file", () => {
+  const cache = createGitCache();
+  assert.equal(gitTracks(resolve("package.json"), cache), true);
+  assert.equal(gitTracks(resolve("src/rules/secrets.ts"), cache), true);
+  for (const name of [".env", ".env.local", ".env.development", ".env.production", ".env.test"]) {
+    assert.equal(gitTracks(resolve(name), cache), false, name);
+  }
 });
 
 test("HTML report escapes untrusted content", () => {

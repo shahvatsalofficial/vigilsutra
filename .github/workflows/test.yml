@@ -10,13 +10,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macos-latest is not in this matrix. On 2026-11-04 those jobs stayed queued
+        # and were cancelled with zero steps (runs 41882166871, 41885847962, 41886196642),
+        # which failed the check before any test ran. The suite is plain Node with no native addon.
+        # Ubuntu and Windows cover the same tests, including case-insensitive git index matching.
+        os: [ubuntu-latest, windows-latest]
         node: [20, 22, 24, 26]
-        # macOS runners are scarce and queued for hours, which showed up as failed checks.
-        # macOS keeps the oldest-supported-in-practice (22) and newest (26); Ubuntu and Windows run all four.
-        exclude:
-          - { os: macos-latest, node: 20 }
-          - { os: macos-latest, node: 24 }
     timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     steps:

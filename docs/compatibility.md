@@ -1,11 +1,12 @@
 # Compatibility matrix
 
-Last verified: 2026-10-31 on the build in this repository.
+Last verified: 2026-11-06 on the build in this repository.
 
 | Environment | Status | Evidence |
 |---|---|---|
-| Windows 11, Node 24.15, PowerShell and Git Bash | Tested | `npm test` run locally; the symlink test is skipped when symlink creation is not permitted |
-| Ubuntu, macOS, Windows on Node 20, 22, 24 and 26 (GitHub Actions) | Tested: all 12 jobs passed on commit `867132e` (Node 26.13 is the current LTS; Node 27 is only an alpha and is not tested) | `.github/workflows/test.yml` |
+| Windows 11, Node 24.15, PowerShell and Git Bash | Tested | `npm test` on 2026-11-06: 102 passed, 1 skipped (symlink creation not permitted; the directory-junction case does run) |
+| Ubuntu and Windows on Node 20, 22, 24 and 26 (GitHub Actions) | Required CI. Node 27 is only an alpha and is not tested | `.github/workflows/test.yml` |
+| macOS | Not in required CI. On 2026-11-04, `macos-latest` jobs for Node 22 and 26 stayed queued and were cancelled with zero steps (runs 41882166871, 41885847962, 41886196642), which failed the workflow before any test ran. No Mac was available to re-run the suite locally. The program is plain Node with no native addon; path matching follows `core.ignorecase` | `.github/workflows/test.yml` |
 | Paths with spaces and non-ASCII characters | Tested on Windows | unit test |
 | Claude Code skills adapter | File install and uninstall tested; invocation inside Claude Code not automated-tested | `adapters install claude` |
 | Cursor, Codex, Gemini CLI, Copilot, Windsurf, Kiro, Cline | Not implemented. Generic mode: run the CLI and share its JSON or Markdown report | Planned, unverified |

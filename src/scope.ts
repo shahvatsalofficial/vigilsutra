@@ -2,6 +2,7 @@ import { lstatSync, readdirSync, realpathSync, openSync, readSync, closeSync, fs
 import { join, basename, extname, relative, isAbsolute } from "node:path";
 import type { ScannedFile, ScopeStats } from "./types.js";
 import { makeIgnoreMatcher, type Policy } from "./policy.js";
+import { createGitCache, shouldSkipUntrackedDotenv } from "./git-index.js";
 
 export interface Inventory {
   files: ScannedFile[];
@@ -62,6 +63,7 @@ export function inventory(rootInput: string, policy: Policy): Inventory {
   };
   const files: ScannedFile[] = [];
   const allPaths = new Set<string>();
+  const gitCache = createGitCache();
   const deadline = Date.now() + policy.timeLimitMs;
 
   const walk = (dirAbs: string, dirRel: string): void => {
@@ -104,6 +106,12 @@ export function inventory(rootInput: string, policy: Policy): Inventory {
       }
       if (!st.isFile()) continue;
       if (ignored(rel)) {
+        stats.skippedIgnored++;
+        continue;
+      }
+      // A local .env that git does not track is not a committed secret. Leave it unread.
+      // With no usable git index, the file is still reviewed.
+      if (shouldSkipUntrackedDotenv(e.name, abs, gitCache)) {
         stats.skippedIgnored++;
         continue;
       }

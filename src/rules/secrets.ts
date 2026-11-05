@@ -86,13 +86,13 @@ export const secretRules: Rule[] = [
   {
     ...base,
     id: "VS-SECRET-006",
-    title: "Environment file present in scanned tree",
+    title: "Tracked environment file with a secret value",
     severity: "medium",
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-312", "CWE-798"],
-    description: "A `.env`-style file exists in the scanned tree and contains at least one secret-named variable with a non-placeholder value. If it is tracked by git it exposes that value. File contents are not echoed.",
-    falsePositives: "Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell. Files holding only placeholders or non-secret settings are not reported.",
+    description: "A `.env` file (not an example, sample, or template) contains a secret-named variable with a non-placeholder value. File contents are not echoed. When a git index is present, environment files that are not listed in it are not read. When there is no usable git index, the file is still reviewed.",
+    falsePositives: "Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.",
     applies: (f) => /^\.env(\..+)?$/.test(f.name) && !/\.(example|sample|template)$/.test(f.name),
     check: (f) => {
       const idx = f.lines.findIndex((l) => {

@@ -9,7 +9,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-003 | GitHub token in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-004 | Hardcoded credential assigned to a secret-named variable | medium | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-005 | Slack token in source | high | high | confirmed | SecretWatch | CWE-798 |
-| VS-SECRET-006 | Environment file present in scanned tree | medium | medium | potential | SecretWatch | CWE-312, CWE-798 |
+| VS-SECRET-006 | Tracked environment file with a secret value | medium | medium | potential | SecretWatch | CWE-312, CWE-798 |
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
 | VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
@@ -79,13 +79,13 @@ A string matching a Slack token format (xox?-…) is committed.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked or fake tokens in tests.
 
-### VS-SECRET-006: Environment file present in scanned tree
+### VS-SECRET-006: Tracked environment file with a secret value
 
-A `.env`-style file exists in the scanned tree and contains at least one secret-named variable with a non-placeholder value. If it is tracked by git it exposes that value. File contents are not echoed.
+A `.env` file (not an example, sample, or template) contains a secret-named variable with a non-placeholder value. File contents are not echoed. When a git index is present, environment files that are not listed in it are not read. When there is no usable git index, the file is still reviewed.
 
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
-- **False positives:** Files that are git-ignored and never committed. This scanner does not read git state in v0.1, so it cannot tell. Files holding only placeholders or non-secret settings are not reported.
+- **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.
 
 ### VS-CICD-001: GitHub Action not pinned to a commit SHA
 

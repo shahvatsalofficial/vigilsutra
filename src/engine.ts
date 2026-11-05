@@ -8,7 +8,7 @@ import { DEFAULT_POLICY, loadPolicy, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
-export const VERSION = "0.2.1";
+export const VERSION = "0.2.2";
 
 /** Per rule, per file. Keeps one noisy file from producing an unbounded report. */
 export const MAX_PER_RULE_PER_FILE = 200;
@@ -195,6 +195,7 @@ export function audit(opts: AuditOptions): ScanResult {
     "Source-pattern matches are reported as 'potential' unless the evidence itself is conclusive (for example a token format or an explicit unsafe setting).",
     "A match on a secret format shows the format, not that the credential is live. No credential was tested.",
     "Git history, dependencies, advisories, running systems and remote cloud state were not inspected.",
+    "Untracked .env files are not read when a git index is present. .env.example, .env.sample and .env.template are never treated as secret files.",
     "Absence of findings is not evidence of security."
   ];
   if (inv.stats.truncated) limitations.push(`Scan was truncated: ${inv.stats.truncatedReason}. Results are incomplete.`);

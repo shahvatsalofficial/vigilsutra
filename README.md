@@ -69,7 +69,7 @@ node dist/cli.js audit examples/intentionally-insecure
 
 > Published on npm: <https://www.npmjs.com/package/vigilsutra>. You can also install from GitHub: `npm install -g github:shahvatsalofficial/vigilsutra`. Try the demo project after cloning: `vigilsutra audit examples/intentionally-insecure`.
 
-**Reports as files (easy to read and share).** Run `vigilsutra report .` (or `vigilsutra audit .` in a terminal) and open `vigilsutra-report/report.html` in a browser. The folder also has `report.md`, `results.json` and `results.sarif`, and a `.gitignore` so reports are not committed by accident.
+**Reports as files (easy to read and share).** `vigilsutra audit .` and `vigilsutra report .` write `vigilsutra-report/report.html` and `vigilsutra-report/report.md` every time, including in CI and when output is piped. Open the HTML file in a browser. The folder also has `results.json` and `results.sarif`, and a `.gitignore` so reports are not committed by accident. `--no-report` skips the files.
 
 Everyday use:
 
@@ -112,7 +112,7 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 | Command | What it does |
 |---|---|
 | `vigilsutra report [path]` | Scan and write `report.md`, `report.html`, `results.json`, `results.sarif` to `./vigilsutra-report/` (or `--report-dir`). |
-| `vigilsutra audit [path]` | Read-only scan. Formats: `text`, `json`, `markdown`, `sarif`, `html`. Flags: `--out`, `--fail-on`, `--baseline`, `--policy`, `--no-policy`, `--report`, `--report-dir`, `--no-report`, `--no-color`. In a terminal, with no `--format` or `--out`, it also writes the report folder. |
+| `vigilsutra audit [path]` | Read-only scan. Always writes `vigilsutra-report/report.md` and `report.html` (plus JSON and SARIF) unless `--no-report`. Formats for stdout or `--out`: `text`, `json`, `markdown`, `sarif`, `html`. Other flags: `--fail-on`, `--baseline`, `--policy`, `--no-policy`, `--report-dir`, `--no-color`. |
 | `vigilsutra baseline --out f.json` | Record current findings as accepted, so CI fails only on new ones. |
 | `vigilsutra verify --previous results.json` | Re-scan and show what is no longer detected, remaining, or new. |
 | `vigilsutra rules list` / `explain <ID>` | Browse rules, fixes and false-positive notes. |

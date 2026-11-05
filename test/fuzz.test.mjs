@@ -128,7 +128,7 @@ test("JSON baseline and previous-result inputs that are hostile are rejected, no
   const bad = join(dir, "b.json");
   for (const body of ["{", "[]", '{"fingerprints":"x"}', "null", "9".repeat(100000)]) {
     writeFileSync(bad, body);
-    const r = spawnSync(process.execPath, [resolve("dist/cli.js"), "audit", "examples/secure-config", "--baseline", bad], { encoding: "utf8" });
+    const r = spawnSync(process.execPath, [resolve("dist/cli.js"), "audit", "examples/secure-config", "--no-report", "--baseline", bad], { encoding: "utf8" });
     assert.equal(r.status, 2, `baseline ${body.slice(0, 20)} should be rejected`);
     const v = spawnSync(process.execPath, [resolve("dist/cli.js"), "verify", "examples/secure-config", "--previous", bad], { encoding: "utf8" });
     assert.equal(v.status, 2, `verify ${body.slice(0, 20)} should be rejected`);

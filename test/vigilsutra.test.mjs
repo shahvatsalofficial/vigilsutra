@@ -312,22 +312,22 @@ test("policy parser rejects unknown keys and bad values", () => {
 
 test("CLI: exit codes, fail-on, formats and output file", () => {
   const root = project({ "a.js": "eval(x)" });
-  assert.equal(cli(["audit", root]).status, 0);
-  assert.equal(cli(["audit", root, "--fail-on", "high"]).status, 1);
-  assert.equal(cli(["audit", root, "--fail-on", "critical"]).status, 0);
+  assert.equal(cli(["audit", root, "--no-report"]).status, 0);
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on", "high"]).status, 1);
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on", "critical"]).status, 0);
   assert.equal(cli(["audit", root, "--fail-on", "nonsense"]).status, 2);
   assert.equal(cli(["audit", join(root, "missing")]).status, 2);
   assert.equal(cli(["audit", root, "--format", "pdf"]).status, 2);
   const out = join(root, "..", "out", "r.sarif");
-  assert.equal(cli(["audit", root, "--format", "sarif", "--out", out]).status, 0);
+  assert.equal(cli(["audit", root, "--no-report", "--format", "sarif", "--out", out]).status, 0);
   assert.equal(JSON.parse(readFileSync(out, "utf8")).version, "2.1.0");
   assert.equal(cli(["nope"]).status, 2);
 });
 
 test("CLI: failOn from .vigilsutra.yml applies when --fail-on is absent", () => {
   const root = project({ "a.js": "eval(x)", ".vigilsutra.yml": "failOn: high\n" });
-  assert.equal(cli(["audit", root]).status, 1);
-  assert.equal(cli(["audit", root, "--fail-on", "critical"]).status, 0);
+  assert.equal(cli(["audit", root, "--no-report"]).status, 1);
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on", "critical"]).status, 0);
 });
 
 test("CLI: rules list, explain, doctor, help", () => {
@@ -461,15 +461,15 @@ test("review: adapter uninstall refuses manifest entries outside .claude/skills/
 
 test("review: a project policy that narrows scope is disclosed, and --no-policy ignores it", () => {
   const root = project({ "a.js": "eval(x)", ".vigilsutra.yml": "ignore:\n  - '**'\ndisableRules:\n  - VS-CODE-001\n" });
-  const quiet = JSON.parse(cli(["audit", root, "--format", "json"]).stdout);
+  const quiet = JSON.parse(cli(["audit", root, "--no-report", "--format", "json"]).stdout);
   assert.ok(!quiet.findings.some((f) => f.ruleId === "VS-CODE-001"));
   assert.match(quiet.limitations.join(" "), /scope was changed by project \.vigilsutra\.yml/);
   assert.equal(quiet.scope.policy.source, "project .vigilsutra.yml");
-  const open = JSON.parse(cli(["audit", root, "--format", "json", "--no-policy"]).stdout);
+  const open = JSON.parse(cli(["audit", root, "--no-report", "--format", "json", "--no-policy"]).stdout);
   assert.ok(open.findings.some((f) => f.ruleId === "VS-CODE-001"));
   const trusted = join(root, "..", "trusted.yml");
   writeFileSync(trusted, "version: 1\n");
-  const viaFile = JSON.parse(cli(["audit", root, "--format", "json", "--policy", trusted]).stdout);
+  const viaFile = JSON.parse(cli(["audit", root, "--no-report", "--format", "json", "--policy", trusted]).stdout);
   assert.ok(viaFile.findings.some((f) => f.ruleId === "VS-CODE-001"));
 });
 
@@ -549,17 +549,25 @@ test("report command writes Markdown, HTML, JSON and SARIF plus a .gitignore, wi
   assert.equal(JSON.parse(readFileSync(join(dir, "results.sarif"), "utf8")).version, "2.1.0");
 });
 
-test("audit writes report files only when asked (non-interactive default stays pure)", () => {
+test("audit writes report.md and report.html even when not a terminal", () => {
   const root = project({ "a.js": "eval(x)" });
   const cwd = join(root, "..", "cwd2");
   mkdirSync(cwd);
-  assert.equal(cli(["audit", root], cwd).status, 0);
-  assert.ok(!existsSync(join(cwd, "vigilsutra-report")), "piped audit must not write files by default");
-  assert.equal(cli(["audit", root, "--report"], cwd).status, 0);
+  const plain = cli(["audit", root], cwd);
+  assert.equal(plain.status, 0);
+  assert.ok(existsSync(join(cwd, "vigilsutra-report", "report.md")));
   assert.ok(existsSync(join(cwd, "vigilsutra-report", "report.html")));
+  assert.match(plain.stderr, /report\.html/);
+  assert.doesNotMatch(plain.stdout, /Reports written/);
+  const quiet = cli(["audit", root, "--no-report"], cwd);
+  assert.equal(quiet.status, 0);
+  assert.match(quiet.stdout, /VS-CODE-001|eval/);
   const custom = join(cwd, "out-dir");
-  assert.equal(cli(["audit", root, "--format", "json", "--report-dir", custom], cwd).status, 0);
+  const json = cli(["audit", root, "--format", "json", "--report-dir", custom], cwd);
+  assert.equal(json.status, 0);
+  assert.equal(JSON.parse(json.stdout).tool.name, "vigilsutra");
   assert.ok(existsSync(join(custom, "report.md")));
+  assert.ok(existsSync(join(custom, "report.html")));
 });
 
 test("a vigilsutra-report folder inside the project is never scanned again", () => {

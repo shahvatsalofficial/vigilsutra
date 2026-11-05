@@ -20,11 +20,11 @@ Commands:
       --baseline <file>   Suppress findings whose fingerprints are in this baseline
       --policy <file>     Use this policy file instead of the project's .vigilsutra.yml
       --no-policy         Ignore the project's .vigilsutra.yml (use when auditing code you do not own)
-      --report            Also write report.md, report.html, results.json, results.sarif to ./vigilsutra-report/
+      --report            Write report.md and report.html (also results.json and results.sarif) to ./vigilsutra-report/. This is the default.
       --report-dir <dir>  Same, into <dir>
-      --no-report         Do not write report files (they are written by default when you run audit in a terminal without --format/--out)
+      --no-report         Do not write those files
       --no-color          Plain output (also honours NO_COLOR)
-  report [path]           Scan and write the report files (Markdown + HTML + JSON + SARIF), then print the summary
+  report [path]           Same scan as audit. Always writes report.md and report.html (plus JSON and SARIF)
   baseline [path] --out <file>   Record current findings as an accepted baseline
   verify [path] --previous <results.json>   Re-scan and compare with an earlier JSON result
   rules list              List implemented rules
@@ -130,20 +130,12 @@ function main(): void {
         writeOut(out, render(result, format as Format, false));
         process.stderr.write(`Report written to ${out} (${result.summary.total} findings)\n`);
       } else process.stdout.write(render(result, format as Format, color));
-      // Reports as files: always for `report`, on request, and by default for an interactive `audit` with no explicit format or file.
-      const explicitOutput = flags.has("format") || typeof out === "string";
+      // Readable reports are files, not only a terminal scrollback. Stdout stays the chosen format.
       const dirFlag = flags.get("report-dir");
-      const wantReport =
-        cmd === "report" || flags.has("report") || typeof dirFlag === "string" || (!flags.has("no-report") && !explicitOutput && !!process.stdout.isTTY);
-      if (wantReport) {
+      if (!flags.has("no-report")) {
         const dir = resolve(typeof dirFlag === "string" ? dirFlag : "vigilsutra-report");
         writeReportFolder(dir, result);
-        process.stdout.write(`
-Reports written to ${dir}
-  report.html  open this in a browser
-  report.md    Markdown version
-  results.json, results.sarif  for tools and CI
-`);
+        process.stderr.write(`Reports written to ${dir}\n  report.html  open this in a browser\n  report.md    Markdown version\n  results.json, results.sarif  for tools and CI\n`);
       }
       if (failOn && exceeds(result, failOn)) process.exit(1);
       return;

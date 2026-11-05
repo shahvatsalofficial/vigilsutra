@@ -39,7 +39,8 @@ docker run --rm --network none -v "$PWD":/work:ro -v /path/to/vigilsutra:/vs:ro 
 
 ## Get a readable report
 ```bash
-vigilsutra report .      # writes ./vigilsutra-report/report.html, report.md, results.json, results.sarif
+vigilsutra audit .       # writes ./vigilsutra-report/report.html and report.md (also JSON and SARIF)
+vigilsutra report .      # same files
 ```
 Open `report.html` in a browser, or `report.md` in any Markdown viewer. The folder has its own `.gitignore`; reports contain file paths and redacted excerpts, so do not publish them for private projects.
 

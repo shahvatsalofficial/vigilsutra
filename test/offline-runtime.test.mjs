@@ -32,12 +32,12 @@ test("every offline command runs to completion with the network and subprocesses
   writeFileSync(log, "");
   const work = mkdtempSync(join(tmpdir(), "vs-proj-"));
   const cmds = [
-    [CLI, "audit", "examples/intentionally-insecure"],
-    [CLI, "audit", "examples/intentionally-insecure", "--format", "json"],
-    [CLI, "audit", "examples/intentionally-insecure", "--format", "sarif"],
-    [CLI, "audit", "examples/intentionally-insecure", "--format", "html"],
-    [CLI, "audit", "examples/intentionally-insecure", "--format", "markdown"],
-    [CLI, "audit", "."],
+    [CLI, "audit", "examples/intentionally-insecure", "--no-report"],
+    [CLI, "audit", "examples/intentionally-insecure", "--no-report", "--format", "json"],
+    [CLI, "audit", "examples/intentionally-insecure", "--no-report", "--format", "sarif"],
+    [CLI, "audit", "examples/intentionally-insecure", "--no-report", "--format", "html"],
+    [CLI, "audit", "examples/intentionally-insecure", "--no-report", "--format", "markdown"],
+    [CLI, "audit", ".", "--no-report"],
     [CLI, "rules", "list"],
     [CLI, "explain", "VS-SECRET-001"],
     [CLI, "doctor"],

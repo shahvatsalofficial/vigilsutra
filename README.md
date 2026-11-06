@@ -18,7 +18,7 @@ Finds hardcoded secrets, risky GitHub Actions, Docker / Kubernetes / Terraform m
 
 </div>
 
-> Created by **Vatsal Shah**. Status: **v0.4.0**. Everything marked *Implemented* is covered by automated tests in this repo. Everything else is marked *Planned*. See [Proof](#proof-what-has-actually-been-verified) and [Limitations](#limitations-please-read).
+> Created by **[Vatsal Shah](https://shahvatsal.com)** · [shahvatsal.com](https://shahvatsal.com). Status: **v0.4.0**. Everything marked *Implemented* is covered by automated tests in this repo. Everything else is marked *Planned*. See [Proof](#proof-what-has-actually-been-verified) and [Limitations](#limitations-please-read).
 
 **Contents:** [What is it](#what-is-vigilsutra-ai) · [Why trust it](#why-you-can-trust-it) · [Quickstart](#quickstart) · [Example output](#example-output) · [Commands](#commands) · [What it checks](#what-it-checks-feature-matrix) · [AI IDE use](#use-it-from-an-ai-ide-optional) · [CI](#ci-example) · [Proof](#proof-what-has-actually-been-verified) · [How it compares](#how-it-fits-with-other-tools) · [FAQ](#faq) · [Limitations](#limitations-please-read) · [Legal](#legal-and-responsible-use) · [Contributing](#contributing-security-license)
 
@@ -244,7 +244,7 @@ Full text: [docs/legal.md](docs/legal.md).
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · [ROADMAP.md](ROADMAP.md) · [docs/rule-authoring.md](docs/rule-authoring.md) · [CHANGELOG.md](CHANGELOG.md)
 - Cite this project with [CITATION.cff](CITATION.cff).
-- Author and maintainer: **Vatsal Shah** ([@shahvatsalofficial](https://github.com/shahvatsalofficial)).
+- Author and maintainer: **[Vatsal Shah](https://shahvatsal.com)** · [shahvatsal.com](https://shahvatsal.com) ([@shahvatsalofficial](https://github.com/shahvatsalofficial)).
 - Found a bug or false positive? [Open an issue](https://github.com/shahvatsalofficial/vigilsutra/issues/new/choose). Found a vulnerability in VigilSutra? Follow [SECURITY.md](SECURITY.md).
 
 <sub>Keywords: security scanner, secret scanning, hardcoded secrets detection, SAST, DevSecOps, GitHub Actions security, Docker security, Kubernetes security, Terraform security, SARIF, privacy audit, AI agent security, MCP security, prompt injection, Claude Code skills, offline security tool, open source security audit CLI.</sub>

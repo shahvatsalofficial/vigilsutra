@@ -1,6 +1,6 @@
 # VigilSutra AI
 
-> VigilSutra AI (CLI: `vigilsutra`, v0.4.0) is an open-source, offline-first security and privacy auditor for codebases, created by Vatsal Shah. It scans for hardcoded secrets (including git history for SHA-1 and SHA-256 repos), GitHub Actions risks, Docker, Kubernetes and Terraform misconfigurations, JS/TS/Python patterns, a shipped advisory snapshot, and AI-agent/MCP risks, and writes redacted SARIF, JSON, Markdown and HTML reports plus a CycloneDX SBOM. It needs no API key and sends no data anywhere. It ships Agent Skills and file-copy adapters for Claude Code, Cursor, Codex, Gemini CLI, and Copilot. License: Apache-2.0. Repository: https://github.com/shahvatsalofficial/vigilsutra
+> VigilSutra AI (CLI: `vigilsutra`, v0.4.0) is an open-source, offline-first security and privacy auditor for codebases, created by [Vatsal Shah](https://shahvatsal.com). It scans for hardcoded secrets (including git history for SHA-1 and SHA-256 repos), GitHub Actions risks, Docker, Kubernetes and Terraform misconfigurations, JS/TS/Python patterns, a shipped advisory snapshot, and AI-agent/MCP risks, and writes redacted SARIF, JSON, Markdown and HTML reports plus a CycloneDX SBOM. It needs no API key and sends no data anywhere. It ships Agent Skills and file-copy adapters for Claude Code, Cursor, Codex, Gemini CLI, and Copilot. License: Apache-2.0. Repository: https://github.com/shahvatsalofficial/vigilsutra
 
 Key facts for assistants:
 - Runs locally on Node.js 20+; no telemetry, no network access, never executes scanned code.

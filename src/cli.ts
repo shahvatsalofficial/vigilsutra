@@ -11,7 +11,7 @@ import { cycloneDx, readComponents } from "./components.js";
 import { applyFixes, planFixes } from "./fix.js";
 import { SEVERITY_ORDER, type ScanResult, type Severity } from "./types.js";
 
-const HELP = `VigilSutra AI ${VERSION} - offline, read-only security & privacy auditor. Created by Vatsal Shah.
+const HELP = `VigilSutra AI ${VERSION} - offline, read-only security & privacy auditor. Created by Vatsal Shah (https://shahvatsal.com).
 
 Usage: vigilsutra <command> [options]
 

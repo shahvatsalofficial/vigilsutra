@@ -26,7 +26,10 @@
     "cli"
   ],
   "license": "Apache-2.0",
-  "author": "Vatsal Shah",
+  "author": {
+    "name": "Vatsal Shah",
+    "url": "https://shahvatsal.com"
+  },
   "homepage": "https://shahvatsalofficial.github.io/vigilsutra/",
   "repository": {
     "type": "git",

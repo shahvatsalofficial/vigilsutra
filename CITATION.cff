@@ -9,6 +9,7 @@ repository-code: "https://github.com/shahvatsalofficial/vigilsutra"
 authors:
   - given-names: Vatsal
     family-names: Shah
+    website: "https://shahvatsal.com"
 keywords:
   - security
   - secret scanning

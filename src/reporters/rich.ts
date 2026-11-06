@@ -98,7 +98,7 @@ export function toMarkdown(r: ScanResult): string {
   o.push(`Scanned ${r.scope.filesScanned} files. Skipped: ${r.scope.skippedIgnored} ignored, ${r.scope.skippedSymlinks} symlinks (never followed), ${r.scope.skippedTooLarge} too large, ${r.scope.skippedBinary} binary.`, "");
   o.push("**Checked:** " + r.categoriesAssessed.join(", ") + ".", "", "**Not checked:** " + r.notAssessed.join("; ") + ".", "");
   r.limitations.forEach((l) => o.push(`- ${l}`));
-  o.push("", "---", "Created by [Vatsal Shah](https://shahvatsal.com). VigilSutra reports engineering evidence, not certification or legal advice.", "");
+  o.push("", "---", "Created by Vatsal Shah. VigilSutra reports engineering evidence, not certification or legal advice.", "");
   return o.join("\n");
 }
 
@@ -176,7 +176,7 @@ ${groups || "<p>Nothing to show.</p>"}
 <div class="card"><p>Scanned ${r.scope.filesScanned} files. Skipped: ${r.scope.skippedIgnored} ignored, ${r.scope.skippedSymlinks} symlinks (never followed), ${r.scope.skippedTooLarge} too large, ${r.scope.skippedBinary} binary.</p>
 <p><strong>Checked:</strong> ${htmlEsc(r.categoriesAssessed.join(", "))}.</p><p><strong>Not checked:</strong> ${htmlEsc(r.notAssessed.join("; "))}.</p>
 <ul>${r.limitations.map((l) => `<li>${htmlEsc(l)}</li>`).join("")}</ul></div>
-<footer>Created by <a href="https://shahvatsal.com" rel="noopener">Vatsal Shah</a>. VigilSutra reports engineering evidence, not certification or legal advice. This file is self-contained and loads nothing from the network.</footer>
+<footer>Created by Vatsal Shah. VigilSutra reports engineering evidence, not certification or legal advice. This file is self-contained and loads nothing from the network.</footer>
 </main></body></html>
 `;
 }

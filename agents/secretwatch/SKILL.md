@@ -25,7 +25,7 @@ Deleting a secret from the latest commit does not make it safe: anyone who clone
    3. **Replace it** with an environment variable or secret manager reference, and add the file to `.gitignore` if appropriate.
    4. **Decide on history.** Ask whether the repository was ever public or shared. Rewriting history (for example with `git filter-repo`) is a separate decision with side effects; offer it, do not do it.
 4. Recommend prevention: push protection or a pre-commit secret scan, and short-lived credentials.
-5. Remember VigilSutra does **not** scan git history or the full pattern set of a dedicated scanner (Gitleaks, TruffleHog). Recommend one of those for history.
+5. A finding whose path starts with `git-history/` was read from a git object, not from the current file. The scan walks commits reachable from HEAD until the time limit, including SHA-256 repositories, and does not run the `git` binary. A blob over 1 MiB is skipped. `--no-history` skips that pass. Gitleaks and TruffleHog still cover more token types. Recommend one of them when the user needs that wider set.
 
 ## Output
 

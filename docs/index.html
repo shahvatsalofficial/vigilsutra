@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VigilSutra AI — offline security audit</title>
+<meta name="description" content="Offline, read-only security and privacy auditor. 42 rules, redacted reports, advisory snapshot, no telemetry. Apache-2.0.">
+<link rel="canonical" href="https://shahvatsalofficial.github.io/vigilsutra/">
+<meta name="color-scheme" content="light dark">
+<meta name="author" content="Vatsal Shah">
+<style>
+  :root { color-scheme: light dark; --bg: #f6f4ef; --fg: #1c1915; --muted: #5c564c; --line: #ddd6c8; --card: #fffdf8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #16140f; --fg: #f3efe6; --muted: #b7b0a4; --line: #3a342c; --card: #211e18; }
+  }
+  body { margin: 0; font: 17px/1.5 Georgia, "Iowan Old Style", serif; background: var(--bg); color: var(--fg); }
+  header, main { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
+  header { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; border-bottom: 1px solid var(--line); }
+  a { color: inherit; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 19px; }
+  .muted { color: var(--muted); }
+  ul { padding-left: 1.2em; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  article { border: 1px solid var(--line); background: var(--card); padding: 14px 16px; }
+  article h2 { margin: 0 0 6px; font-size: 18px; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; }
+  footer { max-width: 760px; margin: 0 auto; padding: 8px 20px 40px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <strong>VigilSutra AI</strong>
+  <nav class="muted"><a href="https://github.com/shahvatsalofficial/vigilsutra">GitHub</a> · <a href="https://www.npmjs.com/package/vigilsutra">npm</a></nav>
+</header>
+<main>
+  <p class="muted">v0.4.0 · Apache-2.0 · by Vatsal Shah</p>
+  <h1>Inspect the repo. Keep the secrets out of the report.</h1>
+  <p class="lede">An offline, read-only auditor for source, CI, containers, Kubernetes, Terraform, and AI-agent setup. No account. No telemetry. The CLI never calls the network.</p>
+  <p><code>npx vigilsutra@0.4.0 audit .</code></p>
+  <p class="muted">That writes <code>vigilsutra-report/report.html</code> and <code>report.md</code>. Open the HTML file in a browser.</p>
+  <div class="grid">
+    <article>
+      <h2>What a scan does</h2>
+      <ul>
+        <li>42 rules, each with a bad and a clean test.</li>
+        <li>Reads git history (SHA-1 or SHA-256) until the time limit, without running <code>git</code>.</li>
+        <li>Redacts token-shaped text in text, JSON, Markdown, SARIF, and HTML.</li>
+        <li>Leaves an untracked <code>.env</code> unread when a git index exists.</li>
+      </ul>
+    </article>
+    <article>
+      <h2>What a scan does not do</h2>
+      <ul>
+        <li>Advisory matches use a snapshot from 2026-11-07, not a live feed.</li>
+        <li>Name tracking stops at object fields, dynamic imports, and function returns.</li>
+        <li>No mobile, runtime, or compliance verdict.</li>
+        <li>A clean report is not proof the project is secure.</li>
+      </ul>
+    </article>
+  </div>
+  <h2>Use it</h2>
+  <ul>
+    <li><code>vigilsutra audit . --fail-on high</code> for a CI gate.</li>
+    <li><code>vigilsutra audit . --since &lt;rev&gt;</code> for the files that differ.</li>
+    <li><code>vigilsutra sbom .</code> for a CycloneDX file. <code>vigilsutra fix .</code> shows edits; <code>--apply</code> writes them.</li>
+    <li><code>vigilsutra init --hook</code> to scan the git index before commit.</li>
+    <li><code>vigilsutra adapters install cursor</code> (also claude, codex, gemini, copilot). File copy is tested. The IDE is not.</li>
+  </ul>
+  <p>Handbook and rule list stay in the repository: <a href="https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/rules.md">docs/rules.md</a>, <a href="https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/quickstart.md">quickstart</a>, <a href="https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/security-model.md">security model</a>.</p>
+</main>
+<footer>This page is static. It does not load remote scripts, fonts, or images. GitHub Pages serves it after the Pages workflow runs.</footer>
+</body>
+</html>

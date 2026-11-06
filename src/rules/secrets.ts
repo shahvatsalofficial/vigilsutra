@@ -101,5 +101,77 @@ export const secretRules: Rule[] = [
       });
       return idx >= 0 ? [{ line: idx + 1, excerpt: "(file contents not shown)" }] : [];
     }
+  },
+  {
+    ...base,
+    id: "VS-SECRET-007",
+    title: "JSON Web Token in source",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    description: "A string with the three-part JWT compact shape (header.payload.signature) is committed. The match proves the shape, not that the token is still accepted.",
+    falsePositives: "Documentation samples and tokens that were already revoked. Public, non-sensitive sample tokens still look the same.",
+    applies: () => true,
+    check: (f) => lineRule(f, /\b(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/, { secretGroup: 1, filter: (m) => !/example|placeholder/i.test(m[1]) })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-008",
+    title: "npm access token in source",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    description: "A string matching an npm access token (npm_ plus 36 or more token characters) is committed.",
+    falsePositives: "Revoked tokens and values that only share the npm_ prefix.",
+    applies: () => true,
+    check: (f) => lineRule(f, /\b(npm_[A-Za-z0-9]{36,})\b/, { secretGroup: 1 })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-009",
+    title: "Stripe secret key in source",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    description: "A string matching a Stripe secret or restricted key (sk_live_, sk_test_, rk_live_, rk_test_) is committed.",
+    falsePositives: "Revoked keys. Publishable keys (pk_) are not matched.",
+    applies: () => true,
+    check: (f) => lineRule(f, /\b((?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,})\b/, { secretGroup: 1 })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-010",
+    title: "Google API key in source",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    description: "A string matching a Google API key (AIza plus 35 characters) is committed. The match proves the shape, not which API it can call.",
+    falsePositives: "Keys restricted to a public client and already-rotated keys. Restrict or rotate if the repository was shared.",
+    applies: () => true,
+    check: (f) => lineRule(f, /\b(AIza[0-9A-Za-z_-]{35})\b/, { secretGroup: 1 })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-011",
+    title: "Azure storage account key in source",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    description: "An Azure Storage connection string contains an AccountKey value.",
+    falsePositives: "Documentation that shows the AccountKey name with a placeholder shorter than 40 characters.",
+    applies: () => true,
+    check: (f) => lineRule(f, /AccountKey=([A-Za-z0-9+/]{40,}={0,2})/, { secretGroup: 1 })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-012",
+    title: "GitLab personal access token in source",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    description: "A string matching a GitLab personal access token (glpat-) is committed.",
+    falsePositives: "Revoked tokens.",
+    applies: () => true,
+    check: (f) => lineRule(f, /\b(glpat-[A-Za-z0-9_-]{20,})\b/, { secretGroup: 1 })
   }
 ];

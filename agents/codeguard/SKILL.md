@@ -28,7 +28,7 @@ The CLI matches risky *calls*; it cannot see whether attacker-controlled data re
 
 ## Know the limits
 
-VigilSutra has code rules only for JavaScript, TypeScript and Python, and no taint analysis. For any other language say so; do not imply coverage. Obfuscated or dynamically built code can evade the patterns.
+VigilSutra has code rules only for JavaScript, TypeScript and Python. It tracks a request-like name through a relative import and can raise confidence on `VS-CODE-001`. It does not track object fields, dynamic `import()`, or values returned from functions. For any other language say so; do not imply coverage. Obfuscated or dynamically built code can evade the patterns. `vigilsutra fix` can rewrite a few deterministic lines and never deletes a secret; a dry run is the default.
 
 ## Output
 

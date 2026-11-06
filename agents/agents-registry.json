@@ -8,7 +8,19 @@
     { "name": "secretwatch", "role": "SecretWatch", "status": "implemented" },
     { "name": "privacylens", "role": "PrivacyLens", "status": "implemented" },
     { "name": "infraguard", "role": "InfraGuard", "status": "implemented" },
-    { "name": "verify", "role": "Verify", "status": "implemented" }
+    { "name": "verify", "role": "Verify", "status": "implemented" },
+    { "name": "supplywatch", "role": "SupplyWatch", "status": "implemented" },
+    { "name": "identityguard", "role": "IdentityGuard", "status": "implemented" },
+    { "name": "apishield", "role": "APIShield", "status": "implemented" },
+    { "name": "webshield", "role": "WebShield", "status": "implemented" },
+    { "name": "mobileshield", "role": "MobileShield", "status": "implemented" },
+    { "name": "pipelineguard", "role": "PipelineGuard", "status": "implemented" },
+    { "name": "datashield", "role": "DataShield", "status": "implemented" },
+    { "name": "agentshield", "role": "AgentShield", "status": "implemented" },
+    { "name": "threatmap", "role": "ThreatMap", "status": "implemented" },
+    { "name": "compliancemap", "role": "ComplianceMap", "status": "implemented" },
+    { "name": "remedy", "role": "Remedy", "status": "implemented" },
+    { "name": "riskrank", "role": "RiskRank", "status": "implemented" }
   ],
-  "planned": ["supplywatch", "identityguard", "apishield", "webshield", "mobileshield", "pipelineguard", "datashield", "agentshield", "threatmap", "compliancemap", "remedy", "riskrank"]
+  "planned": []
 }

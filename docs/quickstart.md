@@ -31,10 +31,11 @@ vigilsutra doctor
 ```
 
 ## Docker
-No official image is published yet (planned). To run in a container yourself, mount the project read-only with networking disabled:
+The repository contains a `Dockerfile`. It is not pushed to a registry. The 2026-11-07 Windows check did not build it: `docker` was not on that machine. On a machine with Docker:
 
 ```bash
-docker run --rm --network none -v "$PWD":/work:ro -v /path/to/vigilsutra:/vs:ro -w /work node:22 node /vs/dist/cli.js audit .
+docker build -t vigilsutra .
+docker run --rm --network none -v "$PWD:/scan:ro" vigilsutra audit /scan
 ```
 
 ## Get a readable report

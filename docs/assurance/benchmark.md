@@ -4,6 +4,8 @@
 
 ## What was measured
 
+> The numbers below are the v0.1.0 study. They were not re-measured for 0.3.0 or 0.4.0. Recall was not measured. Labels were not an independent human review.
+
 VigilSutra was run on **18 public repositories** (shallow clones at the commits below, read-only, nothing executed): 7 deliberately vulnerable projects and 11 mainstream projects. The first run used the released rules (v0.1.0). 240 findings were labeled in three samples, the false positives were studied, the rules were fixed, and the same commits were scanned again to check that real findings were kept.
 
 ### Labeling rubric

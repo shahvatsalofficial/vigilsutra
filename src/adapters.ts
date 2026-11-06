@@ -12,13 +12,23 @@ export interface AdapterInfo {
 }
 
 export const ADAPTERS: AdapterInfo[] = [
-  { name: "claude", status: "supported", detail: "Copies Agent Skills to <project>/.claude/skills/<name>/SKILL.md. File format follows Claude Code's skill layout; install/uninstall is tested, in-IDE invocation is not automated-tested." },
-  { name: "generic-cli", status: "supported", detail: "Any editor or CI: run `vigilsutra audit .` and feed the JSON/Markdown report to your assistant." },
-  { name: "codex", status: "unverified", detail: "Reads AGENTS.md; no VigilSutra-specific adapter shipped. Planned." },
-  { name: "cursor", status: "planned", detail: "Planned. Not verified against current Cursor docs." },
-  { name: "gemini", status: "planned", detail: "Planned. Not verified against current Gemini CLI docs." },
-  { name: "copilot", status: "planned", detail: "Planned. Not verified against current Copilot agent docs." }
+  { name: "claude", status: "supported", detail: "Copies skills to <project>/.claude/skills/<name>/SKILL.md. File copy is tested. Invocation inside Claude Code is not automated-tested." },
+  { name: "cursor", status: "supported", detail: "Copies skills to <project>/.cursor/skills/<name>/SKILL.md. File copy is tested. Invocation inside Cursor is not automated-tested." },
+  { name: "codex", status: "supported", detail: "Copies skills to <project>/.codex/skills/<name>/SKILL.md and does not edit AGENTS.md. File copy is tested. Invocation inside Codex is not automated-tested." },
+  { name: "gemini", status: "supported", detail: "Copies skills to <project>/.gemini/skills/<name>/SKILL.md. File copy is tested. Invocation inside Gemini CLI is not automated-tested." },
+  { name: "copilot", status: "supported", detail: "Copies skills to <project>/.github/agents/<name>.agent.md. File copy is tested. Invocation inside Copilot is not automated-tested." },
+  { name: "generic-cli", status: "supported", detail: "Any editor or CI: run `vigilsutra audit .` and feed the JSON or Markdown report to your assistant." }
 ];
+
+export type AdapterName = "claude" | "cursor" | "codex" | "gemini" | "copilot";
+
+const LAYOUT: Record<AdapterName, { root: string[]; file: (name: string) => string; allowed: RegExp }> = {
+  claude: { root: [".claude", "skills"], file: (n) => `${n}/SKILL.md`, allowed: /^[^/\\]+[/\\]SKILL\.md$/ },
+  cursor: { root: [".cursor", "skills"], file: (n) => `${n}/SKILL.md`, allowed: /^[^/\\]+[/\\]SKILL\.md$/ },
+  codex: { root: [".codex", "skills"], file: (n) => `${n}/SKILL.md`, allowed: /^[^/\\]+[/\\]SKILL\.md$/ },
+  gemini: { root: [".gemini", "skills"], file: (n) => `${n}/SKILL.md`, allowed: /^[^/\\]+[/\\]SKILL\.md$/ },
+  copilot: { root: [".github", "agents"], file: (n) => `${n}.agent.md`, allowed: /^[^/\\]+\.agent\.md$/ }
+};
 
 const MANIFEST = ".vigilsutra-managed.json";
 
@@ -36,17 +46,22 @@ export interface Plan {
   to: string;
 }
 
-export function planClaudeInstall(projectRoot: string, force: boolean): Plan[] {
+export function planAdapter(projectRoot: string, adapter: AdapterName, force: boolean): Plan[] {
+  const layout = LAYOUT[adapter];
   return skillNames().map((n) => {
-    const to = join(projectRoot, ".claude", "skills", n, "SKILL.md");
+    const to = join(projectRoot, ...layout.root, ...layout.file(n).split("/"));
     const from = join(PACKAGE_ROOT, "agents", n, "SKILL.md");
     const exists = existsSync(to);
     return { action: !exists ? "create" : force ? "overwrite" : "skip-exists", from, to };
   });
 }
 
-export function installClaude(projectRoot: string, force: boolean): Plan[] {
-  const plan = planClaudeInstall(projectRoot, force);
+export function planClaudeInstall(projectRoot: string, force: boolean): Plan[] {
+  return planAdapter(projectRoot, "claude", force);
+}
+
+export function installAdapter(projectRoot: string, adapter: AdapterName, force: boolean): Plan[] {
+  const plan = planAdapter(projectRoot, adapter, force);
   const written: string[] = [];
   for (const p of plan) {
     if (p.action === "skip-exists") continue;
@@ -61,10 +76,10 @@ export function installClaude(projectRoot: string, force: boolean): Plan[] {
       }
       throw e;
     }
-    written.push(p.to.slice(projectRoot.length + 1).replace(/\\/g, "/"));
+    written.push(relative(projectRoot, p.to).split("\\").join("/"));
   }
   if (written.length) {
-    const manifestPath = join(projectRoot, ".claude", "skills", MANIFEST);
+    const manifestPath = join(projectRoot, ...LAYOUT[adapter].root, MANIFEST);
     let prev: string[] = [];
     try {
       prev = JSON.parse(readFileSync(manifestPath, "utf8")).files ?? [];
@@ -76,19 +91,22 @@ export function installClaude(projectRoot: string, force: boolean): Plan[] {
   return plan;
 }
 
+export function installClaude(projectRoot: string, force: boolean): Plan[] {
+  return installAdapter(projectRoot, "claude", force);
+}
+
 /** Removes only files this tool installed (listed in the manifest). */
-export function uninstallClaude(projectRoot: string): string[] {
-  const manifestPath = join(projectRoot, ".claude", "skills", MANIFEST);
+export function uninstallAdapter(projectRoot: string, adapter: AdapterName): string[] {
+  const layout = LAYOUT[adapter];
+  const manifestPath = join(projectRoot, ...layout.root, MANIFEST);
   if (!existsSync(manifestPath)) return [];
   const files: string[] = JSON.parse(readFileSync(manifestPath, "utf8")).files ?? [];
   const removed: string[] = [];
   for (const rel of files) {
     const abs = resolve(projectRoot, rel);
-    // Never delete outside the project's .claude/skills directory.
-    // Only ever remove <project>/.claude/skills/<name>/SKILL.md. The manifest lives in the project and
-    // could be edited by anyone, so it is validated rather than trusted.
-    const inside = relative(resolve(projectRoot, ".claude", "skills"), abs);
-    if (inside.startsWith("..") || isAbsolute(inside) || !/^[^/\\]+[/\\]SKILL\.md$/.test(inside)) continue;
+    // The manifest lives in the project and can be edited, so each path is checked against the adapter root.
+    const inside = relative(resolve(projectRoot, ...layout.root), abs);
+    if (inside.startsWith("..") || isAbsolute(inside) || !layout.allowed.test(inside)) continue;
     if (existsSync(abs)) {
       rmSync(abs);
       removed.push(rel);
@@ -101,4 +119,8 @@ export function uninstallClaude(projectRoot: string): string[] {
   }
   rmSync(manifestPath);
   return removed;
+}
+
+export function uninstallClaude(projectRoot: string): string[] {
+  return uninstallAdapter(projectRoot, "claude");
 }

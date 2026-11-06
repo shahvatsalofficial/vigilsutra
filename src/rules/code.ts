@@ -12,17 +12,31 @@ export const codeRules: Rule[] = [
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-95"],
-    description: "Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. This rule matches the call, not the data flow.",
+    description: "Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. Confidence is raised when the argument name traces to a request-like assignment in this project, including through a relative import. Object fields, dynamic imports, and function calls are not tracked.",
     remediation: "Replace with a data-driven approach (lookup table, JSON.parse, ast.literal_eval). Never pass user input to an evaluator.",
     falsePositives: "Constant strings, build tooling, or sandboxed evaluators. Trace the argument to confirm.",
     verification: "The call is removed or its argument is proven constant; add a test with a malicious input.",
     applies: isCode,
-    check: (f) =>
-      lineRule(f, isPy(f) ? /(?<![\w.])(?:eval|exec)\s*\(\s*(?!["'][^"']*["']\s*\))/ : /(?<![\w.])(?:eval\s*\(|new\s+Function\s*\()/, {
-            skipComments: true,
-            // Not a call when the text sits inside a string literal, and eval of a constant string is not injectable.
-            filter: (m, line) => !insideString(line, m.index) && !/\beval\s*\(\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*\)/.test(line)
-          })
+    check: (f) => {
+      const hits = lineRule(f, isPy(f) ? /(?<![\w.])(?:eval|exec)\s*\(\s*(?!["'][^"']*["']\s*\))/ : /(?<![\w.])(?:eval\s*\(|new\s+Function\s*\()/, {
+        skipComments: true,
+        // Not a call when the text sits inside a string literal, and eval of a constant string is not injectable.
+        filter: (m, line) => !insideString(line, m.index) && !/\beval\s*\(\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*\)/.test(line)
+      });
+      const sources = new Set<string>(f.tainted ?? []);
+      for (const l of f.lines) {
+        if (!/\b(req|request|params|query|body|input|event)\b/.test(l)) continue;
+        const assigned = /(?:^|[^\w$])([A-Za-z_$][\w$]*)\s*=/.exec(l);
+        if (assigned) sources.add(assigned[1]);
+      }
+      return hits.map((h) => {
+        const line = f.lines[h.line - 1] ?? "";
+        const arg = /(?:eval|exec|Function)\s*\(\s*([A-Za-z_$][\w$]*)/.exec(line);
+        return arg && sources.has(arg[1])
+          ? { ...h, confidence: "high" as const, note: "Name tracked from a request-like assignment in this project. Object fields, dynamic imports, and function calls are not tracked." }
+          : h;
+      });
+    }
   },
   {
     ...b,

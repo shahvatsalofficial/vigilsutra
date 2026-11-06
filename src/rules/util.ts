@@ -32,21 +32,35 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
   const hits: Hit[] = [];
   const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
   file.lines.forEach((line, i) => {
-    if (line.length > 2000) return;
-    if (opts.skipComments && isCommentLine(line)) return;
-    g.lastIndex = 0;
-    const m = g.exec(line);
-    if (!m) return;
-    if (opts.filter && !opts.filter(m, line, i + 1)) return;
-    const hit: Hit = { line: i + 1, excerpt: line };
-    if (opts.secretGroup !== undefined) {
-      const val = m[opts.secretGroup];
-      const start = line.indexOf(val, m.index);
-      hit.secretSpan = [start, start + val.length];
+    // Long lines are scanned in overlapping windows so a token past 2,000 characters is still seen.
+    // The excerpt is the window, not the whole line.
+    const parts = line.length > 2000 ? windows(line, 2000, 1900) : [{ text: line }];
+    for (const part of parts) {
+      if (opts.skipComments && isCommentLine(part.text)) continue;
+      g.lastIndex = 0;
+      const m = g.exec(part.text);
+      if (!m) continue;
+      if (opts.filter && !opts.filter(m, part.text, i + 1)) continue;
+      const hit: Hit = { line: i + 1, excerpt: part.text };
+      if (opts.secretGroup !== undefined) {
+        const val = m[opts.secretGroup];
+        const start = part.text.indexOf(val, m.index);
+        hit.secretSpan = [start, start + val.length];
+      }
+      hits.push(hit);
+      break;
     }
-    hits.push(hit);
   });
   return hits;
+}
+
+function windows(line: string, size: number, step: number): { text: string }[] {
+  const out: { text: string }[] = [];
+  for (let i = 0; i < line.length; i += step) {
+    out.push({ text: line.slice(i, i + size) });
+    if (i + size >= line.length) break;
+  }
+  return out;
 }
 
 /** True when index `idx` of `line` is inside a single-, double- or backtick-quoted string. */

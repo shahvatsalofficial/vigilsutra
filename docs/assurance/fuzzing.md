@@ -5,7 +5,7 @@ Tests: `test/fuzz.test.mjs` (run by `npm test`). Raw timings: [fuzz-results.json
 ## What is tested
 
 1. **No rule throws** on 40 rounds of generated input: 60 lines each of 1 to 2,400 characters, drawn from 22 shapes (long runs of one character, near-matches of each rule's pattern, quote and backtick storms, random tokens including NUL, lone surrogates, right-to-left controls and CJK), against 12 file kinds (Dockerfile, JS, Python, workflow, Kubernetes YAML, Terraform, agent file, MCP JSON, `.env`, PEM, shell, JSON).
-2. **ReDoS guard**: every rule is given files of 1,000 adversarial lines of 1,990 characters (16 shapes) and must finish in under 1,500 ms per file. Lines over 2,000 characters are skipped by design.
+2. **ReDoS guard**: every rule is given files of 1,000 adversarial lines of 1,990 characters (16 shapes) and must finish in under 1,500 ms per file. Lines over 2,000 characters are scanned in overlapping windows.
 3. **Whole-audit robustness**: malformed UTF-8, lone surrogates, NUL bytes and a 900 KB single line.
 4. **Parser robustness**: the policy parser with 1 MB values, 50,000 list items, 100,000 colons, NUL and surrogate floods; baseline and previous-result inputs that are `{`, `[]`, `null`, wrong types or a 100 KB number must be rejected with exit code 2.
 

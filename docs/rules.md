@@ -1,4 +1,4 @@
-# Rules (version 1.0.0)
+# Rules (version 1.2.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -10,6 +10,12 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-004 | Hardcoded credential assigned to a secret-named variable | medium | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-005 | Slack token in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-006 | Tracked environment file with a secret value | medium | medium | potential | SecretWatch | CWE-312, CWE-798 |
+| VS-SECRET-007 | JSON Web Token in source | medium | medium | potential | SecretWatch | CWE-798 |
+| VS-SECRET-008 | npm access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-SECRET-009 | Stripe secret key in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
+| VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
 | VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
@@ -36,6 +42,10 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-PRIV-001 | Possible personal data or credential written to logs | medium | low | potential | PrivacyLens | CWE-532 |
 | VS-PRIV-002 | Third-party analytics or tracking SDK referenced | info | medium | informational | PrivacyLens |  |
 | VS-PROC-001 | No security policy file found | info | high | informational | Prime |  |
+| VS-SUPPLY-001 | Dependency fetched over an unauthenticated URL | high | high | confirmed | SupplyWatch | CWE-829 |
+| VS-SUPPLY-002 | Dependency version is a wildcard | medium | medium | potential | SupplyWatch | CWE-829 |
+| VS-SUPPLY-003 | Install script downloads code | medium | medium | potential | SupplyWatch | CWE-829 |
+| VS-SUPPLY-004 | Dependency version matches a recorded advisory | high | high | confirmed | SupplyWatch | CWE-1395 |
 
 ## Details
 
@@ -86,6 +96,54 @@ A `.env` file (not an example, sample, or template) contains a secret-named vari
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.
+
+### VS-SECRET-007: JSON Web Token in source
+
+A string with the three-part JWT compact shape (header.payload.signature) is committed. The match proves the shape, not that the token is still accepted.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Documentation samples and tokens that were already revoked. Public, non-sensitive sample tokens still look the same.
+
+### VS-SECRET-008: npm access token in source
+
+A string matching an npm access token (npm_ plus 36 or more token characters) is committed.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Revoked tokens and values that only share the npm_ prefix.
+
+### VS-SECRET-009: Stripe secret key in source
+
+A string matching a Stripe secret or restricted key (sk_live_, sk_test_, rk_live_, rk_test_) is committed.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Revoked keys. Publishable keys (pk_) are not matched.
+
+### VS-SECRET-010: Google API key in source
+
+A string matching a Google API key (AIza plus 35 characters) is committed. The match proves the shape, not which API it can call.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Keys restricted to a public client and already-rotated keys. Restrict or rotate if the repository was shared.
+
+### VS-SECRET-011: Azure storage account key in source
+
+An Azure Storage connection string contains an AccountKey value.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Documentation that shows the AccountKey name with a placeholder shorter than 40 characters.
+
+### VS-SECRET-012: GitLab personal access token in source
+
+A string matching a GitLab personal access token (glpat-) is committed.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Revoked tokens.
 
 ### VS-CICD-001: GitHub Action not pinned to a commit SHA
 
@@ -193,7 +251,7 @@ An IAM statement allows `*` actions, which grants administrator-level power to w
 
 ### VS-CODE-001: Dynamic code execution (eval / new Function / exec)
 
-Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. This rule matches the call, not the data flow.
+Strings are compiled and executed as code. If any part is attacker-influenced this is remote code execution. Confidence is raised when the argument name traces to a request-like assignment in this project, including through a relative import. Object fields, dynamic imports, and function calls are not tracked.
 
 - **Fix:** Replace with a data-driven approach (lookup table, JSON.parse, ast.literal_eval). Never pass user input to an evaluator.
 - **Verify:** The call is removed or its argument is proven constant; add a test with a malicious input.
@@ -294,3 +352,35 @@ No SECURITY.md was found, so reporters have no documented way to disclose vulner
 - **Fix:** Add SECURITY.md with a private contact or GitHub private vulnerability reporting link and a response expectation.
 - **Verify:** SECURITY.md exists at the repository root, `.github/` or `docs/`.
 - **False positives:** Policy kept in an org-level `.github` repository.
+
+### VS-SUPPLY-001: Dependency fetched over an unauthenticated URL
+
+A package manifest downloads a dependency with http:// or git://. Those URLs can be changed in transit. No advisory database is consulted.
+
+- **Fix:** Pin a trusted version from the official registry over HTTPS. Review install scripts before they run.
+- **Verify:** Re-run `vigilsutra audit` after the manifest change.
+- **False positives:** An internal registry that is only reachable over plain HTTP on a network you trust. Prefer HTTPS anyway.
+
+### VS-SUPPLY-002: Dependency version is a wildcard
+
+A package.json dependency is `*`, `latest`, or empty, so a later install can resolve to a different version. This is not a vulnerability match.
+
+- **Fix:** Pin a trusted version from the official registry over HTTPS. Review install scripts before they run.
+- **Verify:** Re-run `vigilsutra audit` after the manifest change.
+- **False positives:** A private tool that regenerates the lockfile in the same change. The lockfile, when present, is what the install actually uses.
+
+### VS-SUPPLY-003: Install script downloads code
+
+A package.json lifecycle script (preinstall, install, or postinstall) downloads or pipes remote content. The script runs on install. The remote body was not fetched.
+
+- **Fix:** Pin a trusted version from the official registry over HTTPS. Review install scripts before they run.
+- **Verify:** Re-run `vigilsutra audit` after the manifest change.
+- **False positives:** A script that downloads a checksum-pinned artifact inside a build you already review.
+
+### VS-SUPPLY-004: Dependency version matches a recorded advisory
+
+A resolved package version falls inside a range recorded in the advisory database shipped with VigilSutra. The database is a snapshot, not a live feed, and the scan does not call the network.
+
+- **Fix:** Upgrade to the fixed version named in the finding, then re-run the audit. If the database has no fix, remove the package or replace it.
+- **Verify:** The lockfile resolves to a version outside the recorded range. Re-run `vigilsutra audit`.
+- **False positives:** An advisory withdrawn after this database was built, or a version the range comparison mis-orders because it is not numeric semver.

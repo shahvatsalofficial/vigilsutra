@@ -156,8 +156,7 @@ function readRegular(abs: string, expected: Stats): Buffer | null {
   }
   try {
     const now = fstatSync(fd);
-    if (!now.isFile() || now.size !== expected.size) return null;
-    if (expected.ino !== 0 && (now.ino !== expected.ino || now.dev !== expected.dev)) return null;
+    if (!sameIdentity(expected, now)) return null;
     const buf = Buffer.alloc(now.size);
     let off = 0;
     while (off < buf.length) {
@@ -176,12 +175,30 @@ function readRegular(abs: string, expected: Stats): Buffer | null {
 
 const FILE_MODES = new Set([0o100644, 0o100755, 0o100664, 0o120000, 0o160000]);
 
+/** Same file after open: inode when the filesystem has one, otherwise size and mtime. */
+export function sameIdentity(expected: { ino: number; dev: number; size: number; mtimeMs: number; isFile(): boolean }, now: { ino: number; dev: number; size: number; mtimeMs: number; isFile(): boolean }): boolean {
+  if (!now.isFile() || now.size !== expected.size) return false;
+  if (expected.ino !== 0 || now.ino !== 0) return now.ino === expected.ino && now.dev === expected.dev;
+  return now.mtimeMs === expected.mtimeMs;
+}
+
+export interface IndexEntry {
+  path: string;
+  sha: string;
+}
+
 /** Parse a git index (versions 2, 3, and 4; SHA-1 or SHA-256). Returns null if the bytes are not a valid index. */
 export function parseGitIndex(buf: Buffer): Set<string> | null {
+  const entries = parseGitIndexEntries(buf);
+  return entries ? new Set(entries.map((e) => e.path)) : null;
+}
+
+/** Index paths plus the staged blob id. Returns null if the bytes are not a valid index. */
+export function parseGitIndexEntries(buf: Buffer): IndexEntry[] | null {
   return parseWithHash(buf, 20) ?? parseWithHash(buf, 32);
 }
 
-function parseWithHash(buf: Buffer, hashLen: number): Set<string> | null {
+function parseWithHash(buf: Buffer, hashLen: number): IndexEntry[] | null {
   if (buf.length < 12 + hashLen) return null;
   if (buf.toString("latin1", 0, 4) !== "DIRC") return null;
   const version = buf.readUInt32BE(4);
@@ -193,7 +210,7 @@ function parseWithHash(buf: Buffer, hashLen: number): Set<string> | null {
   const sum = createHash(algo).update(buf.subarray(0, end)).digest();
   if (!sum.equals(buf.subarray(end))) return null;
 
-  const paths = new Set<string>();
+  const entries: IndexEntry[] = [];
   let pos = 12;
   let prev = "";
   const flagAt = 40 + hashLen;
@@ -234,7 +251,7 @@ function parseWithHash(buf: Buffer, hashLen: number): Set<string> | null {
       next = pos + ((raw + 7) & ~7);
     }
     if (!name || name.includes("\\") || name.startsWith("/") || name.split("/").includes("..")) return null;
-    paths.add(name);
+    entries.push({ path: name, sha: buf.subarray(pos + 40, pos + 40 + hashLen).toString("hex") });
     if (next <= pos || next > end) return null;
     pos = next;
   }
@@ -247,7 +264,7 @@ function parseWithHash(buf: Buffer, hashLen: number): Set<string> | null {
     pos += 8 + size;
   }
   if (pos !== end) return null;
-  return paths;
+  return entries;
 }
 
 /** Git's offset varint: continuation bytes are biased by +1. See git's decode_varint. */

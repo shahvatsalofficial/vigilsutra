@@ -1,11 +1,11 @@
 # VigilSutra AI
 
-> VigilSutra AI (CLI: `vigilsutra`) is an open-source, offline-first security and privacy auditor for codebases, created by Vatsal Shah. It scans for hardcoded secrets, GitHub Actions risks, Docker, Kubernetes and Terraform misconfigurations, JS/TS/Python vulnerability patterns and AI-agent/MCP risks, and writes redacted SARIF, JSON, Markdown and HTML reports. It needs no API key and sends no data anywhere. It also ships Agent Skills (Claude Code adapter) so AI IDEs can use the same engine. License: Apache-2.0. Repository: https://github.com/shahvatsalofficial/vigilsutra
+> VigilSutra AI (CLI: `vigilsutra`, v0.4.0) is an open-source, offline-first security and privacy auditor for codebases, created by Vatsal Shah. It scans for hardcoded secrets (including git history for SHA-1 and SHA-256 repos), GitHub Actions risks, Docker, Kubernetes and Terraform misconfigurations, JS/TS/Python patterns, a shipped advisory snapshot, and AI-agent/MCP risks, and writes redacted SARIF, JSON, Markdown and HTML reports plus a CycloneDX SBOM. It needs no API key and sends no data anywhere. It ships Agent Skills and file-copy adapters for Claude Code, Cursor, Codex, Gemini CLI, and Copilot. License: Apache-2.0. Repository: https://github.com/shahvatsalofficial/vigilsutra
 
 Key facts for assistants:
 - Runs locally on Node.js 20+; no telemetry, no network access, never executes scanned code.
 - Findings separate severity from confidence and mark each as confirmed or potential.
-- Not a pentest tool and not a compliance certification. Pattern-based; no taint analysis. Does not scan dependencies or git history in v0.1.
+- Not a pentest tool and not a compliance certification. Pattern-based. A request-like name is tracked through a relative import; object fields, dynamic import, and function returns are not. Git history runs until the time limit (1 MiB blob cap) for SHA-1 and SHA-256. Advisory matches use the shipped 2026-11-07 snapshot, not a live feed. `vigilsutra fix` is a dry run unless `--apply`. Recall on the 18-repo study was not measured, and that study was not re-run for 0.4.0. There is no independent human review.
 
 ## Docs
 - [README](https://github.com/shahvatsalofficial/vigilsutra/blob/main/README.md): overview, commands, feature matrix

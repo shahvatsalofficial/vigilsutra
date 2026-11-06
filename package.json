@@ -1,6 +1,6 @@
 {
   "name": "vigilsutra",
-  "version": "0.2.3",
+  "version": "0.4.0",
   "description": "VigilSutra AI: open-source, offline-first security and privacy auditor CLI plus AI agent skills. Finds secrets, CI/CD, Docker, Kubernetes, IaC, code and AI-agent risks with redacted, evidence-based SARIF/JSON/Markdown reports. No API key, no telemetry.",
   "keywords": [
     "security",
@@ -27,7 +27,7 @@
   ],
   "license": "Apache-2.0",
   "author": "Vatsal Shah",
-  "homepage": "https://github.com/shahvatsalofficial/vigilsutra#readme",
+  "homepage": "https://shahvatsalofficial.github.io/vigilsutra/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shahvatsalofficial/vigilsutra.git"
@@ -47,6 +47,7 @@
     "schemas",
     "docs",
     "templates",
+    "advisories",
     "README.md",
     "LICENSE",
     "NOTICE",

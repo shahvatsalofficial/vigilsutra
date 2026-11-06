@@ -14,6 +14,8 @@ export interface ScannedFile {
   ext: string;
   text: string;
   lines: string[];
+  /** Names in this file that trace to a request-like value, including through a relative import. */
+  tainted?: ReadonlySet<string>;
 }
 
 /** A raw match produced by a rule; the engine turns it into a Finding. */
@@ -107,6 +109,8 @@ export interface ScanResult {
     bySeverity: Record<Severity, number>;
     byStatus: Record<string, number>;
     baselineSuppressed: number;
+    waiversApplied: number;
+    waiversExpired: number;
   };
   categoriesAssessed: string[];
   notAssessed: string[];

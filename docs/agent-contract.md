@@ -10,4 +10,4 @@ Skills in `agents/*/SKILL.md` use YAML frontmatter (`name`, `description`) follo
 6. Propose fixes as diffs or steps; never commit, push or rotate without approval.
 7. Use the CLI JSON as the deterministic baseline and add only context-based review on top.
 
-`agents/agents-registry.json` lists implemented and planned roles. Planned roles are not shipped as skills.
+`agents/agents-registry.json` lists every shipped skill. A skill that describes a gap (mobile apps, compliance, advisories) must say "not assessed". Do not add a role name without a `SKILL.md`.

@@ -2,6 +2,14 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Severity } from "./types.js";
 
+export interface Waiver {
+  ruleId: string;
+  path: string;
+  owner: string;
+  /** Inclusive last day, YYYY-MM-DD, compared in UTC. */
+  until: string;
+}
+
 export interface Policy {
   ignore: string[];
   maxFileSize: number;
@@ -9,6 +17,7 @@ export interface Policy {
   timeLimitMs: number;
   failOn?: Severity;
   disableRules: string[];
+  waivers: Waiver[];
   /** Where the policy came from; reported so a hostile project policy cannot silently narrow a scan. */
   source?: string;
   userIgnores?: number;
@@ -39,7 +48,8 @@ export const DEFAULT_POLICY: Policy = {
   maxFileSize: 1024 * 1024,
   maxFiles: 20000,
   timeLimitMs: 60000,
-  disableRules: []
+  disableRules: [],
+  waivers: []
 };
 
 /**
@@ -69,11 +79,12 @@ export function parsePolicy(text: string): Partial<Policy> {
       out[kv[1]] = stripQuotes(kv[2].trim());
     }
   }
-  const known = new Set(["ignore", "maxFileSize", "maxFiles", "timeLimitMs", "failOn", "disableRules", "version"]);
+  const known = new Set(["ignore", "maxFileSize", "maxFiles", "timeLimitMs", "failOn", "disableRules", "waivers", "version"]);
   for (const k of Object.keys(out)) if (!known.has(k)) throw new Error(`.vigilsutra.yml: unknown key "${k}"`);
   const p: Partial<Policy> = {};
   if (Array.isArray(out.ignore)) p.ignore = out.ignore;
   if (Array.isArray(out.disableRules)) p.disableRules = out.disableRules;
+  if (Array.isArray(out.waivers)) p.waivers = out.waivers.map(parseWaiver);
   for (const k of ["maxFileSize", "maxFiles", "timeLimitMs"] as const) {
     if (typeof out[k] === "string") {
       const n = Number(out[k]);
@@ -86,6 +97,17 @@ export function parsePolicy(text: string): Partial<Policy> {
     p.failOn = out.failOn as Severity;
   }
   return p;
+}
+
+function parseWaiver(item: string): Waiver {
+  const parts = item.split("|").map((s) => s.trim());
+  if (parts.length !== 4) throw new Error(`.vigilsutra.yml: waiver must be ruleId|path|owner|YYYY-MM-DD`);
+  const [ruleId, path, owner, until] = parts;
+  if (!/^VS-[A-Z]+-\d{3}$/.test(ruleId)) throw new Error(`.vigilsutra.yml: waiver rule id "${ruleId}" is not a rule id`);
+  if (!path || path.startsWith("/") || path.split("/").includes("..")) throw new Error(`.vigilsutra.yml: waiver path must stay inside the project`);
+  if (!owner || owner.length > 80) throw new Error(`.vigilsutra.yml: waiver needs an owner`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || Number.isNaN(Date.parse(until + "T00:00:00Z"))) throw new Error(`.vigilsutra.yml: waiver until must be YYYY-MM-DD`);
+  return { ruleId, path, owner, until };
 }
 
 function stripQuotes(s: string): string {
@@ -107,6 +129,7 @@ export function loadPolicy(root: string, opts: { explicitFile?: string; ignorePr
     ...user,
     // User ignores extend, never replace, the safe defaults.
     ignore: [...DEFAULT_IGNORE, ...(user.ignore ?? [])],
+    waivers: user.waivers ?? [],
     source: opts.explicitFile ? "explicit --policy file" : "project .vigilsutra.yml",
     userIgnores: user.ignore?.length ?? 0
   };

@@ -1,14 +1,18 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, extname, join } from "node:path";
 import { ALL_RULES, CWE_NOTE, RULES_VERSION, findRule } from "./rules/index.js";
 import { isTestPath } from "./rules/util.js";
 import { inventory, type Inventory } from "./scope.js";
+import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.js";
+import { readComponents } from "./components.js";
+import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
+import { propagateTaint } from "./taint.js";
 import { DEFAULT_POLICY, loadPolicy, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
-export const VERSION = "0.2.3";
+export const VERSION = "0.4.0";
 
 /** Per rule, per file. Keeps one noisy file from producing an unbounded report. */
 export const MAX_PER_RULE_PER_FILE = 200;
@@ -21,6 +25,16 @@ export interface AuditOptions {
   policyFile?: string;
   /** Ignore the project's .vigilsutra.yml (use built-in defaults). */
   ignoreProjectPolicy?: boolean;
+  /** Read git objects reachable from HEAD. Default true. */
+  history?: boolean;
+  /** Scan only worktree files whose bytes differ from this revision. Skips history. */
+  since?: string;
+  /** Scan staged blobs from the git index instead of the worktree. Skips history. */
+  staged?: boolean;
+  /** Advisory snapshot to match. Default is the database shipped with this package. */
+  advisoriesFile?: string;
+  /** Skip advisory matching. */
+  advisories?: boolean;
 }
 
 function sha(s: string): string {
@@ -108,14 +122,49 @@ export function loadBaseline(file: string): Set<string> {
 export function audit(opts: AuditOptions): ScanResult {
   const root = realpathSync(opts.root);
   const policy = opts.policy ?? loadPolicy(root, { explicitFile: opts.policyFile, ignoreProjectPolicy: opts.ignoreProjectPolicy });
-  const inv: Inventory = inventory(root, policy);
+  const deadline = Date.now() + policy.timeLimitMs;
+  const inv: Inventory = inventory(root, policy, deadline);
+  const extraNotes: string[] = [];
+  let historyRan = false;
+  let files = inv.files;
+  if (opts.staged && opts.since) throw new Error("use either --staged or --since, not both");
+  if (opts.staged) {
+    const staged = stagedBlobs(root);
+    if (!staged) throw new Error("--staged needs a readable git index in this project");
+    files = staged.map((s) => ({ path: s.path, name: basename(s.path).toLowerCase(), ext: extname(s.path).toLowerCase(), text: s.text, lines: s.text.split(/\r\n|\n|\r/) }));
+    extraNotes.push("Staged scan reads blobs in the git index. The worktree and older history were not scanned.");
+  } else if (opts.since) {
+    const rev = revisionTree(root, opts.since);
+    if (!rev.blobs) throw new Error(rev.note);
+    files = files.filter((f) => rev.blobs!.get(f.path) !== blobHash(f.text, rev.algo));
+    extraNotes.push(`Diff scan kept worktree files that differ from ${opts.since}. Git history was not scanned. Run without --since to read history.`);
+  } else if (opts.history !== false) {
+    const current = new Map(files.map((f) => [f.path, f.text]));
+    const hist = scanHistory(root, policy.ignore, current, deadline);
+    files = files.concat(hist.files);
+    extraNotes.push(...hist.notes);
+    historyRan = hist.commitsSeen > 0 || hist.notes.some((n) => n.startsWith("Git history read"));
+  } else {
+    extraNotes.push("Git history was not scanned (--no-history).");
+  }
+  propagateTaint(files);
+  const opened = opts.advisories === false
+    ? { db: null, note: "Advisory matching was skipped (--no-advisories)." }
+    : openAdvisoryDb(opts.advisoriesFile);
+  extraNotes.push(opened.note);
   let capped = 0;
   const disabled = new Set(policy.disableRules.map((r) => r.toUpperCase()));
   const rules = ALL_RULES.filter((r) => !disabled.has(r.id));
   const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
 
   let findings: Finding[] = [];
-  for (const file of inv.files) {
+  for (const file of files) {
+    if (Date.now() > deadline) {
+      inv.stats.truncated = true;
+      inv.stats.truncatedReason = inv.stats.truncatedReason ?? "time limit reached";
+      extraNotes.push("The time limit was reached while applying rules. Results are incomplete.");
+      break;
+    }
     const raw: { rule: Rule; hits: Hit[] }[] = [];
     // Every secret span found on a line is redacted from every finding that quotes that line.
     const lineSpans = new Map<number, [number, number][]>();
@@ -155,6 +204,21 @@ export function audit(opts: AuditOptions): ScanResult {
     }
   }
 
+  const advRule = findRule("VS-SUPPLY-004");
+  if (advRule && opened.db && !disabled.has(advRule.id)) {
+    const matches = matchAdvisories(readComponents(root), opened.db);
+    const shown = matches.slice(0, 500);
+    if (matches.length > shown.length) extraNotes.push(`${matches.length - shown.length} advisory match(es) were not listed (cap 500).`);
+    for (const m of shown) {
+      findings.push(toFinding(advRule, { path: m.component.path }, {
+        line: 1,
+        excerpt: `${m.component.name}@${m.component.version} ${m.advisory.id}`,
+        severity: m.advisory.severity,
+        note: `Recorded range starts at ${m.advisory.introduced}${m.advisory.fixed ? ` and is fixed in ${m.advisory.fixed}` : m.advisory.lastAffected ? ` through ${m.advisory.lastAffected}` : " and has no recorded fix"}.`
+      }, 0));
+    }
+  }
+
   const proc = findRule("VS-PROC-001");
   if (proc && !disabled.has(proc.id) && !inv.stats.truncated) {
     const found = ["security.md", ".github/security.md", "docs/security.md"].some((p) => [...inv.allPaths].some((x) => x.toLowerCase() === p));
@@ -167,12 +231,22 @@ export function audit(opts: AuditOptions): ScanResult {
   }
 
   let suppressed = 0;
+  let waiversApplied = 0;
+  let waiversExpired = 0;
+  const today = new Date().toISOString().slice(0, 10);
   findings = findings.filter((f) => {
     if (baseline.has(f.fingerprint)) {
       suppressed++;
       return false;
     }
-    return true;
+    const waiver = policy.waivers.find((w) => w.ruleId === f.ruleId && w.path === f.path);
+    if (!waiver) return true;
+    if (waiver.until < today) {
+      waiversExpired++;
+      return true;
+    }
+    waiversApplied++;
+    return false;
   });
 
   findings.sort((a, b) => {
@@ -191,21 +265,28 @@ export function audit(opts: AuditOptions): ScanResult {
   }
 
   const limitations = [
-    "Pattern-based static review of text files only; no data-flow or taint analysis.",
+    "Pattern-based static review of text files. A request-like assignment is tracked by identifier through relative imports in this project. Object fields, dynamic import(), and values returned from functions are not tracked.",
     "Source-pattern matches are reported as 'potential' unless the evidence itself is conclusive (for example a token format or an explicit unsafe setting).",
     "A match on a secret format shows the format, not that the credential is live. No credential was tested.",
-    "Git history, dependencies, advisories, running systems and remote cloud state were not inspected.",
+    opened.db
+      ? "Advisory matches use the database shipped with this version. It is a snapshot of recorded ranges, not a live feed, and it does not prove a vulnerable function is reachable."
+      : "No advisory database was loaded, so known vulnerabilities were not matched.",
     "Untracked .env files are not read when a git index is present. .env.example, .env.sample and .env.template are never treated as secret files.",
-    "Absence of findings is not evidence of security."
+    "Lines longer than 2,000 characters are scanned in overlapping windows. The excerpt is the window that matched.",
+    "When a filesystem reports inode 0, a swapped file is refused only when size or mtime also changes.",
+    "Git history is read until the time limit. A blob larger than 1 MiB is skipped. SHA-1 and SHA-256 object ids are both read.",
+    "Absence of findings is not evidence of security.",
+    ...extraNotes
   ];
   if (inv.stats.truncated) limitations.push(`Scan was truncated: ${inv.stats.truncatedReason}. Results are incomplete.`);
   const limitsOverridden = policy.maxFileSize !== DEFAULT_POLICY.maxFileSize || policy.maxFiles !== DEFAULT_POLICY.maxFiles || policy.timeLimitMs !== DEFAULT_POLICY.timeLimitMs;
-  const narrowed = (policy.userIgnores ?? 0) > 0 || policy.disableRules.length > 0 || limitsOverridden;
+  const narrowed = (policy.userIgnores ?? 0) > 0 || policy.disableRules.length > 0 || policy.waivers.length > 0 || limitsOverridden;
   if (narrowed) {
     limitations.push(
-      `Scan scope was changed by ${policy.source}: ${policy.userIgnores ?? 0} extra ignore pattern(s), ${policy.disableRules.length} disabled rule(s)${limitsOverridden ? ", custom limits" : ""}. If you did not write this policy (for example when auditing someone else's repository), re-run with --no-policy.`
+      `Scan scope was changed by ${policy.source}: ${policy.userIgnores ?? 0} extra ignore pattern(s), ${policy.disableRules.length} disabled rule(s), ${policy.waivers.length} waiver(s)${limitsOverridden ? ", custom limits" : ""}. If you did not write this policy (for example when auditing someone else's repository), re-run with --no-policy.`
     );
   }
+  if (waiversExpired) limitations.push(`${waiversExpired} finding(s) matched a waiver whose until date has passed. Those findings stay in the report.`);
   if (capped > 0) limitations.push(`${capped} additional finding(s) were not listed because a rule exceeded ${MAX_PER_RULE_PER_FILE} matches in one file.`);
   inv.stats.policy = { source: policy.source ?? "built-in defaults", userIgnorePatterns: policy.userIgnores ?? 0, disabledRules: [...policy.disableRules], limitsOverridden };
   if (capped > 0) inv.stats.cappedFindings = capped;
@@ -217,9 +298,16 @@ export function audit(opts: AuditOptions): ScanResult {
     mode: "local",
     project: { name: basename(root), detected: detectProject(inv.files) },
     scope: inv.stats,
-    summary: { total: findings.length, bySeverity, byStatus, baselineSuppressed: suppressed },
-    categoriesAssessed: ["secrets", "cicd", "containers", "iac", "code", "ai-agents", "privacy", "process"],
-    notAssessed: ["dependencies and advisories", "git history", "authentication and authorization design", "runtime / cloud state", "mobile apps", "data-flow and taint analysis"],
+    summary: { total: findings.length, bySeverity, byStatus, baselineSuppressed: suppressed, waiversApplied, waiversExpired },
+    categoriesAssessed: ["secrets", "cicd", "containers", "iac", "code", "ai-agents", "privacy", "process", "supply"],
+    notAssessed: [
+      ...(historyRan ? [] : ["git history"]),
+      ...(opened.db ? [] : ["vulnerability advisories"]),
+      "authentication and authorization design",
+      "runtime and cloud state",
+      "mobile applications",
+      "object-field, dynamic-import, and call-return taint"
+    ],
     limitations,
     findings
   };

@@ -2,7 +2,7 @@ import { lstatSync, readdirSync, realpathSync, openSync, readSync, closeSync, fs
 import { join, basename, extname, relative, isAbsolute } from "node:path";
 import type { ScannedFile, ScopeStats } from "./types.js";
 import { makeIgnoreMatcher, type Policy } from "./policy.js";
-import { createGitCache, shouldSkipUntrackedDotenv } from "./git-index.js";
+import { createGitCache, sameIdentity, shouldSkipUntrackedDotenv } from "./git-index.js";
 
 export interface Inventory {
   files: ScannedFile[];
@@ -27,7 +27,7 @@ function readChecked(abs: string, expected: Stats): string | "binary" | "swapped
   const fd = openSync(abs, "r");
   try {
     const now = fstatSync(fd);
-    if (!now.isFile() || (expected.ino !== 0 && (now.ino !== expected.ino || now.dev !== expected.dev))) return "swapped";
+    if (!sameIdentity(expected, now)) return "swapped";
     const buf = Buffer.alloc(now.size);
     let off = 0;
     while (off < buf.length) {
@@ -47,7 +47,7 @@ function readChecked(abs: string, expected: Stats): string | "binary" | "swapped
  * Read-only inventory. Symlinks are never followed (they are counted and skipped), so a
  * repository can not redirect the scan outside its root. Nothing is executed.
  */
-export function inventory(rootInput: string, policy: Policy): Inventory {
+export function inventory(rootInput: string, policy: Policy, deadline = Date.now() + policy.timeLimitMs): Inventory {
   const root = realpathSync(rootInput);
   const ignored = makeIgnoreMatcher(policy.ignore);
   const stats: ScopeStats = {
@@ -64,7 +64,6 @@ export function inventory(rootInput: string, policy: Policy): Inventory {
   const files: ScannedFile[] = [];
   const allPaths = new Set<string>();
   const gitCache = createGitCache();
-  const deadline = Date.now() + policy.timeLimitMs;
 
   const walk = (dirAbs: string, dirRel: string): void => {
     if (stats.truncated) return;

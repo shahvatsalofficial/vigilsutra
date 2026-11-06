@@ -1,0 +1,7 @@
+#!/bin/sh
+# Installed by `vigilsutra init --hook`. Scans the git index. Does not scan unstaged files.
+if ! command -v vigilsutra >/dev/null 2>&1; then
+  echo "vigilsutra: not on PATH. Install it, or remove .git/hooks/pre-commit." >&2
+  exit 1
+fi
+exec vigilsutra audit . --staged --fail-on high --no-report --no-history

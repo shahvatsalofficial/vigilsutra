@@ -17,7 +17,13 @@ const TOKEN_SHAPES: RegExp[] = [
   /gh[pousr]_[A-Za-z0-9]{30,}/g,
   /github_pat_[A-Za-z0-9_]{30,}/g,
   /xox[baprs]-[A-Za-z0-9-]{10,}/g,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*/g
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*/g,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+  /npm_[A-Za-z0-9]{36,}/g,
+  /(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,}/g,
+  /AIza[0-9A-Za-z_-]{35}/g,
+  /AccountKey=[A-Za-z0-9+/]{40,}={0,2}/g,
+  /glpat-[A-Za-z0-9_-]{20,}/g
 ];
 
 export function scrubTokens(s: string): string {

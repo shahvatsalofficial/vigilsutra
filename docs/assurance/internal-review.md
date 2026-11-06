@@ -2,7 +2,9 @@
 
 > **Warning:** this review was done by the project's maintainer working with an AI assistant. It is **not independent**. It exists so that known weaknesses are fixed and visible, and so an outside reviewer has a starting point. See [REVIEW-REQUEST.md](REVIEW-REQUEST.md) for how to ask for an independent review.
 
-Date: 2026-11-01. Scope: all of `src/` (about 1,900 lines), the CLI contract, report writers, the Claude adapter, the GitHub workflows and the fuzz/benchmark data. Method: manual read-through against the threat model, adversarial tests, fuzzing, and a run over 18 public repositories.
+Date: 2026-11-01. Scope: all of `src/` at that date (about 1,900 lines), the CLI contract, report writers, the Claude adapter, the GitHub workflows and the fuzz/benchmark data. Method: manual read-through against the threat model, adversarial tests, fuzzing, and a run over 18 public repositories.
+
+0.3.0 (2026-11-07) changed two residuals from this review: lines over 2,000 characters are scanned in windows, and an inode of 0 is checked with size and mtime. 0.4.0 added SHA-256 history, an advisory snapshot, a bounded name tracker, SBOM export, and `vigilsutra fix`. This page is the 2026-11-01 review, not a new one, and it was not an independent human review.
 
 ## Findings and fixes
 

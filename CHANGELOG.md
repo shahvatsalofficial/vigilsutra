@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0 - 2026-11-07
+
+- Git history reads SHA-1 and SHA-256 objects (loose and pack index version 2, including deltas) until the time limit. The 200-commit and 2,500-blob caps are gone. A blob over 1 MiB is still skipped. `--no-history` skips the pass.
+- `VS-SUPPLY-004` matches resolved npm, PyPI, and Go versions against `advisories/db.json.gz`, an OSV snapshot built 2026-11-07 (npm, PyPI, Go). No network call. `--no-advisories` skips it. `--advisories <file>` selects another snapshot.
+- `vigilsutra sbom` writes a CycloneDX 1.6 JSON bill from `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, pinned `requirements.txt` lines, and `go.mod`. Ranges are not listed as if they were exact.
+- `vigilsutra fix` prints deterministic edits and writes them only with `--apply`. It can flip privileged and host-namespace flags, a public storage ACL, disabled TLS checks, and MD5/SHA-1 hash calls. It does not delete secrets or invent a user name or a commit SHA.
+- Request-like names (`req`, `request`, `params`, `query`, `body`, `input`, `event`) are tracked through relative JavaScript, TypeScript, and Python imports. `VS-CODE-001` raises confidence when that name reaches `eval` or `exec`. Object fields, dynamic `import()`, and function return values are not tracked.
+- Rules version is `1.2.0`.
+
+## 0.3.0 - 2026-11-07
+
+- Git history is read from `.git` objects (loose and SHA-1 packs, including deltas) without running `git`. Removed secrets can still be reported under `git-history/<commit>/<path>`. Caps: 200 commits, 2,500 blobs. `--no-history` skips it. Identical worktree copies are not reported twice.
+- `--since <rev>` scans only worktree files that differ from that revision. `--staged` scans the git index, which is what `vigilsutra init --hook` installs as a pre-commit hook.
+- New secret rules: JWT (`VS-SECRET-007`), npm tokens (`008`), Stripe secret keys (`009`), Google API keys (`010`), Azure storage account keys (`011`), GitLab personal access tokens (`012`). Excerpts stay redacted.
+- Manifest rules `VS-SUPPLY-001` through `003` flag unauthenticated dependency URLs, wildcard versions, and install scripts that download code. Advisories are still not matched.
+- Waivers in `.vigilsutra.yml` use `ruleId|path|owner|YYYY-MM-DD`. A waiver past its date does not hide the finding. Active waivers are disclosed.
+- `VS-CODE-001` raises confidence when the same file assigns a request-like name into `eval`. That is not interprocedural taint analysis.
+- Lines longer than 2,000 characters are scanned in overlapping windows. When a filesystem reports inode 0, a swapped file is refused if size or mtime changed.
+- File-copy adapters for Cursor, Codex, Gemini CLI, and Copilot, beside Claude. In-IDE invocation is not automated-tested. Twelve specialist skills shipped; skills that have no rule say "not assessed".
+- `Dockerfile` (not published), composite `action.yml`, and a GitHub Pages workflow for `docs/`.
+- Rules version is `1.1.0`. Docs that still said v0.1.0 were corrected.
+
 ## 0.2.3 - 2026-11-06
 
 - `vigilsutra audit` and `vigilsutra report` always write `vigilsutra-report/report.md` and `report.html` (plus `results.json` and `results.sarif`), including when the command is piped or run in CI. The short summary stays on stdout. `--no-report` skips the files. The folder notice goes to stderr so JSON and SARIF on stdout stay valid.

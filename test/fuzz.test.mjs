@@ -94,10 +94,10 @@ test("ReDoS guard: each rule handles 1,000 adversarial 1,990-character lines qui
   if (process.env.VS_FUZZ_OUT) writeFileSync(process.env.VS_FUZZ_OUT, JSON.stringify(results, null, 2));
 });
 
-test("lines above 2,000 characters are skipped by line rules rather than scanned", () => {
+test("lines above 2,000 characters are scanned in overlapping windows", () => {
   const f = mkFile("a.js", ["eval(x)" + " ".repeat(2500)]);
   const rule = ALL_RULES.find((r) => r.id === "VS-CODE-001");
-  assert.equal(rule.check(f).length, 0);
+  assert.equal(rule.check(f).length, 1);
 });
 
 test("malformed Unicode, NUL bytes and huge single lines do not crash a full audit", () => {

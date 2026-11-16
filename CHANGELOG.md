@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-11-16
+
+- Report footers (HTML and Markdown) show the author credit as plain text instead of a link to shahvatsal.com, so the HTML report contains no remote links and stays fully offline.
+- The author credit links to shahvatsal.com in the README, `llms.txt`, `CITATION.cff` and `package.json`.
+- No rule or CLI behaviour changes.
+
 ## 0.4.0 - 2026-11-07
 
 - Git history reads SHA-1 and SHA-256 objects (loose and pack index version 2, including deltas) until the time limit. The 200-commit and 2,500-blob caps are gone. A blob over 1 MiB is still skipped. `--no-history` skips the pass.

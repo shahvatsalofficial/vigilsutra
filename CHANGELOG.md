@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.
 

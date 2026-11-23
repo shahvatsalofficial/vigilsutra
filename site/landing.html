@@ -1,0 +1,96 @@
+<section class="hero" id="content">
+<div>
+<p class="chips"><span class="chip ok">v{{version}}</span><span class="chip">Apache-2.0</span><span class="chip">offline</span><span class="chip">no account</span></p>
+<h1>Find the risks in your repo <span>before they ship.</span></h1>
+<p class="lead">VigilSutra reads your code, CI, containers, Kubernetes, Terraform and AI-agent setup, then hands you a report anyone can read. It never calls the network, never runs your code, and never prints a secret.</p>
+<div class="cta"><a class="btn primary" href="start.html">Start in 5 minutes</a><a class="btn" href="samples/report.html">See a real report</a><a class="btn" href="scenarios.html">Real-world scenarios</a></div>
+<pre><button class="copy" type="button" aria-label="Copy command">Copy</button><code>npx vigilsutra report .</code></pre>
+<p style="color:var(--muted);font-size:.92rem">Needs Node.js 20 or newer. Writes <code>vigilsutra-report/report.html</code> and <code>report.md</code>.</p>
+</div>
+<div class="term"><div class="bar"><i></i><i></i><i></i><span>vigilsutra audit examples/intentionally-insecure</span></div><pre><code><span class="c-high">HIGH</span>     VS-K8S-001  Kubernetes container runs privileged
+<span class="c-dim">         deployment.yaml:13  [confirmed, confidence high]
+         evidence: privileged: true</span>
+<span class="c-high">HIGH</span>     VS-CODE-001  Dynamic code execution (eval / new Function / exec)
+<span class="c-dim">         server.js:7  [potential, confidence medium]
+         evidence: eval(req.body.expr);</span>
+<span class="c-medium">MEDIUM</span>   VS-SECRET-004  Hardcoded credential assigned to a secret-named variable
+<span class="c-dim">         server.js:3  [potential, confidence medium]
+         evidence: const db_password = "[REDACTED]";</span>
+<span class="c-low">LOW</span>      VS-CICD-001  GitHub Action not pinned to a commit SHA
+<span class="c-dim">         .github/workflows/ci.yml:8  [potential, confidence high]
+         evidence: - uses: actions/checkout@v4</span>
+
+<span class="c-ok">Summary: 0 critical, 8 high, 5 medium, 2 low, 1 info</span></code></pre></div>
+</section>
+
+<div class="wrap">
+{{stats}}
+
+<section class="sec">
+<h2>One scan, six steps, nothing leaves your machine</h2>
+<p class="sub">Every step only reads. The scan resolves the folder, walks the files without following links, filters, checks, removes secrets, and writes the report files you asked for.</p>
+{{diagram:pipeline}}
+</section>
+
+<section class="sec">
+<h2>A report people actually read</h2>
+<p class="sub">Every scan writes four files. Open <code>report.html</code> in a browser, paste <code>report.md</code> into a ticket, upload <code>results.sarif</code> to GitHub code scanning.</p>
+<div class="stack">
+<div>{{diagram:reportFiles}}</div>
+<div>{{diagram:anatomy}}</div>
+</div>
+<p><a class="btn primary" href="samples/report.html">Open a real HTML report</a> <a class="btn" href="samples/report.md">Markdown version</a></p>
+</section>
+
+<section class="sec">
+<h2>Real situations, real output</h2>
+<p class="sub">Each scenario below was run on a throwaway project and the output on the page is what the tool printed.</p>
+<div class="cards">
+<a class="card" href="scenarios.html#scenario-1-a-leaked-key-never-reaches-git-history"><span class="k">Before commit</span><h3>A leaked key never reaches history</h3><p>Stage a file with an AWS key. The scan blocks the commit and shows [REDACTED].</p></a>
+<a class="card" href="scenarios.html#scenario-2-adopt-it-on-a-legacy-repo-without-a-red-build"><span class="k">Legacy repo</span><h3>Adopt it without a red build</h3><p>Record 16 existing findings once. Fail only on new ones.</p></a>
+<a class="card" href="scenarios.html#scenario-3-auditing-a-repo-that-tries-to-hide-its-problems"><span class="k">Untrusted code</span><h3>The repo that hides its problems</h3><p>A project policy ignores everything. See why <code>--no-policy</code> exists.</p></a>
+<a class="card" href="scenarios.html#scenario-4-a-pull-request-gate-with-code-scanning"><span class="k">CI</span><h3>A pull request gate</h3><p>Block merges on high findings and see alerts in the Security tab.</p></a>
+<a class="card" href="scenarios.html#scenario-5-review-kubernetes-and-terraform-before-deploy"><span class="k">Before deploy</span><h3>Kubernetes and Terraform review</h3><p>Preview safe one-line fixes with <code>fix</code>, then apply them.</p></a>
+<a class="card" href="scenarios.html#scenario-6-vulnerable-dependencies-and-an-sbom-offline"><span class="k">Dependencies</span><h3>Known-vulnerable packages, offline</h3><p>Match locked versions against a bundled advisory snapshot and export an SBOM.</p></a>
+</div>
+</section>
+
+<section class="sec">
+<h2>Honest by design</h2>
+<p class="sub">A scanner you cannot trust is worse than none. VigilSutra reports what it knows, how sure it is, and what it did not check.</p>
+<div class="stack">
+<div><div class="quote">Severity says how bad it would be. Confidence says how sure the rule is. Status says whether the evidence alone settles it. They are three different questions, so they are three different fields.</div></div>
+<div>{{diagram:decision}}</div>
+</div>
+<p style="margin-top:1rem">We measured it on 18 public repositories and published the method, the labels, and what we got wrong.</p>
+{{chart:falsePositives}}
+<p><a class="btn" href="evidence.html">See all the evidence</a></p>
+</section>
+
+<section class="sec">
+<h2>Works where you work</h2>
+<div class="cards">
+<div class="card"><span class="k">Terminal</span><h3>Any OS, Node 20+</h3><p>Windows, macOS and Linux. Plain text mode and exit codes for scripts.</p></div>
+<div class="card"><span class="k">CI/CD</span><h3>GitHub Actions and more</h3><p>SARIF for code scanning, baselines and dated waivers for adoption.</p></div>
+<div class="card"><span class="k">Git</span><h3>Pre-commit hook</h3><p><code>init --hook</code> installs a hook that scans what you are about to commit.</p></div>
+<div class="card"><span class="k">AI assistants</span><h3>Claude, Cursor, Codex, Gemini, Copilot</h3><p>Install ready-made skills with <code>adapters install</code>. The CLI stays the single source of truth.</p></div>
+</div>
+</section>
+
+<section class="sec">
+<h2>What it does not do</h2>
+<p class="sub">Read this before you rely on it.</p>
+<ul>
+<li>It matches patterns. It cannot prove a project is secure, and a clean report means only that the {{rules}} checks found nothing.</li>
+<li>Code rules cover JavaScript, TypeScript and Python. Config rules cover Docker, Kubernetes, Terraform and GitHub Actions.</li>
+<li>Advisory matches use a bundled snapshot, not a live feed. It is not a pen-testing tool and never tests whether a credential works.</li>
+<li>It has not been reviewed by an independent person yet. <a href="evidence.html#what-is-not-proven">Reviewers are welcome.</a></li>
+</ul>
+</section>
+
+<section class="sec" style="text-align:center">
+<h2>Try it on your repo now</h2>
+<pre style="display:inline-block;text-align:left"><button class="copy" type="button" aria-label="Copy command">Copy</button><code>npx vigilsutra report .</code></pre>
+<p><a class="btn primary" href="start.html">Read the 5-minute guide</a> <a class="btn" href="https://github.com/shahvatsalofficial/vigilsutra">Star on GitHub</a></p>
+</section>
+</div>

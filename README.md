@@ -44,6 +44,8 @@ It is built for developers, small teams and security reviewers who want a **priv
 | **No fake certainty** | Pattern matches are `potential`. Only conclusive evidence is `confirmed`. Severity and confidence are separate. No "secure" or "compliant" verdicts anywhere. |
 | **Open source, small, auditable** | Apache-2.0. About 3,000 non-empty lines of TypeScript in `src/`. |
 
+**Documentation:** [guided docs with diagrams and real-world scenarios](https://shahvatsalofficial.github.io/vigilsutra/).
+
 Details: [security model](docs/security-model.md), [threat model](docs/threat-model.md), [privacy model](docs/privacy-model.md), [evidence and benchmarks](docs/assurance/README.md).
 
 ## Quickstart

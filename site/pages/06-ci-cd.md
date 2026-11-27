@@ -47,7 +47,7 @@ jobs:
 
 ### Ready-made action
 
-The repository ships an `action.yml`. After a release tag exists, a job can use `uses: shahvatsalofficial/vigilsutra@<tag>` instead of `npx`. It installs the tool inside the action directory and writes `vigilsutra.sarif`.
+The repository ships an `action.yml`. After a release tag exists, a job can use `uses: shahvatsalofficial/vigilsutra@<tag>` instead of `npx`. It installs the tool inside the action directory, writes `vigilsutra.sarif`, adds annotations and a job summary, and on pull requests reads `.vigilsutra.yml` from the base commit.
 
 ## Only look at what the pull request changed
 

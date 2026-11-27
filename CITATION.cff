@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use VigilSutra AI, please cite it as below."
 title: "VigilSutra AI: offline-first security and privacy auditor"
 type: software
-version: 0.4.2
-date-released: 2026-11-24
+version: 0.5.0
+date-released: 2026-11-28
 license: Apache-2.0
 repository-code: "https://github.com/shahvatsalofficial/vigilsutra"
 authors:

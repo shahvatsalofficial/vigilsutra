@@ -6,6 +6,11 @@
 - A placeholder first on a line no longer hides a real secret after it.
 - The placeholder filter now skips only values made entirely of filler words, so real secrets that start with `password`, `secret`, `test` and similar are reported.
 - The CLI accepts `--flag=value` and rejects unknown options, so a mistyped `--fail-on` can no longer pass a CI gate.
+- `--staged` applies policy ignore patterns and the file size limit.
+- With `--fail-on`, an incomplete scan (time or file limit, including git history) exits 2 instead of passing.
+- UTF-16 files with a byte-order mark are scanned. A byte-order mark no longer breaks `.vigilsutra.yml`.
+- SBOM: scoped npm packages get a valid purl (`pkg:npm/%40scope/name@1.0.0`).
+- `fix --apply` no longer rewrites SHA-1, which protocols such as the WebSocket handshake require.
 - Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
 
 ## 0.4.2 - 2026-11-24

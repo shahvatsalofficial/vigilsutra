@@ -8,7 +8,7 @@ import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.
 import { readComponents } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
-import { DEFAULT_POLICY, loadPolicy, type Policy } from "./policy.js";
+import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
@@ -141,7 +141,12 @@ export function audit(opts: AuditOptions): ScanResult {
   if (opts.staged) {
     const staged = stagedBlobs(root);
     if (!staged) throw new Error("--staged needs a readable git index in this project");
-    files = staged.map((s) => ({ path: s.path, name: basename(s.path).toLowerCase(), ext: extname(s.path).toLowerCase(), text: s.text, lines: s.text.split(/\r\n|\n|\r/) }));
+    // The index gets the same ignore patterns and size limit as the worktree.
+    const ignored = makeIgnoreMatcher(policy.ignore);
+    files = staged
+      .filter((s) => !ignored(s.path) && Buffer.byteLength(s.text) <= policy.maxFileSize)
+      .map((s) => ({ path: s.path, name: basename(s.path).toLowerCase(), ext: extname(s.path).toLowerCase(), text: s.text, lines: s.text.split(/\r\n|\n|\r/) }));
+    if (files.length < staged.length) extraNotes.push(`${staged.length - files.length} staged file(s) were skipped by ignore patterns or the file size limit.`);
     extraNotes.push("Staged scan reads blobs in the git index. The worktree and older history were not scanned.");
   } else if (opts.since) {
     const rev = revisionTree(root, opts.since);
@@ -153,6 +158,10 @@ export function audit(opts: AuditOptions): ScanResult {
     const hist = scanHistory(root, policy.ignore, current, deadline);
     files = files.concat(hist.files);
     extraNotes.push(...hist.notes);
+    if (hist.capped) {
+      inv.stats.truncated = true;
+      inv.stats.truncatedReason = inv.stats.truncatedReason ?? "git history stopped at the time limit";
+    }
     historyRan = hist.commitsSeen > 0 || hist.notes.some((n) => n.startsWith("Git history read"));
   } else {
     extraNotes.push("Git history was not scanned (--no-history).");

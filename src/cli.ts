@@ -49,7 +49,7 @@ Commands:
   adapters uninstall <claude|cursor|codex|gemini|copilot> [--project <dir>]
   --help, --version
 
-Exit codes: 0 ok | 1 findings at/above --fail-on | 2 usage or runtime error
+Exit codes: 0 ok | 1 findings at/above --fail-on | 2 usage or runtime error, or an incomplete scan with --fail-on
 `;
 
 interface Args {
@@ -181,6 +181,8 @@ function main(): void {
         process.stderr.write(`Reports written to ${dir}\n  report.html  open this in a browser\n  report.md    Markdown version\n  results.json, results.sarif  for tools and CI\n`);
       }
       if (failOn && exceeds(result, failOn)) process.exit(1);
+      // A gate cannot pass on a scan that did not finish.
+      if (failOn && result.scope.truncated) fail(`scan incomplete (${result.scope.truncatedReason}); --fail-on cannot pass. Raise timeLimitMs or maxFiles, or narrow the path.`);
       return;
     }
     case "baseline": {

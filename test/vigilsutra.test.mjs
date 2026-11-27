@@ -53,6 +53,35 @@ test("--flag=value gates the exit code and unknown options fail", () => {
   for (const bad of ["--fail-onn=high", "--failon", "--no-report=1", "--fail-on="]) assert.equal(cli(["audit", root, "--no-report", bad]).status, 2, bad);
 });
 
+test("--staged honours ignore patterns and the size limit", () => {
+  const root = project({ "keep.js": "1", "skip/a.js": `const t = "${GH}";`, "big.js": `const t = "${GH}";\n` + "x".repeat(3000), ".vigilsutra.yml": "ignore:\n  - skip/**\nmaxFileSize: 2000\n" });
+  const git = (...a) => assert.equal(spawnSync("git", a, { cwd: root }).status, 0);
+  git("init", "-q");
+  git("add", "-A");
+  assert.ok(!ids(audit({ root, staged: true })).includes("VS-SECRET-003"));
+});
+
+test("an incomplete scan cannot pass --fail-on", () => {
+  const root = project({ "a.js": "1", "b.js": "2", ".vigilsutra.yml": "\uFEFFmaxFiles: 1\n" });
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on", "high"]).status, 2);
+  assert.equal(cli(["audit", root, "--no-report"]).status, 0);
+});
+
+test("UTF-16 files are scanned", () => {
+  const le = Buffer.from("\uFEFFconst t = \"" + GH + "\";", "utf16le");
+  for (const buf of [le, Buffer.from(le).swap16()]) assert.ok(ids(scan({ "a.js": buf })).includes("VS-SECRET-003"));
+});
+
+test("scoped npm purl and SHA-1 left alone by fix", () => {
+  const root = project({
+    "package-lock.json": JSON.stringify({ packages: { "node_modules/@scope/pkg": { version: "1.0.0" } } }),
+    "h.js": 'import { createHash } from "node:crypto";\nexport const accept = (k) => createHash("sha1").update(k).digest("base64");\n'
+  });
+  assert.ok(cycloneDx(readComponents(root), "0").includes('"pkg:npm/%40scope/pkg@1.0.0"'));
+  assert.equal(cli(["fix", root, "--apply"]).status, 0);
+  assert.ok(readFileSync(join(root, "h.js"), "utf8").includes('createHash("sha1")'));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

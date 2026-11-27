@@ -124,7 +124,7 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 | `vigilsutra init` | Create `.vigilsutra.yml` (never overwrites). `--hook` installs `templates/pre-commit` when that hook is absent. |
 | `vigilsutra adapters list / install <name> / uninstall <name>` | `claude`, `cursor`, `codex`, `gemini`, `copilot`. File copy is tested. In-IDE invocation is not. `--dry-run` previews. |
 
-Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error.
+Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error, or an incomplete scan with `--fail-on`.
 
 ## What it checks (feature matrix)
 

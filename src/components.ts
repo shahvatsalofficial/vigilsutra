@@ -107,7 +107,7 @@ export function cycloneDx(components: Component[], version: string): string {
 }
 
 function purl(c: Component): string {
-  if (c.ecosystem === "npm") return `pkg:npm/${c.name.replace("/", "%2F")}@${c.version}`;
+  if (c.ecosystem === "npm") return `pkg:npm/${c.name.replace(/^@/, "%40")}@${c.version}`;
   if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase()}@${c.version}`;
   return `pkg:golang/${c.name}@v${c.version}`;
 }

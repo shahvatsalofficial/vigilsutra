@@ -60,7 +60,7 @@ export const DEFAULT_POLICY: Policy = {
 export function parsePolicy(text: string): Partial<Policy> {
   const out: Record<string, string | string[]> = {};
   let listKey: string | null = null;
-  const lines = text.split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/); // Windows editors add a byte-order mark
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i].replace(/\s+#.*$/, "").replace(/^#.*$/, "");
     if (!raw.trim()) continue;

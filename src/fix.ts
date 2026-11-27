@@ -19,11 +19,10 @@ const REPLACEMENTS: Record<string, { from: RegExp; to: string }[]> = {
     { from: /NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0["']?/, to: "NODE_TLS_REJECT_UNAUTHORIZED=1" },
     { from: /\bverify\s*=\s*False\b/, to: "verify=True" }
   ],
+  // SHA-1 is never rewritten: protocols such as the WebSocket handshake and git object ids require it.
   "VS-CODE-006": [
     { from: /createHash\(\s*["']md5["']\s*\)/i, to: 'createHash("sha256")' },
-    { from: /createHash\(\s*["']sha1["']\s*\)/i, to: 'createHash("sha256")' },
-    { from: /hashlib\.md5\s*\(/i, to: "hashlib.sha256(" },
-    { from: /hashlib\.sha1\s*\(/i, to: "hashlib.sha256(" }
+    { from: /hashlib\.md5\s*\(/i, to: "hashlib.sha256(" }
   ]
 };
 

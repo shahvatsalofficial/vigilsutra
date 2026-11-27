@@ -1,4 +1,4 @@
-import type { Rule } from "../types.js";
+import type { Rule, ScannedFile } from "../types.js";
 import { isJs, isPy, isCode, lineRule, insideString, lookBack } from "./util.js";
 
 const b = { version: "1.0.0", category: "code", agent: "CodeGuard" };
@@ -93,7 +93,55 @@ const webRules: Rule[] = [
   }
 ];
 
+type Lang = "go" | "jvm" | "php" | "ruby" | "dotnet";
+
+/** Languages covered by a few line patterns only; the other code rules do not read them. */
+function otherLang(f: ScannedFile): Lang | undefined {
+  const by: Record<string, Lang> = { ".go": "go", ".java": "jvm", ".kt": "jvm", ".php": "php", ".rb": "ruby", ".cs": "dotnet" };
+  return by[f.ext];
+}
+
+const OTHER_TLS: Record<Lang, RegExp> = {
+  go: /\bInsecureSkipVerify\s*:\s*true\b/,
+  jvm: /\b(?:NoopHostnameVerifier|ALLOW_ALL_HOSTNAME_VERIFIER|TrustAllStrategy)\b(?!\s*;)/,
+  php: /\bCURLOPT_SSL_VERIFY(?:PEER|HOST)\s*(?:,|=>)\s*(?:false|0)\b|["']verify_peer(?:_name)?["']\s*=>\s*false\b/i,
+  ruby: /\bOpenSSL::SSL::VERIFY_NONE\b/,
+  dotnet: /\bServerCertificate(?:Custom)?ValidationCallback\s*\+?=.*=>\s*true\b|\bDangerousAcceptAnyServerCertificateValidator\b/
+};
+
+const OTHER_HASH: Record<Lang, RegExp> = {
+  go: /\b(?:md5|sha1)\.(?:New|Sum)\s*\(/,
+  jvm: /\bMessageDigest\.getInstance\(\s*"(?:MD5|SHA-?1)"/i,
+  php: /(?<![\w$>:])(?:md5|sha1)\s*\(/,
+  ruby: /\bDigest::(?:MD5|SHA1)\b/,
+  dotnet: /\b(?:MD5|SHA1)\.Create\s*\(|\bnew\s+(?:MD5|SHA1)CryptoServiceProvider\b/
+};
+
+/** SQL calls need string building, so that parameterised queries are not reported. */
+const OTHER_INJECTION: Record<Lang, RegExp> = {
+  go: /\bexec\.Command(?:Context)?\s*\([^\n]*\br\.(?:URL\.Query\(\)|(?:Post)?FormValue\()|\.(?:Query|QueryRow|Exec)(?:Context)?\s*\([^\n]*\+\s*r\.(?:URL\.Query\(\)|(?:Post)?FormValue\()/,
+  jvm: /(?:Runtime\.getRuntime\(\)\.exec|new\s+ProcessBuilder)\s*\([^;]*\.getParameter\s*\(|\b(?:executeQuery|executeUpdate|createQuery|createNativeQuery)\s*\([^;]*\+\s*\w+\.getParameter\s*\(/,
+  php: /(?<![\w$])(?:system|exec|shell_exec|passthru|popen|proc_open|eval|mysqli?_query)\s*\((?![^;]*escapeshell(?:arg|cmd))[^;]*\$_(?:GET|POST|REQUEST|COOKIE)\b|->(?:query|exec)\s*\([^;]*\$_(?:GET|POST|REQUEST|COOKIE)\b/,
+  ruby: /(?<![\w.])(?:system|exec|eval)\b[^\n]*#\{\s*params\b|\.where\s*\(\s*"[^"\n]*#\{\s*params\b/,
+  dotnet: /\b(?:Process\.Start)\s*\([^;]*\bRequest\.(?:Query|Form|QueryString|Params)\b|\b(?:new\s+SqlCommand|ExecuteSqlRaw|FromSqlRaw)\s*\([^;]*(?:\+\s*|\{)Request\.(?:Query|Form|QueryString|Params)\b/
+};
+
 export const codeRules: Rule[] = [
+  {
+    ...b,
+    id: "VS-CODE-013",
+    title: "Request data reaches a shell or SQL call (Go, Java, Kotlin, PHP, Ruby, C#)",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-78", "CWE-89"],
+    description: "A request value is placed into a command, evaluated code or SQL text on the same line, which allows command or SQL injection.",
+    remediation: "Pass arguments as a list and use parameterised queries. Never build commands or SQL from request text.",
+    falsePositives: "Values validated or escaped before this line.",
+    verification: "Send shell and quote characters and confirm they have no effect.",
+    applies: (f) => otherLang(f) !== undefined,
+    check: (f) => lineRule(f, OTHER_INJECTION[otherLang(f)!], { skipComments: true, filter: (m, line) => !insideString(line, m.index) })
+  },
   {
     ...b,
     id: "VS-CODE-001",
@@ -200,8 +248,8 @@ export const codeRules: Rule[] = [
     remediation: "Remove the override and trust the proper CA bundle (`NODE_EXTRA_CA_CERTS`, `verify=<ca-path>`).",
     falsePositives: "Local development against a self-signed server; it must never ship to production.",
     verification: "Option removed; request to a bad-cert host now fails.",
-    applies: isCode,
-    check: (f) => lineRule(f, /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0|\bverify\s*=\s*False\b/, {
+    applies: (f) => isCode(f) || otherLang(f) !== undefined,
+    check: (f) => otherLang(f) ? lineRule(f, OTHER_TLS[otherLang(f)!], { skipComments: true }) : lineRule(f, /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0|\bverify\s*=\s*False\b/, {
         skipComments: true,
         // jwt.decode(..., verify=False) disables token-signature checks, which is a different weakness.
         filter: (_m, line) => !/\bjwt\b|\bdecode\s*\(/i.test(line)
@@ -219,8 +267,9 @@ export const codeRules: Rule[] = [
     remediation: "Use SHA-256+ for integrity, and Argon2id, scrypt or bcrypt for passwords.",
     falsePositives: "Non-security uses such as cache keys or legacy protocol checksums.",
     verification: "Algorithm replaced for security-relevant uses; confirm context.",
-    applies: isCode,
+    applies: (f) => isCode(f) || otherLang(f) !== undefined,
     check: (f) =>
+      otherLang(f) ? lineRule(f, OTHER_HASH[otherLang(f)!], { skipComments: true }) :
       lineRule(f, /createHash\(\s*["'](?:md5|sha1)["']\s*\)|hashlib\.(?:md5|sha1)\s*\(/i, {
         skipComments: true,
         filter: (_m, line) => !/usedforsecurity\s*=\s*False/.test(line)

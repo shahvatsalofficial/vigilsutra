@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Go, Java, Kotlin, PHP, Ruby and C#: new rule `VS-CODE-013` (request data into a shell or SQL call on one line), and `VS-CODE-005`/`VS-CODE-006` now read these languages. Rules version `1.7.0`, 57 rules.
+- `VS-CICD-002` also covers `workflow_run` workflows that check out the triggering commit.
+- The SBOM carries package hashes from npm lockfiles.
+
 ## 0.5.0 - 2026-11-28
 
 ### Read before upgrading

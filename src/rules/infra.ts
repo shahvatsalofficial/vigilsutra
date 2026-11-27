@@ -186,19 +186,19 @@ export const infraRules: Rule[] = [
   {
     ...wf,
     id: "VS-CICD-002",
-    title: "pull_request_target workflow checks out pull-request code",
+    title: "Privileged workflow checks out pull-request code",
     severity: "high",
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-829", "CWE-94"],
-    description: "A workflow triggered by `pull_request_target` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.",
+    description: "A workflow triggered by `pull_request_target` or `workflow_run` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.",
     remediation: "Use `pull_request` for untrusted code. If `pull_request_target` is required, do not check out or execute PR-controlled content, and keep permissions minimal.",
     falsePositives: "Workflows that check out the PR head but never build, run or source it (for example, labelling only).",
     verification: "Confirm no step after the checkout executes files from the PR head, or remove the head checkout.",
     applies: isWorkflow,
     check: (f) => {
-      if (!/^[ \t]*pull_request_target[ \t]*:|\bon:[ \t]*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
-      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
+      if (!/^[ \t]*(?:pull_request_target|workflow_run)[ \t]*:|\bon:[ \t]*\[?[^\n]*(?:pull_request_target|workflow_run)/m.test(f.text)) return [];
+      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|event\.workflow_run\.head_(?:sha|branch)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
     }
   },
   {

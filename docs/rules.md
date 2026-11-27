@@ -1,4 +1,4 @@
-# Rules (version 1.6.0)
+# Rules (version 1.7.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -25,7 +25,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-K8S-006 | RBAC role grants a wildcard | high | high | potential | ContainerGuard | CWE-269 |
 | VS-COMPOSE-001 | Compose service has host-level access | high | high | confirmed | ContainerGuard | CWE-250 |
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
-| VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
+| VS-CICD-002 | Privileged workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
 | VS-CICD-004 | Untrusted GitHub context interpolated into a script step | high | medium | potential | PipelineGuard | CWE-78, CWE-77 |
 | VS-DOCKER-001 | Container runs as root (no USER instruction) | medium | high | confirmed | ContainerGuard | CWE-250 |
@@ -37,6 +37,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-IAC-001 | Security group or firewall open to the whole internet | medium | medium | potential | InfraGuard | CWE-284 |
 | VS-IAC-002 | Public-read or public-write storage ACL | high | high | confirmed | InfraGuard | CWE-732 |
 | VS-IAC-003 | IAM policy with wildcard action | high | medium | potential | InfraGuard | CWE-269, CWE-732 |
+| VS-CODE-013 | Request data reaches a shell or SQL call (Go, Java, Kotlin, PHP, Ruby, C#) | high | medium | potential | CodeGuard | CWE-78, CWE-89 |
 | VS-CODE-001 | Dynamic code execution (eval / new Function / exec) | high | medium | potential | CodeGuard | CWE-95 |
 | VS-CODE-002 | Shell command built from a dynamic string | high | medium | potential | CodeGuard | CWE-78 |
 | VS-CODE-003 | Insecure deserialization (pickle / unsafe YAML) | high | medium | potential | CodeGuard | CWE-502 |
@@ -231,9 +232,9 @@ A third-party action is referenced by a mutable tag or branch. If the tag is mov
 - **Verify:** Every `uses:` line for a non-local action ends in @<40 hex>.
 - **False positives:** First-party `actions/*` references are lower risk; local `./` actions and Docker digests are skipped.
 
-### VS-CICD-002: pull_request_target workflow checks out pull-request code
+### VS-CICD-002: Privileged workflow checks out pull-request code
 
-A workflow triggered by `pull_request_target` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.
+A workflow triggered by `pull_request_target` or `workflow_run` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.
 
 - **Fix:** Use `pull_request` for untrusted code. If `pull_request_target` is required, do not check out or execute PR-controlled content, and keep permissions minimal.
 - **Verify:** Confirm no step after the checkout executes files from the PR head, or remove the head checkout.
@@ -326,6 +327,14 @@ An IAM statement allows `*` actions, which grants administrator-level power to w
 - **Fix:** List only the actions the workload needs and scope resources to specific ARNs.
 - **Verify:** Wildcard replaced with an explicit action list.
 - **False positives:** Deny statements and break-glass roles that are tightly controlled. Check Effect.
+
+### VS-CODE-013: Request data reaches a shell or SQL call (Go, Java, Kotlin, PHP, Ruby, C#)
+
+A request value is placed into a command, evaluated code or SQL text on the same line, which allows command or SQL injection.
+
+- **Fix:** Pass arguments as a list and use parameterised queries. Never build commands or SQL from request text.
+- **Verify:** Send shell and quote characters and confirm they have no effect.
+- **False positives:** Values validated or escaped before this line.
 
 ### VS-CODE-001: Dynamic code execution (eval / new Function / exec)
 

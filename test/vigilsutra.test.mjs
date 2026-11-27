@@ -306,6 +306,35 @@ test("annotations escape file names and skip history paths", () => {
   assert.doesNotMatch(r.stdout, /git-history/);
 });
 
+test("other languages: injection, TLS and weak hashes, without parameterised queries", () => {
+  const hit = (file, line) => ids(scan({ [file]: line }));
+  const bad = [
+    ["a.go", 'exec.Command("sh", "-c", r.FormValue("c"))', "VS-CODE-013"], ["A.java", 'st.executeQuery("select * from t where id=" + request.getParameter("id"));', "VS-CODE-013"],
+    ["a.rb", 'User.where("name = \'#{params[:n]}\'")', "VS-CODE-013"], ["a.cs", 'db.Database.ExecuteSqlRaw($"delete from t where id={Request.Query["id"]}");', "VS-CODE-013"],
+    ["a.go", "cfg := &tls.Config{InsecureSkipVerify: true}", "VS-CODE-005"], ["a.php", "curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);", "VS-CODE-005"], ["a.rb", "http.verify_mode = OpenSSL::SSL::VERIFY_NONE", "VS-CODE-005"],
+    ["A.java", 'MessageDigest.getInstance("MD5");', "VS-CODE-006"], ["a.cs", "var h = SHA1.Create();", "VS-CODE-006"], ["a.go", "h := md5.New()", "VS-CODE-006"]
+  ];
+  for (const [file, line, id] of bad) assert.ok(hit(file, line).includes(id), `${file}: ${line}`);
+  const fine = [
+    ["a.go", 'db.Query("select * from t where id=?", r.FormValue("id"))'], ["A.java", 'q = em.createQuery("from T where id=:id").setParameter("id", request.getParameter("id"));'],
+    ["a.rb", 'User.where("name = ?", params[:n])'], ["a.go", "cfg := &tls.Config{InsecureSkipVerify: false}"], ["a.php", "$x = $obj->md5($y);"]
+  ];
+  for (const [file, line] of fine) assert.ok(!hit(file, line).some((i) => i.startsWith("VS-CODE")), `${file}: ${line}`);
+});
+
+test("workflow_run checkout of the triggering commit is reported", () => {
+  const wf = "on:\n  workflow_run:\n    workflows: [ci]\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.workflow_run.head_sha }}\n";
+  assert.ok(ids(scan({ ".github/workflows/w.yml": wf })).includes("VS-CICD-002"));
+});
+
+test("SBOM carries npm integrity hashes", () => {
+  const digest = Buffer.alloc(64, 7);
+  const root = project({ "package-lock.json": JSON.stringify({ packages: { "node_modules/a": { version: "1.0.0", integrity: "sha512-" + digest.toString("base64") }, "node_modules/b": { version: "1.0.0", integrity: "junk" } } }) });
+  const bom = JSON.parse(cycloneDx(readComponents(root), "0"));
+  assert.deepEqual(bom.components.find((c) => c.name === "a").hashes, [{ alg: "SHA-512", content: digest.toString("hex") }]);
+  assert.equal(bom.components.find((c) => c.name === "b").hashes, undefined);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -331,6 +360,7 @@ const PAIRS = [
   ["VS-DB-002", { "redis.conf": "protected-mode no" }, { "redis.conf": "protected-mode yes\n# protected-mode no" }],
   ["VS-IAC-004", { "m.tf": "  publicly_accessible = true" }, { "m.tf": "  publicly_accessible = false\n  block_public_acls = true" }],
   ["VS-IAC-005", { "p.json": '{"Statement":[{"Effect":"Allow","Principal":"*"}]}' }, { "p.json": '{\n "Effect": "Deny",\n "Principal": "*"\n}' }],
+  ["VS-CODE-013", { "a.php": "<?php system('ping ' . $_GET['h']);" }, { "a.php": "<?php system('ping ' . escapeshellarg($_GET['h']));" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

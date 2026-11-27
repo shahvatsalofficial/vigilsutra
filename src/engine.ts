@@ -8,7 +8,7 @@ import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.
 import { readComponents } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
-import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, type Policy } from "./policy.js";
+import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, waiverCovers, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { stamp } from "./clock.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
@@ -268,7 +268,9 @@ export function audit(opts: AuditOptions): ScanResult {
       suppressed++;
       return false;
     }
-    const waiver = policy.waivers.find((w) => w.ruleId === f.ruleId && w.path === f.path);
+    const waiver = policy.waivers.filter((w) => waiverCovers(w, f.ruleId, f.path, f.startLine))
+      // An expired waiver must not shadow a current one for the same finding.
+      .sort((a, b) => (a.until < b.until ? 1 : -1))[0];
     if (!waiver) return true;
     if (waiver.until < today) {
       waiversExpired++;

@@ -32,6 +32,9 @@
 
 ## Unreleased (reports, CLI and workflows)
 
+- New rules `VS-K8S-004` (hostPath), `VS-K8S-005` (dangerous capabilities), `VS-K8S-006` (RBAC wildcard) and `VS-COMPOSE-001` (host-level Compose settings). Rules version `1.4.0`, 47 rules.
+- Waivers accept a wildcard path, an optional `:line` and an optional reason.
+- The SBOM reads `Cargo.lock`, `poetry.lock`, `composer.lock` and `Gemfile.lock`. Advisory matching covers the Poetry packages (PyPI), not the other three ecosystems.
 - Fixed: `--report-dir` on a folder with other files, such as the project root, no longer overwrites its `.gitignore`.
 - Report files are readable by the owner only (POSIX), and a report folder inside a commonly published folder prints a warning.
 - `SOURCE_DATE_EPOCH` pins report and SBOM timestamps and the SBOM serial number, for byte-identical output.

@@ -229,6 +229,27 @@ test("workflow rules read github-script and pull request merge refs", () => {
   assert.ok(wf("on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: refs/pull/${{ github.event.number }}/merge\n").includes("VS-CICD-002"));
 });
 
+test("waivers take a wildcard, a line and a reason without widening a plain path", () => {
+  const files = { "a.js": "eval(x)\neval(y)", "sub/a.js": "eval(z)", "gen/b.js": "eval(w)" };
+  const left = (waiver) => scan({ ...files, ".vigilsutra.yml": `waivers:\n  - VS-CODE-001|${waiver}\n` }).findings.filter((f) => f.ruleId === "VS-CODE-001").map((f) => `${f.path}:${f.startLine}`).sort();
+  assert.deepEqual(left("a.js|ada|2099-01-01"), ["gen/b.js:1", "sub/a.js:1"]);
+  assert.deepEqual(left("a.js:2|ada|2099-01-01|legacy parser"), ["a.js:1", "gen/b.js:1", "sub/a.js:1"]);
+  assert.deepEqual(left("gen/**|ada|2099-01-01"), ["a.js:1", "a.js:2", "sub/a.js:1"]);
+  assert.throws(() => parsePolicy("waivers:\n  - VS-CODE-001|a.js|ada|2099-01-01|x|y\n"));
+});
+
+test("SBOM reads Cargo, Poetry, Composer and Bundler lockfiles", () => {
+  const root = project({
+    "Cargo.lock": '[[package]]\nname = "serde"\nversion = "1.0.1"\n',
+    "poetry.lock": '[[package]]\nname = "Django"\nversion = "3.2.0"\n\n[metadata]\nversion = "9"\n',
+    "composer.lock": JSON.stringify({ packages: [{ name: "a/b", version: "v2.0.0" }] }),
+    "Gemfile.lock": "GEM\n  specs:\n    rack (3.0.0)\n      dep (>= 1.0)\n"
+  });
+  const bom = cycloneDx(readComponents(root), "0");
+  for (const p of ["pkg:cargo/serde@1.0.1", "pkg:pypi/django@3.2.0", "pkg:composer/a/b@2.0.0", "pkg:gem/rack@3.0.0"]) assert.ok(bom.includes(`"${p}"`), p);
+  assert.equal(readComponents(root).length, 4);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -241,6 +262,10 @@ test("every rule has metadata and unique id", () => {
 
 const PAIRS = [
   ["VS-AGENT-004", { "a.py": "x = 1  # " + String.fromCodePoint(0x2066) }, { "a.py": "x = 1  # plain" }],
+  ["VS-K8S-004", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  volumes:\n    - name: h\n      hostPath:\n        path: /\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  volumes:\n    - name: h\n      emptyDir: {}\n" }],
+  ["VS-K8S-005", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          add:\n            - SYS_ADMIN\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          drop:\n            - ALL\n" }],
+  ["VS-K8S-006", { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['']\n    resources:\n      - '*'\n    verbs: ['get']\n" }, { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['*']\n    resources: ['pods']\n    verbs: ['get']\n" }],
+  ["VS-COMPOSE-001", { "docker-compose.yml": "services:\n  a:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n" }, { "docker-compose.yml": "services:\n  a:\n    privileged: false\n" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

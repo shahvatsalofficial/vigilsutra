@@ -1,4 +1,4 @@
-# Rules (version 1.3.0)
+# Rules (version 1.4.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -16,6 +16,10 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-K8S-004 | Pod mounts a host path | medium | high | potential | ContainerGuard | CWE-668 |
+| VS-K8S-005 | Container adds a dangerous Linux capability | high | medium | potential | ContainerGuard | CWE-250 |
+| VS-K8S-006 | RBAC role grants a wildcard | high | high | potential | ContainerGuard | CWE-269 |
+| VS-COMPOSE-001 | Compose service has host-level access | high | high | confirmed | ContainerGuard | CWE-250 |
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
 | VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
@@ -145,6 +149,38 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
+
+### VS-K8S-004: Pod mounts a host path
+
+A `hostPath` volume exposes files of the node to the pod. A writable or sensitive path lets a compromised container take over the node.
+
+- **Fix:** Use a persistent volume, ConfigMap or emptyDir. If a node agent needs the path, mount it read-only and as narrowly as possible.
+- **Verify:** No `hostPath` volume remains, or the exception is documented and read-only.
+- **False positives:** Node agents such as log collectors that must read one specific path.
+
+### VS-K8S-005: Container adds a dangerous Linux capability
+
+Adding `ALL`, `SYS_ADMIN`, `SYS_MODULE`, `SYS_PTRACE` or `NET_ADMIN` gives the container powers close to root on the host.
+
+- **Fix:** Drop all capabilities and add only a narrow one the workload is shown to need.
+- **Verify:** The capability is gone from `add` or `cap_add` and the workload still runs.
+- **False positives:** Network and storage agents that need the capability.
+
+### VS-K8S-006: RBAC role grants a wildcard
+
+A Role or ClusterRole lists `*` as a verb or resource, which grants far more than a workload needs.
+
+- **Fix:** List the exact verbs and resources, and prefer a namespaced Role.
+- **Verify:** No `*` remains in `verbs` or `resources`.
+- **False positives:** Cluster administration roles that are bound only to operators.
+
+### VS-COMPOSE-001: Compose service has host-level access
+
+`privileged: true`, host network or PID mode, or a mounted Docker socket lets the service control the host.
+
+- **Fix:** Remove the setting. If a tool needs the Docker API, put a filtering proxy in front of the socket.
+- **Verify:** The setting is gone and the service still starts.
+- **False positives:** Local development tools that manage containers by design.
 
 ### VS-CICD-001: GitHub Action not pinned to a commit SHA
 

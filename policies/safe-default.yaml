@@ -10,5 +10,6 @@ timeLimitMs: 60000
 # failOn: high
 disableRules: []
 # A waiver hides one rule on one path until the UTC date (inclusive). Expired waivers do not hide findings.
+# A waiver is ruleId|path[:line]|owner|YYYY-MM-DD[|reason]. The path may contain * or **.
 # waivers:
 #   - VS-CODE-001|src/legacy.js|your-name|2026-12-31

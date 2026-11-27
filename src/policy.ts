@@ -8,6 +8,9 @@ export interface Waiver {
   owner: string;
   /** Inclusive last day, YYYY-MM-DD, compared in UTC. */
   until: string;
+  /** Limits the waiver to one line. */
+  line?: number;
+  reason?: string;
 }
 
 export interface Policy {
@@ -107,13 +110,15 @@ export function parsePolicy(text: string): Partial<Policy> {
 
 function parseWaiver(item: string): Waiver {
   const parts = item.split("|").map((s) => s.trim());
-  if (parts.length !== 4) throw new Error(`.vigilsutra.yml: waiver must be ruleId|path|owner|YYYY-MM-DD`);
-  const [ruleId, path, owner, until] = parts;
+  if (parts.length < 4 || parts.length > 5) throw new Error(`.vigilsutra.yml: waiver must be ruleId|path[:line]|owner|YYYY-MM-DD[|reason]`);
+  const [ruleId, target, owner, until, reason] = parts;
+  const at = /^(.*):([1-9]\d*)$/.exec(target);
+  const path = at ? at[1] : target;
   if (!/^VS-[A-Z]+-\d{3}$/.test(ruleId)) throw new Error(`.vigilsutra.yml: waiver rule id "${ruleId}" is not a rule id`);
   if (!path || path.startsWith("/") || path.split("/").includes("..")) throw new Error(`.vigilsutra.yml: waiver path must stay inside the project`);
   if (!owner || owner.length > 80) throw new Error(`.vigilsutra.yml: waiver needs an owner`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || Number.isNaN(Date.parse(until + "T00:00:00Z"))) throw new Error(`.vigilsutra.yml: waiver until must be YYYY-MM-DD`);
-  return { ruleId, path, owner, until };
+  return { ruleId, path, owner, until, ...(at ? { line: Number(at[2]) } : {}), ...(reason ? { reason } : {}) };
 }
 
 function stripQuotes(s: string): string {
@@ -158,6 +163,12 @@ export function globToRegExp(glob: string): RegExp {
   }
   // A pattern without a slash matches the base name at any depth.
   return glob.includes("/") ? new RegExp(`^${re}$`) : new RegExp(`(^|/)${re}$`);
+}
+
+/** Exact path, or a glob only when the waiver path contains a wildcard, so a plain name never widens. */
+export function waiverCovers(w: Waiver, ruleId: string, path: string, line: number): boolean {
+  if (w.ruleId !== ruleId || (w.line !== undefined && w.line !== line)) return false;
+  return /[*?]/.test(w.path) ? globToRegExp(w.path).test(path) : w.path === path;
 }
 
 export function makeIgnoreMatcher(patterns: string[]): (relPath: string) => boolean {

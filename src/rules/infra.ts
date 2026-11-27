@@ -1,4 +1,4 @@
-import type { Hit, Rule } from "../types.js";
+import type { Hit, Rule, ScannedFile } from "../types.js";
 import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock } from "./util.js";
 
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
@@ -6,7 +6,94 @@ const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" }
 const k8 = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
 const iac = { version: "1.0.0", category: "iac", agent: "InfraGuard" };
 
+const isCompose = (f: ScannedFile): boolean => isYaml(f) && /^(?:docker-)?compose(?:[.-].*)?\.ya?ml$/.test(f.name);
+const isRbac = (f: ScannedFile): boolean => isYaml(f) && /^[ \t]*kind:[ \t]*(?:Cluster)?Role[ \t]*$/m.test(f.text);
+
+/** The key that owns a YAML list line: the line itself, or the nearest key above its `- item` lines. */
+function listKey(f: ScannedFile, lineNo: number): string {
+  for (let i = lineNo - 1; i >= 0; i--) {
+    const key = /^\s*(?:-\s+)?([A-Za-z_]+):/.exec(f.lines[i]);
+    if (key) return key[1];
+    if (!/^\s*(?:-|#|$)/.test(f.lines[i])) break;
+  }
+  return "";
+}
+
 export const infraRules: Rule[] = [
+  {
+    ...k8,
+    id: "VS-K8S-004",
+    title: "Pod mounts a host path",
+    severity: "medium",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-668"],
+    description: "A `hostPath` volume exposes files of the node to the pod. A writable or sensitive path lets a compromised container take over the node.",
+    remediation: "Use a persistent volume, ConfigMap or emptyDir. If a node agent needs the path, mount it read-only and as narrowly as possible.",
+    falsePositives: "Node agents such as log collectors that must read one specific path.",
+    verification: "No `hostPath` volume remains, or the exception is documented and read-only.",
+    applies: isK8s,
+    check: (f) => lineRule(f, /^\s*(?:-\s+)?hostPath:\s*(?:\{|$)/)
+  },
+  {
+    ...k8,
+    id: "VS-K8S-005",
+    title: "Container adds a dangerous Linux capability",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-250"],
+    description: "Adding `ALL`, `SYS_ADMIN`, `SYS_MODULE`, `SYS_PTRACE` or `NET_ADMIN` gives the container powers close to root on the host.",
+    remediation: "Drop all capabilities and add only a narrow one the workload is shown to need.",
+    falsePositives: "Network and storage agents that need the capability.",
+    verification: "The capability is gone from `add` or `cap_add` and the workload still runs.",
+    applies: (f) => isK8s(f) || isCompose(f),
+    check: (f) =>
+      lineRule(f, /\b(?:ALL|SYS_ADMIN|SYS_MODULE|SYS_PTRACE|NET_ADMIN)\b/, {
+        skipComments: true,
+        filter: (_m, line, lineNo) => {
+          const inline = /\b(add|cap_add|drop|cap_drop):/.exec(line);
+          return ["add", "cap_add"].includes(inline ? inline[1] : listKey(f, lineNo));
+        }
+      })
+  },
+  {
+    ...k8,
+    id: "VS-K8S-006",
+    title: "RBAC role grants a wildcard",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-269"],
+    description: "A Role or ClusterRole lists `*` as a verb or resource, which grants far more than a workload needs.",
+    remediation: "List the exact verbs and resources, and prefer a namespaced Role.",
+    falsePositives: "Cluster administration roles that are bound only to operators.",
+    verification: "No `*` remains in `verbs` or `resources`.",
+    applies: isRbac,
+    check: (f) =>
+      lineRule(f, /["']\*["']/, {
+        skipComments: true,
+        filter: (_m, line, lineNo) => {
+          const inline = /\b(verbs|resources):/.exec(line);
+          return ["verbs", "resources"].includes(inline ? inline[1] : listKey(f, lineNo));
+        }
+      })
+  },
+  {
+    ...k8,
+    id: "VS-COMPOSE-001",
+    title: "Compose service has host-level access",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    cwe: ["CWE-250"],
+    description: "`privileged: true`, host network or PID mode, or a mounted Docker socket lets the service control the host.",
+    remediation: "Remove the setting. If a tool needs the Docker API, put a filtering proxy in front of the socket.",
+    falsePositives: "Local development tools that manage containers by design.",
+    verification: "The setting is gone and the service still starts.",
+    applies: isCompose,
+    check: (f) => lineRule(f, /^\s*privileged:\s*true\b|^\s*(?:network_mode|pid):\s*["']?host\b|^\s*-\s*["']?\/var\/run\/docker\.sock:/)
+  },
   {
     ...wf,
     id: "VS-CICD-001",

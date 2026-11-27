@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { stamp } from "./clock.js";
 
 export interface Component {
-  ecosystem: "npm" | "pypi" | "golang";
+  ecosystem: "npm" | "pypi" | "golang" | "cargo" | "composer" | "gem";
   name: string;
   version: string;
   path: string;
@@ -24,7 +24,7 @@ function readText(root: string, rel: string): string | null {
   }
 }
 
-const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod"]);
+const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod", "Cargo.lock", "poetry.lock", "composer.lock", "Gemfile.lock"]);
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "vendor", ".venv", "venv", "__pycache__", "coverage", ".next", "target", "vigilsutra-report"]);
 
 /** Relative paths of manifests at any depth. Symlinks are not followed. */
@@ -104,6 +104,30 @@ export function readComponents(root: string, skip: (rel: string) => boolean = ()
         const m = /^\s{2}['"]?\/?(@?[^@\s'"]+)@(\d[^:(/'"]*)/.exec(line);
         if (m) add({ ecosystem: "npm", name: m[1], version: m[2], path });
       }
+    } else if (file === "Cargo.lock" || file === "poetry.lock") {
+      const ecosystem = file === "Cargo.lock" ? "cargo" : "pypi";
+      let name = "";
+      for (const line of lines) {
+        if (line.startsWith("[")) name = "";
+        name = /^name = "([^"]+)"/.exec(line)?.[1] ?? name;
+        const version = /^version = "([^"]+)"/.exec(line)?.[1];
+        if (version && name) add({ ecosystem, name, version, path });
+      }
+    } else if (file === "composer.lock") {
+      try {
+        const json = JSON.parse(text) as Record<string, { name?: string; version?: string }[]>;
+        for (const p of [...(json.packages ?? []), ...(json["packages-dev"] ?? [])]) {
+          if (p.name) add({ ecosystem: "composer", name: p.name, version: (p.version ?? "").replace(/^v/, ""), path });
+        }
+      } catch {
+        /* not a lockfile */
+      }
+    } else if (file === "Gemfile.lock") {
+      // Resolved gems are indented four spaces; their dependency ranges are indented six.
+      for (const line of lines) {
+        const m = /^ {4}([A-Za-z0-9_.-]+) \((\d[^)\s]*)\)$/.exec(line);
+        if (m) add({ ecosystem: "gem", name: m[1], version: m[2], path });
+      }
     } else {
       for (const line of lines) {
         const m = /(?:^|\s)([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+)\s+v([0-9][^\s]*)/.exec(line);
@@ -146,5 +170,6 @@ export function cycloneDx(components: Component[], version: string): string {
 function purl(c: Component): string {
   if (c.ecosystem === "npm") return `pkg:npm/${c.name.replace(/^@/, "%40")}@${c.version}`;
   if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase()}@${c.version}`;
-  return `pkg:golang/${c.name}@v${c.version}`;
+  if (c.ecosystem === "golang") return `pkg:golang/${c.name}@v${c.version}`;
+  return `pkg:${c.ecosystem}/${c.name}@${c.version}`;
 }

@@ -24,8 +24,8 @@ export interface Hit {
   endLine?: number;
   /** Text of the offending line(s). Redacted by the engine if `secret` is set. */
   excerpt?: string;
-  /** Character ranges inside `excerpt` that hold a secret value to redact. */
-  secretSpan?: [number, number];
+  /** Every secret value on the line; the engine redacts each one from every excerpt of that line. */
+  secrets?: string[];
   /** Overrides rule defaults when the hit is weaker/stronger than the rule baseline. */
   confidence?: Confidence;
   severity?: Severity;

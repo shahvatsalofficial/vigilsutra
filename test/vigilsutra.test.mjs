@@ -34,6 +34,25 @@ const ids = (r) => r.findings.map((f) => f.ruleId);
 const scan = (files) => audit({ root: project(files) });
 const cli = (args, cwd) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", cwd });
 
+test("every secret on a line is redacted, also after a placeholder", () => {
+  const a = "Zq7-first-" + "value", b = "Zq7-second-" + "value";
+  const r = scan({ "a.js": `const password = "changeme123", secret = "${a}", client_secret = "${b}";` });
+  assert.ok(ids(r).includes("VS-SECRET-004"));
+  for (const f of ["json", "markdown", "html", "sarif"]) for (const v of [a, b]) assert.ok(!render(r, f).includes(v), f);
+});
+
+test("only an all-filler value is a placeholder", () => {
+  const found = (v) => ids(scan({ "a.js": `const password = "${v}";` })).includes("VS-SECRET-004");
+  for (const v of ["password-" + "Xk9fQ2vL", "test" + "Q8zr41mNpa", "secret_" + "9fKd02LmQ"]) assert.ok(found(v), v);
+  for (const v of ["test-password-123", "your-api-key-here", "secret-value"]) assert.ok(!found(v), v);
+});
+
+test("--flag=value gates the exit code and unknown options fail", () => {
+  const root = project({ "a.js": `const t = "${GH}";` });
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on=high"]).status, 1);
+  for (const bad of ["--fail-onn=high", "--failon", "--no-report=1", "--fail-on="]) assert.equal(cli(["audit", root, "--no-report", bad]).status, 2, bad);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

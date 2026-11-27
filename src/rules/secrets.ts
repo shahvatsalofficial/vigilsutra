@@ -37,7 +37,7 @@ export const secretRules: Rule[] = [
     applies: () => true,
     check: (f) => {
       const hits = lineRule(f, /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/);
-      return hits.map((h) => ({ ...h, excerpt: "-----BEGIN PRIVATE KEY----- [REDACTED]", secretSpan: undefined }));
+      return hits.map((h) => ({ ...h, excerpt: "-----BEGIN PRIVATE KEY----- [REDACTED]", secrets: undefined }));
     }
   },
   {

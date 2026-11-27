@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Security: every secret on a line is redacted, including a second value matched by the same rule and values found in different windows of a long line.
+- A placeholder first on a line no longer hides a real secret after it.
+- The placeholder filter now skips only values made entirely of filler words, so real secrets that start with `password`, `secret`, `test` and similar are reported.
+- The CLI accepts `--flag=value` and rejects unknown options, so a mistyped `--fail-on` can no longer pass a CI gate.
+- Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
+
 ## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.

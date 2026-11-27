@@ -59,12 +59,22 @@ function redactAll(line: string, spans: [number, number][]): string {
   return out;
 }
 
+/** Ranges of every occurrence of each secret value in `text`. */
+function spansOf(text: string, secrets: string[]): [number, number][] {
+  const spans: [number, number][] = [];
+  for (const s of new Set(secrets)) {
+    for (let i = s ? text.indexOf(s) : -1; i >= 0; i = text.indexOf(s, i + s.length)) spans.push([i, i + s.length]);
+  }
+  return spans;
+}
+
 function fingerprint(rule: Rule, path: string, hit: Hit, occurrence: number, spans: [number, number][]): string {
   const basis = redactAll(hit.excerpt ?? "", spans).replace(/\s+/g, " ").trim();
   return sha(`${rule.id}|${rule.version}|${path}|${basis}|${occurrence}`).slice(0, 32);
 }
 
-function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: number, spans: [number, number][] = hit.secretSpan ? [hit.secretSpan] : []): Finding {
+function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: number, secrets: string[] = hit.secrets ?? []): Finding {
+  const spans = spansOf(hit.excerpt ?? "", secrets);
   const redacted = spans.length > 0 || rule.category === "secrets";
   let excerpt = tidy(redactAll(hit.excerpt ?? "", spans));
   excerpt = scrubTokens(excerpt);
@@ -167,7 +177,7 @@ export function audit(opts: AuditOptions): ScanResult {
     }
     const raw: { rule: Rule; hits: Hit[] }[] = [];
     // Every secret span found on a line is redacted from every finding that quotes that line.
-    const lineSpans = new Map<number, [number, number][]>();
+    const lineSecrets = new Map<number, string[]>();
     for (const rule of rules) {
       let applies = false;
       try {
@@ -185,7 +195,7 @@ export function audit(opts: AuditOptions): ScanResult {
       }
       raw.push({ rule, hits });
       for (const h of hits) {
-        if (h.secretSpan) lineSpans.set(h.line, [...(lineSpans.get(h.line) ?? []), h.secretSpan]);
+        if (h.secrets) lineSecrets.set(h.line, [...(lineSecrets.get(h.line) ?? []), ...h.secrets]);
       }
     }
     for (const { rule, hits } of raw) {
@@ -199,7 +209,7 @@ export function audit(opts: AuditOptions): ScanResult {
         const key = `${hit.excerpt ?? ""}`;
         const n = seen.get(key) ?? 0;
         seen.set(key, n + 1);
-        findings.push(toFinding(rule, file, hit, n, lineSpans.get(hit.line) ?? []));
+        findings.push(toFinding(rule, file, hit, n, lineSecrets.get(hit.line) ?? []));
       }
     }
   }

@@ -17,13 +17,17 @@ export function isCommentLine(line: string): boolean {
   return /^\s*(\/\/|#|\*|\/\*|<!--)/.test(line);
 }
 
+const FILLER = new Set("your my example change me changeme placeholder dummy sample test todo password secret none null undefined key token api here value xxx".split(" "));
+
 /** Values that are clearly placeholders, examples or templating. */
 export function isPlaceholder(value: string): boolean {
   const v = value.trim();
   return (
     v.length < 8 ||
     /^\[?redacted\]?$/i.test(v) ||
-    /^(x+|\*+|\.+|<.*>|\$\{.*\}|\{\{.*\}\}|%.*%|your[-_ ]|example|changeme|change[-_]me|placeholder|dummy|sample|test|todo|password|secret|none|null|undefined|process\.env|os\.environ|env\()/i.test(v) ||
+    /^(x+|\*+|\.+|<.*>|\$\{.*\}|\{\{.*\}\}|%.*%)$|^(your[-_ ]|process\.env|os\.environ|env\()/i.test(v) ||
+    // Only a value made entirely of filler words is a placeholder: "test-password-123" is, "password-Xk9fQ2" is not.
+    v.toLowerCase().split(/[-_ .!]+|\d+/).every((w) => !w || FILLER.has(w)) ||
     /(^|[^a-z])(example|placeholder|dummy|changeme|xxxx)/i.test(v)
   );
 }
@@ -35,21 +39,21 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
     // Long lines are scanned in overlapping windows so a token past 2,000 characters is still seen.
     // The excerpt is the window, not the whole line.
     const parts = line.length > 2000 ? windows(line, 2000, 1900) : [{ text: line }];
+    let hit: Hit | undefined;
+    const secrets: string[] = [];
     for (const part of parts) {
       if (opts.skipComments && isCommentLine(part.text)) continue;
       g.lastIndex = 0;
-      const m = g.exec(part.text);
-      if (!m) continue;
-      if (opts.filter && !opts.filter(m, part.text, i + 1)) continue;
-      const hit: Hit = { line: i + 1, excerpt: part.text };
-      if (opts.secretGroup !== undefined) {
-        const val = m[opts.secretGroup];
-        const start = part.text.indexOf(val, m.index);
-        hit.secretSpan = [start, start + val.length];
+      // A secret rule reads every match so that no second value on the line survives in an excerpt.
+      for (let m = g.exec(part.text); m; m = g.exec(part.text)) {
+        if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup]);
+        if (!hit && (!opts.filter || opts.filter(m, part.text, i + 1))) hit = { line: i + 1, excerpt: part.text };
+        if (opts.secretGroup === undefined) break;
+        if (!m[0]) g.lastIndex++;
       }
-      hits.push(hit);
-      break;
+      if (hit && opts.secretGroup === undefined) break;
     }
+    if (hit) hits.push(secrets.length ? { ...hit, secrets } : hit);
   });
   return hits;
 }

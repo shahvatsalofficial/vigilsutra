@@ -76,8 +76,14 @@ function fingerprint(rule: Rule, path: string, hit: Hit, occurrence: number, spa
 function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: number, secrets: string[] = hit.secrets ?? []): Finding {
   const spans = spansOf(hit.excerpt ?? "", secrets);
   const redacted = spans.length > 0 || rule.category === "secrets";
-  let excerpt = tidy(redactAll(hit.excerpt ?? "", spans));
-  excerpt = scrubTokens(excerpt);
+  const clean = (text: string, ranges: [number, number][]): string => scrubTokens(redactAll(text, ranges));
+  let shown = clean(hit.excerpt ?? "", spans);
+  // Long lines: start the excerpt shortly before the match. Redaction happens first, so a cut cannot expose part of a secret.
+  if ((hit.at ?? 0) > 120) {
+    const before = clean(hit.excerpt!.slice(0, hit.at), spans.filter((s) => s[1] <= hit.at!)).length;
+    if (before > 60) shown = "…" + shown.slice(before - 60);
+  }
+  const excerpt = tidy(shown);
   const fp = fingerprint(rule, file.path, hit, occurrence, spans);
   const testCtx = file.path !== "." && isTestPath(file.path) && rule.category !== "process";
   return {
@@ -293,7 +299,7 @@ export function audit(opts: AuditOptions): ScanResult {
     opened.db
       ? "Advisory matches use the database shipped with this version. It is a snapshot of recorded ranges, not a live feed, and it does not prove a vulnerable function is reachable."
       : "No advisory database was loaded, so known vulnerabilities were not matched.",
-    "Untracked .env files are not read when a git index is present. .env.example, .env.sample and .env.template are never treated as secret files.",
+    "Untracked .env files are not read when a git index is present. In .env.example, .env.sample and .env.template only values that look real are reported.",
     "Lines longer than 2,000 characters are scanned in overlapping windows. The excerpt is the window that matched.",
     "When a filesystem reports inode 0, a swapped file is refused only when size or mtime also changes.",
     "Git history is read until the time limit. A blob larger than 1 MiB is skipped. SHA-1 and SHA-256 object ids are both read.",

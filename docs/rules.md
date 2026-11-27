@@ -95,7 +95,7 @@ A `.env` file (not an example, sample, or template) contains a secret-named vari
 
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
-- **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.
+- **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are left to VS-SECRET-004, which reports values that look real. A local `.env` that git does not track is not a finding.
 
 ### VS-SECRET-007: JSON Web Token in source
 

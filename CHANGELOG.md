@@ -16,6 +16,11 @@
 - `VS-SECRET-004` reads unquoted values in YAML, shell, `.npmrc`, `.properties`, TOML, INI and Dockerfiles, and the names `token` and `cryptoKey`.
 - Advisory matching and the SBOM read lockfiles at any depth, npm lockfile version 1 and Yarn Berry.
 - `VS-IAC-001` reports open ingress that follows an egress block, and Azure `*`/`Internet` sources. `VS-IAC-003` reports `*` anywhere in an action list.
+- Evidence for long lines shows the matched text, and a note counts further matches on the same line.
+- HTML report: badge colours meet 4.5:1 contrast in light and dark, and severities can be filtered without scripts.
+- `.env.example`, `.env.sample` and `.env.template` files are checked for real-looking credentials.
+- More generated cache folders are ignored by default.
+- Removed a stale rule count from the report summary and a missing folder from the package file list.
 - Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
 
 ## 0.4.2 - 2026-11-24

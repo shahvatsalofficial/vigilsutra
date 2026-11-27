@@ -138,6 +138,36 @@ test("Terraform: ingress after egress, Azure sources and wildcards inside action
   assert.ok(!hit('actions = ["s3:GetObject"]\nresources = ["*"]', "VS-IAC-003"));
 });
 
+test("evidence from a long line shows the match, counts the rest and stays redacted", () => {
+  const line = "a=1;".repeat(200) + "eval(first);" + "b=2;".repeat(20) + "eval(second);" + `t="${GH}";`;
+  const f = scan({ "a.js": line }).findings.find((x) => x.ruleId === "VS-CODE-001");
+  assert.ok(f.excerpt.includes("eval(first)"), f.excerpt);
+  assert.match(f.note, /1 more match/);
+  assert.ok(!f.excerpt.includes(GH.slice(0, 12)));
+});
+
+test("real-looking values in env example files are reported, placeholders are not", () => {
+  assert.ok(ids(scan({ ".env.example": "DB_PASSWORD=" + "Xk9" + "fQ2vLm81" })).includes("VS-SECRET-004"));
+  assert.ok(!ids(scan({ ".env.example": "DB_PASSWORD=changeme\nAPI_TOKEN=your-token-here" })).includes("VS-SECRET-004"));
+});
+
+test("HTML severity badges meet 4.5:1 contrast in both themes and filter without scripts", () => {
+  const html = render(scan({ "a.js": "eval(x)" }), "html");
+  const lum = (hex) => {
+    const full = hex.length === 4 ? "#" + [...hex.slice(1)].map((c) => c + c).join("") : hex;
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(full.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const themes = [...html.matchAll(/:root\{([^}]*)\}/g)].map((m) => Object.fromEntries(m[1].split(";").map((d) => d.split(":"))));
+  assert.equal(themes.length, 2);
+  for (const t of themes) for (const k of ["--crit", "--high", "--med", "--low", "--info"]) {
+    const [hi, lo] = [lum(t[k]), lum(t["--on"])].sort((a, b) => b - a);
+    assert.ok((hi + 0.05) / (lo + 0.05) >= 4.5, `${k} ${t[k]} on ${t["--on"]}`);
+  }
+  assert.match(html, /id="show-high" checked/);
+  assert.doesNotMatch(html, /<script/i);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

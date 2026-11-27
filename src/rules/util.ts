@@ -41,19 +41,23 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
     const parts = line.length > 2000 ? windows(line, 2000, 1900) : [{ text: line }];
     let hit: Hit | undefined;
     const secrets: string[] = [];
-    for (const part of parts) {
+    const matched = new Set<number>(); // line offsets; windows overlap
+    for (const [p, part] of parts.entries()) {
       if (opts.skipComments && isCommentLine(part.text)) continue;
       g.lastIndex = 0;
-      // A secret rule reads every match so that no second value on the line survives in an excerpt.
+      // Every match is read: to count them, and so that no second secret on the line survives in an excerpt.
       for (let m = g.exec(part.text); m; m = g.exec(part.text)) {
         if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup]);
-        if (!hit && (!opts.filter || opts.filter(m, part.text, i + 1))) hit = { line: i + 1, excerpt: part.text };
-        if (opts.secretGroup === undefined) break;
+        if (!opts.filter || opts.filter(m, part.text, i + 1)) {
+          hit ??= { line: i + 1, excerpt: part.text, at: m.index };
+          matched.add(p * 1900 + m.index);
+        }
         if (!m[0]) g.lastIndex++;
       }
-      if (hit && opts.secretGroup === undefined) break;
     }
-    if (hit) hits.push(secrets.length ? { ...hit, secrets } : hit);
+    if (!hit) return;
+    if (matched.size > 1) hit.note = `${matched.size - 1} more match(es) on this line.`;
+    hits.push(secrets.length ? { ...hit, secrets } : hit);
   });
   return hits;
 }

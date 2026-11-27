@@ -16,7 +16,7 @@ export function toJson(r: ScanResult): string {
 export function toText(r: ScanResult, color = false): string {
   const c = (code: string, s: string): string => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
   // File names come from the scanned project and are untrusted: neutralize terminal control characters.
-  const safe = (t: string): string => t.replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, "?");
+  const safe = (t: string): string => t.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "?");
   const paint: Record<Severity, string> = { critical: "1;31", high: "31", medium: "33", low: "36", info: "2" };
   const out: string[] = [];
   out.push(`VigilSutra AI ${r.tool.version} - local read-only audit of "${safe(r.project.name)}"`);
@@ -37,6 +37,12 @@ export function toText(r: ScanResult, color = false): string {
 
 const level = (s: Severity): "error" | "warning" | "note" => (s === "critical" || s === "high" ? "error" : s === "medium" ? "warning" : "note");
 
+/** GitHub code scanning ranks alerts by this score. */
+const SCORE: Record<Severity, string> = { critical: "9.5", high: "8.0", medium: "5.5", low: "3.0", info: "0.0" };
+const RULE_DOCS = "https://github.com/shahvatsalofficial/vigilsutra/blob/main/docs/rules.md#";
+/** The anchor GitHub generates for a `### ID: title` heading. */
+const anchor = (heading: string): string => heading.toLowerCase().replace(/[^a-z0-9 _-]/g, "").replace(/ /g, "-");
+
 export function toSarif(r: ScanResult): string {
   const used = new Set(r.findings.map((f) => f.ruleId));
   const rules = ALL_RULES.filter((x) => used.has(x.id)).map((x) => ({
@@ -45,8 +51,9 @@ export function toSarif(r: ScanResult): string {
     shortDescription: { text: x.title },
     fullDescription: { text: x.description },
     help: { text: `${x.remediation}\nVerify: ${x.verification}` },
+    helpUri: RULE_DOCS + anchor(`${x.id}: ${x.title}`),
     defaultConfiguration: { level: level(x.severity) },
-    properties: { tags: ["security", x.category, ...(x.cwe ?? [])], precision: x.confidence }
+    properties: { tags: ["security", x.category, ...(x.cwe ?? [])], precision: x.confidence, "security-severity": SCORE[x.severity] }
   }));
   const sarif = {
     $schema: "https://json.schemastore.org/sarif-2.1.0.json",
@@ -54,6 +61,7 @@ export function toSarif(r: ScanResult): string {
     runs: [
       {
         tool: { driver: { name: "VigilSutra AI", version: r.tool.version, informationUri: "https://github.com/shahvatsalofficial/vigilsutra", rules } },
+        automationDetails: { id: "vigilsutra/" },
         results: r.findings.map((f: Finding) => ({
           ruleId: f.ruleId,
           level: level(f.severity),

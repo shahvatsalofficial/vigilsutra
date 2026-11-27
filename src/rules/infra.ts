@@ -231,7 +231,7 @@ export const infraRules: Rule[] = [
           // Routes, egress rules and deny rules are not internet-facing ingress. Only the enclosing blocks count.
           if (/destination_(?:ipv6_)?(?:cidr_block|address)|\begress\b|egress_/.test(line)) return false;
           const { openers, body } = enclosingBlock(f, lineNo);
-          if (openers.some((o) => /^\s*(?:route|egress|deny|egress_)\b/.test(o))) return false;
+          if (openers.some((o) => /^\s*(?:route|egress|deny)\b/.test(o) || /egress_/.test(o))) return false;
           return !/\btype\s*=\s*["']egress["']|\bdirection\s*=\s*["'](?:egress|outbound)["']|\baccess\s*=\s*["']deny["']|^\s*deny\s*\{/im.test(body);
         }
       })

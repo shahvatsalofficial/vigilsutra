@@ -23,6 +23,13 @@
 - Removed a stale rule count from the report summary and a missing folder from the package file list.
 - Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
 
+## Unreleased (after pull request 17)
+
+- New rule `VS-AGENT-004`: hidden Unicode (direction controls, tag characters, and zero-width characters in agent instruction files). Rules version `1.3.0`, 43 rules.
+- SARIF adds `security-severity`, `helpUri` and `automationDetails` for code scanning.
+- The GitHub Action writes the Markdown report to the job summary.
+- Fixed: `VS-IAC-001` again ignores `aws_vpc_security_group_egress_rule` and similar egress resources.
+
 ## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.

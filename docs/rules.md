@@ -1,4 +1,4 @@
-# Rules (version 1.2.0)
+# Rules (version 1.3.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -36,6 +36,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-005 | TLS certificate verification disabled | high | high | confirmed | CodeGuard | CWE-295 |
 | VS-CODE-006 | Weak hash algorithm (MD5 / SHA-1) | low | low | potential | CodeGuard | CWE-327 |
 | VS-CODE-007 | Raw HTML sink (innerHTML / dangerouslySetInnerHTML) | medium | low | potential | CodeGuard | CWE-79 |
+| VS-AGENT-004 | Hidden Unicode characters in code or agent instructions | medium | high | potential | AgentShield | CWE-1007 |
 | VS-AGENT-001 | Instruction file tries to override agent safety or scope | medium | low | potential | AgentShield | CWE-1427 |
 | VS-AGENT-002 | Agent configuration disables permission prompts | high | medium | potential | AgentShield | CWE-250 |
 | VS-AGENT-003 | MCP server launched via unpinned remote package | low | medium | potential | AgentShield | CWE-829 |
@@ -304,6 +305,14 @@ Assigning strings to HTML sinks can cause cross-site scripting if the content in
 - **Fix:** Use `textContent` or the framework's escaped bindings. If HTML is required, sanitise with a vetted library.
 - **Verify:** Sink removed or input proven sanitised; test with a `<script>` payload.
 - **False positives:** Constant markup or content already sanitised.
+
+### VS-AGENT-004: Hidden Unicode characters in code or agent instructions
+
+Invisible or direction-changing characters make a file read differently to a person than to a compiler or AI assistant (Trojan Source, rules-file backdoor).
+
+- **Fix:** Delete the characters, then read the line again. Treat hidden text in an instruction file as hostile until its author explains it.
+- **Verify:** Re-run `vigilsutra audit`; an editor that shows invisible characters displays none on the line.
+- **False positives:** Right-to-left text that needs direction controls in a string, and test data about Unicode.
 
 ### VS-AGENT-001: Instruction file tries to override agent safety or scope
 

@@ -10,7 +10,36 @@ const AGENT_FILE = (p: string): boolean =>
   /(^|\/)\.cursor\/rules\//i.test(p) ||
   /(^|\/)\.claude\/(?:agents|commands)\//i.test(p);
 
+// Direction controls and tag characters are never needed in source. Zero-width space and word joiner
+// are also flagged in instruction files; the joiners used by emoji and Indic scripts are not.
+const HIDDEN_IN_CODE = /[\u202a-\u202e\u2066-\u2069]|(?<!\u{1f3f4}[\u{e0020}-\u{e007f}]*)[\u{e0000}-\u{e007f}]/u;
+const HIDDEN_IN_AGENT = new RegExp(`${HIDDEN_IN_CODE.source}|[\\u200b\\u2060]`, "u");
+const SOURCE_EXT = /\.(?:[cm]?[jt]sx?|py|go|rs|java|kt|c|h|cc|cpp|hpp|cs|rb|php|swift|sh|ps1|tf|ya?ml)$/;
+/** Makes each invisible character visible, so the report shows what a reviewer cannot see in an editor. */
+const reveal = (s: string): string => s.replace(/[\u200b\u2060\u202a-\u202e\u2066-\u2069\u{e0000}-\u{e007f}]/gu, (c) => `<U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}>`);
+
 export const agentPrivacyRules: Rule[] = [
+  {
+    ...ag,
+    id: "VS-AGENT-004",
+    title: "Hidden Unicode characters in code or agent instructions",
+    severity: "medium",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-1007"],
+    description: "Invisible or direction-changing characters make a file read differently to a person than to a compiler or AI assistant (Trojan Source, rules-file backdoor).",
+    remediation: "Delete the characters, then read the line again. Treat hidden text in an instruction file as hostile until its author explains it.",
+    falsePositives: "Right-to-left text that needs direction controls in a string, and test data about Unicode.",
+    verification: "Re-run `vigilsutra audit`; an editor that shows invisible characters displays none on the line.",
+    applies: (f) => AGENT_FILE(f.path) || SOURCE_EXT.test(f.name),
+    check: (f) => {
+      const agent = AGENT_FILE(f.path);
+      return lineRule(f, agent ? HIDDEN_IN_AGENT : HIDDEN_IN_CODE).map((h) => {
+        const excerpt = reveal(h.excerpt ?? "");
+        return { ...h, excerpt, at: excerpt.indexOf("<U+"), ...(agent ? { severity: "high" as const } : {}) };
+      });
+    }
+  },
   {
     ...ag,
     id: "VS-AGENT-001",

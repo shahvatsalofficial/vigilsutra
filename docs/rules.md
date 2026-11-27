@@ -1,4 +1,4 @@
-# Rules (version 1.7.0)
+# Rules (version 1.8.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 

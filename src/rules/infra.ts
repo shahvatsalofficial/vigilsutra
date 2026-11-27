@@ -1,6 +1,7 @@
 import type { Hit, Rule, ScannedFile } from "../types.js";
-import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock } from "./util.js";
+import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock, isCompositeAction } from "./util.js";
 
+const workflowOrAction = (f: ScannedFile): boolean => isWorkflow(f) || isCompositeAction(f);
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
 const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
 const k8 = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
@@ -173,7 +174,7 @@ export const infraRules: Rule[] = [
     remediation: "Pin third-party actions to a full 40-character commit SHA and keep a trailing comment with the version. Use Dependabot or Renovate to update pins.",
     falsePositives: "First-party `actions/*` references are lower risk; local `./` actions and Docker digests are skipped.",
     verification: "Every `uses:` line for a non-local action ends in @<40 hex>.",
-    applies: isWorkflow,
+    applies: workflowOrAction,
     check: (f) =>
       lineRule(f, /^\s*(?:-\s*)?uses:\s*([^\s#]+)/, {
         filter: (m) => {
@@ -228,7 +229,7 @@ export const infraRules: Rule[] = [
     remediation: "Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `\"$TITLE\"` in the script.",
     falsePositives: "Fields restricted by GitHub to safe characters. Only matches inside run blocks are reported when detectable; verify context.",
     verification: "The expression no longer appears inside a `run:` body.",
-    applies: isWorkflow,
+    applies: workflowOrAction,
     check: (f) => {
       const hits: Hit[] = [];
       let inRun = false;

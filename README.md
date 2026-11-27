@@ -162,7 +162,7 @@ Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `
 | GitHub Actions: unpinned actions, `pull_request_target` checkout, `write-all`, expression injection | `VS-CICD-001..004` | **Implemented** |
 | Request data used on the same line as a query, file path, outbound URL or redirect; weak cookie flags (JavaScript, TypeScript, Python) | `VS-CODE-008..012` | **Implemented** (same line only) |
 | Databases without a password or with security off; public databases and storage; access granted to everyone | `VS-DB-001..002`, `VS-IAC-004..005` | **Implemented** |
-| Go, Java, Kotlin, PHP, Ruby, C#: request data into shell or SQL on one line; disabled TLS checks; MD5 and SHA-1 | `VS-CODE-005`, `006`, `013` | **Implemented** (line patterns only) |
+| Go, Java, Kotlin, PHP, Ruby, C#: request data into shell, SQL, file path, outbound URL or redirect on one line; disabled TLS checks; MD5 and SHA-1 | `VS-CODE-005`, `006`, `009..011`, `013` | **Implemented** (line patterns only) |
 | Host paths, dangerous capabilities, RBAC wildcards, host-level Docker Compose settings | `VS-K8S-004..006`, `VS-COMPOSE-001` | **Implemented** |
 | Docker: root user, `:latest`, `curl \| sh` | `VS-DOCKER-001..003` | **Implemented** |
 | Kubernetes: privileged, host namespaces, root / privilege escalation | `VS-K8S-001..003` | **Implemented** |

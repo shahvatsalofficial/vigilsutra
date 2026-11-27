@@ -2,9 +2,12 @@
 
 ## Unreleased
 
-- Go, Java, Kotlin, PHP, Ruby and C#: new rule `VS-CODE-013` (request data into a shell or SQL call on one line), and `VS-CODE-005`/`VS-CODE-006` now read these languages. Rules version `1.7.0`, 57 rules.
+- Go, Java, Kotlin, PHP, Ruby and C#: new rule `VS-CODE-013` (request data into a shell or SQL call on one line), and `VS-CODE-005`/`VS-CODE-006` now read these languages. 57 rules.
 - `VS-CICD-002` also covers `workflow_run` workflows that check out the triggering commit.
-- The SBOM carries package hashes from npm lockfiles.
+- The SBOM carries package hashes and licences from npm lockfiles.
+- `VS-CODE-009` to `VS-CODE-011` (path traversal, SSRF, open redirect) also read Go, Java, Kotlin, PHP, Ruby and C#. Rules version `1.8.0`.
+- `VS-CICD-001` and `VS-CICD-004` also read composite actions (`action.yml`).
+- Baselines record the content of each finding, so a moved file stays accepted. Recreate a baseline to get this.
 
 ## 0.5.0 - 2026-11-28
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { audit, exceeds, VERSION } from "./engine.js";
+import { audit, contentKey, exceeds, VERSION } from "./engine.js";
 import { loadPolicy } from "./policy.js";
 import { render, FORMATS, type Format } from "./reporters/index.js";
 import { ALL_RULES, findRule, RULES_VERSION } from "./rules/index.js";
@@ -225,7 +225,7 @@ function main(): void {
       const out = flags.get("out");
       if (typeof out !== "string") fail("baseline needs --out <file>");
       const result = audit(auditOpts(root, flags));
-      writeOut(out, JSON.stringify({ tool: "vigilsutra", version: VERSION, createdAt: result.generatedAt, fingerprints: result.findings.map((f) => f.fingerprint).sort() }, null, 2) + "\n");
+      writeOut(out, JSON.stringify({ tool: "vigilsutra", version: VERSION, createdAt: result.generatedAt, fingerprints: result.findings.map((f) => f.fingerprint).sort(), entries: result.findings.filter((f) => f.path !== "." && !f.path.startsWith("git-history/")).map((f) => ({ path: f.path, key: contentKey(f) })) }, null, 2) + "\n");
       process.stdout.write(`Baseline of ${result.findings.length} finding(s) written to ${out}\n`);
       return;
     }

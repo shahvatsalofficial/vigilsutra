@@ -4,14 +4,18 @@ import { isJs, isPy, isCode, lineRule, insideString, lookBack } from "./util.js"
 const b = { version: "1.0.0", category: "code", agent: "CodeGuard" };
 
 /** A web rule: user input from a request reaches a sensitive call on the same line. */
-function webRule(meta: Pick<Rule, "id" | "title" | "severity" | "cwe" | "description" | "remediation" | "falsePositives" | "verification">, js: RegExp, py: RegExp): Rule {
+function webRule(meta: Pick<Rule, "id" | "title" | "severity" | "cwe" | "description" | "remediation" | "falsePositives" | "verification">, js: RegExp, py: RegExp, other?: Record<Lang, RegExp>): Rule {
   return {
     ...b,
     ...meta,
     confidence: "medium",
     status: "potential",
-    applies: isCode,
-    check: (f) => lineRule(f, isPy(f) ? py : js, { skipComments: true, filter: (m, line) => !insideString(line, m.index) })
+    applies: (f) => isCode(f) || (other !== undefined && otherLang(f) !== undefined),
+    check: (f) => {
+      const lang = otherLang(f);
+      const re = lang ? other?.[lang] : isPy(f) ? py : js;
+      return re ? lineRule(f, re, { skipComments: true, filter: (m, line) => !insideString(line, m.index) }) : [];
+    }
   };
 }
 
@@ -42,7 +46,14 @@ const webRules: Rule[] = [
       verification: "Request `../` and an absolute path and confirm both are refused."
     },
     /\b(?:readFile|readFileSync|createReadStream|createWriteStream|sendFile|unlink|unlinkSync|writeFile|writeFileSync)\s*\(\s*req(?:uest)?\.(?:params|query|body)\b/,
-    /(?<![\w.])(?:open|send_file)\s*\(\s*request\.(?:args|form|values)\b/
+    /(?<![\w.])(?:open|send_file)\s*\(\s*request\.(?:args|form|values)\b/,
+    {
+      go: /\b(?:os\.Open|os\.ReadFile|os\.Remove|http\.ServeFile)\s*\([^\n]*\br\.(?:URL\.Query\(\)|(?:Post)?FormValue\()/,
+      jvm: /\bnew\s+(?:File|FileInputStream|FileReader|FileOutputStream)\s*\([^;]*\.getParameter\s*\(/,
+      php: /(?<![\w$>])(?:file_get_contents|fopen|readfile|unlink|include|require|include_once|require_once)\b(?![^;]*\bbasename\s*\()[^;]*\$_(?:GET|POST|REQUEST|COOKIE)\b/,
+      ruby: /(?:\bFile\.(?:read|open|delete)|(?<![\w.])send_file)\s*\(?(?![^\n]*File\.basename)[^\n]*\bparams\[/,
+      dotnet: /\bFile\.(?:ReadAllText|ReadAllBytes|Open|OpenRead|Delete)\s*\([^;]*\bRequest\./
+    }
   ),
   webRule(
     {
@@ -56,7 +67,14 @@ const webRules: Rule[] = [
       verification: "Request a loopback or link-local address and confirm it is refused."
     },
     /(?<![\w.])(?:fetch|got|axios(?:\.(?:get|post|put|delete|request))?)\s*\(\s*req(?:uest)?\.(?:params|query|body)\b/,
-    /\b(?:requests|httpx)\.(?:get|post|put|delete|head)\s*\(\s*request\.(?:args|form|values)\b/
+    /\b(?:requests|httpx)\.(?:get|post|put|delete|head)\s*\(\s*request\.(?:args|form|values)\b/,
+    {
+      go: /\bhttp\.(?:Get|Post|Head)\s*\(\s*r\.(?:URL\.Query\(\)|(?:Post)?FormValue\()/,
+      jvm: /\bnew\s+URL\s*\(\s*\w+\.getParameter\s*\(/,
+      php: /\bcurl_init\s*\(\s*\$_(?:GET|POST|REQUEST|COOKIE)\b/,
+      ruby: /\b(?:Net::HTTP\.get|URI\.open|HTTParty\.get|Faraday\.get)\s*\(?\s*(?:URI(?:\.parse)?\s*\(\s*)?params\[/,
+      dotnet: /\.(?:GetAsync|GetStringAsync|PostAsync)\s*\(\s*Request\./
+    }
   ),
   webRule(
     {
@@ -70,7 +88,14 @@ const webRules: Rule[] = [
       verification: "Request an external destination and confirm it is refused."
     },
     /\.redirect\s*\(\s*(?:\d{3}\s*,\s*)?req(?:uest)?\.(?:params|query|body)\b/,
-    /(?<![\w.])redirect\s*\(\s*request\.(?:args|form|values)\b/
+    /(?<![\w.])redirect\s*\(\s*request\.(?:args|form|values)\b/,
+    {
+      go: /\bhttp\.Redirect\s*\([^,\n]+,[^,\n]+,\s*r\.(?:URL\.Query\(\)|(?:Post)?FormValue\()/,
+      jvm: /\.sendRedirect\s*\(\s*\w+\.getParameter\s*\(/,
+      php: /\bheader\s*\(\s*["']Location:\s*["']?\s*\.?\s*\$_(?:GET|POST|REQUEST|COOKIE)\b/i,
+      ruby: /(?<![\w.])redirect_to\s*\(?\s*params\[/,
+      dotnet: /(?<![\w])Redirect\s*\(\s*Request\./
+    }
   ),
   {
     ...b,

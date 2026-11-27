@@ -335,6 +335,37 @@ test("SBOM carries npm integrity hashes", () => {
   assert.equal(bom.components.find((c) => c.name === "b").hashes, undefined);
 });
 
+test("other languages: file paths, outbound URLs and redirects", () => {
+  const bad = [
+    ["a.go", 'os.Open(r.FormValue("f"))', "VS-CODE-009"], ["A.java", 'new File(dir, request.getParameter("f"));', "VS-CODE-009"], ["a.php", "readfile($_GET['f']);", "VS-CODE-009"],
+    ["a.rb", "send_file params[:f]", "VS-CODE-009"], ["a.cs", 'File.ReadAllText(Request.Query["f"]);', "VS-CODE-009"],
+    ["a.go", 'http.Get(r.URL.Query().Get("u"))', "VS-CODE-010"], ["a.php", "curl_init($_GET['u']);", "VS-CODE-010"], ["A.java", 'res.sendRedirect(request.getParameter("n"));', "VS-CODE-011"],
+    ["a.php", "header('Location: ' . $_GET['n']);", "VS-CODE-011"], ["a.rb", "redirect_to params[:n]", "VS-CODE-011"]
+  ];
+  for (const [file, line, id] of bad) assert.ok(ids(scan({ [file]: line })).includes(id), `${file}: ${line}`);
+  for (const [file, line] of [["a.php", "readfile(basename($_GET['f']));"], ["a.rb", "redirect_to root_path"], ["a.go", 'os.Open(configPath)']]) assert.ok(!ids(scan({ [file]: line })).some((i) => i.startsWith("VS-CODE")), line);
+});
+
+test("composite actions are checked like workflows", () => {
+  const action = 'runs:\n  using: composite\n  steps:\n    - uses: some/thing@v1\n    - run: echo "${{ github.event.issue.title }}"\n      shell: bash\n';
+  const found = ids(scan({ "action.yml": action }));
+  assert.ok(found.includes("VS-CICD-001") && found.includes("VS-CICD-004"));
+  assert.ok(!ids(scan({ "action.yml": "runs:\n  using: node20\n  main: x.js\n" })).some((i) => i.startsWith("VS-CICD")));
+});
+
+test("a baseline follows a moved file but not a copy", () => {
+  const root = project({ "a.js": "eval(x)" });
+  const base = join(root, "..", "base.json");
+  assert.equal(cli(["baseline", root, "--out", base]).status, 0);
+  const open = () => audit({ root, baselineFile: base }).findings.filter((f) => f.ruleId === "VS-CODE-001").map((f) => f.path);
+  writeFileSync(join(root, "copy.js"), "eval(x)");
+  assert.deepEqual(open(), ["copy.js"]);
+  rmSync(join(root, "a.js"));
+  assert.deepEqual(open(), []);
+  writeFileSync(join(root, "second.js"), "eval(x)");
+  assert.equal(open().length, 1);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

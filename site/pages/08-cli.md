@@ -41,7 +41,7 @@
 |---|---|
 | `0` | Finished; nothing reached the `--fail-on` threshold |
 | `1` | A finding reached the threshold, or `verify` found new findings |
-| `2` | Usage or runtime error |
+| `2` | Usage or runtime error, or an incomplete scan with `--fail-on` |
 
 ## Files it reads and writes
 

@@ -45,7 +45,7 @@ The parser is strict on purpose: an unknown key is an error, so a typo can never
 
 ### What is ignored by default
 
-`.git`, `node_modules`, `dist`, `build`, `out`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `target`, `vigilsutra-report`, `*.min.js` and common lockfiles for content scanning (lockfiles are still read for dependency checks). **`.env` files are not ignored**: a committed `.env` is exactly the kind of thing the scan should catch. An untracked local `.env` in a git repository is skipped and its contents are not read.
+`.git`, `node_modules`, virtual environments, cache folders such as `__pycache__`, `.cache` and `.turbo`, `coverage`, `.next`, `target`, `vigilsutra-report` and common lockfiles for content scanning (lockfiles are still read for dependency checks). **`dist`, `build`, `out`, `vendor` and `*.min.js` are read by secret rules only**, because they ship to users. **`.env` files are not ignored**: a committed `.env` is exactly the kind of thing the scan should catch. An untracked local `.env` in a git repository is skipped and its contents are not read.
 
 ## Silencing a finding on purpose
 
@@ -62,14 +62,15 @@ The summary keeps counting what is hidden ("16 suppressed by baseline"), so the 
 
 ### Waivers
 
-A waiver hides **one rule on one path until a date**. After the date it stops hiding the finding, so exceptions cannot become permanent by accident.
+A waiver hides **one rule on one path, or a wildcard of paths, until a date**. After the date it stops hiding the finding, so exceptions cannot become permanent by accident.
 
 ```yaml
 waivers:
-  - VS-CODE-001|src/legacy.js|dana|2026-12-31
+  - VS-CODE-001|src/legacy.js:12|dana|2026-12-31|rewrite planned
+  - VS-CODE-006|tools/**|dana|2026-12-31
 ```
 
-The four parts are `rule id | path | owner | last day (UTC, inclusive)`. Active waivers are listed in the report so reviewers can see them.
+The parts are `rule id | path[:line] | owner | last day (UTC, inclusive) | reason (optional)`. A path with `*` or `**` is a wildcard; any other path must match exactly. The report counts active waivers and says that the policy narrowed the scan.
 
 ### Disable a rule
 
@@ -92,6 +93,7 @@ Use `disableRules` only for a rule that is wrong for your whole project. The rep
 
 | Flag | Effect |
 |---|---|
+| `--rules <file>` | Add your own rules from a JSON file (see the README). Never read from the project on its own |
 | `--no-advisories` | Do not match the bundled advisory snapshot |
 | `--advisories <file>` | Match a snapshot you supply instead |
 | `--no-report` / `--report-dir <dir>` | Control where report files go |
@@ -103,4 +105,4 @@ Use `disableRules` only for a rule that is wrong for your whole project. The rep
 |---|---|
 | `0` | The scan finished and nothing reached the `--fail-on` threshold |
 | `1` | At least one finding reached the threshold (or `verify` found new findings) |
-| `2` | Usage or runtime error, for example a bad flag or an invalid policy |
+| `2` | Usage or runtime error, for example a bad flag or an invalid policy, or an incomplete scan with `--fail-on` |

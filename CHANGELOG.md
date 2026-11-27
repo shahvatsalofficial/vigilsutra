@@ -1,52 +1,55 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-11-28
 
-- Security: every secret on a line is redacted, including a second value matched by the same rule and values found in different windows of a long line.
-- A placeholder first on a line no longer hides a real secret after it.
-- The placeholder filter now skips only values made entirely of filler words, so real secrets that start with `password`, `secret`, `test` and similar are reported.
-- The CLI accepts `--flag=value` and rejects unknown options, so a mistyped `--fail-on` can no longer pass a CI gate.
+### Read before upgrading
+
+- Scans report more than 0.4.2 did (14 new rules, wider secret coverage), so a `--fail-on` gate that passed can fail.
+- With `--fail-on`, an incomplete scan (time or file limit, including Git history) exits 2 instead of passing.
+- Unknown command-line options are now errors.
+- The GitHub Action reads `.vigilsutra.yml` from the base commit on pull request and merge queue runs, and shows annotations.
+- Some baseline fingerprints change for lines with repeated secrets; refresh a baseline if needed.
+
+### Security and fixes
+
+- Every secret on a line is redacted, including a second value matched by the same rule and values in different windows of a long line.
+- A placeholder earlier on a line no longer hides a later secret, and only values made entirely of filler words count as placeholders.
+- `--report-dir` on a folder with other files, such as the project root, no longer overwrites its `.gitignore`.
+- A mistyped `--fail-on` can no longer pass a CI gate; `--flag=value` works.
+- A pull request can no longer ignore its own findings by editing the policy file.
 - `--staged` applies policy ignore patterns and the file size limit.
-- With `--fail-on`, an incomplete scan (time or file limit, including git history) exits 2 instead of passing.
-- UTF-16 files with a byte-order mark are scanned. A byte-order mark no longer breaks `.vigilsutra.yml`.
-- SBOM: scoped npm packages get a valid purl (`pkg:npm/%40scope/name@1.0.0`).
 - `fix --apply` no longer rewrites SHA-1, which protocols such as the WebSocket handshake require.
-- GitHub Action: pull request and merge queue runs use the base commit's `.vigilsutra.yml`, so a pull request cannot ignore its own findings.
-- Secret rules now read `dist/`, `build/`, `out/`, `vendor/` and `*.min.js`. Other rules still skip them.
-- `VS-SECRET-004` reads unquoted values in YAML, shell, `.npmrc`, `.properties`, TOML, INI and Dockerfiles, and the names `token` and `cryptoKey`.
-- Advisory matching and the SBOM read lockfiles at any depth, npm lockfile version 1 and Yarn Berry.
-- `VS-IAC-001` reports open ingress that follows an egress block, and Azure `*`/`Internet` sources. `VS-IAC-003` reports `*` anywhere in an action list.
-- Evidence for long lines shows the matched text, and a note counts further matches on the same line.
-- HTML report: badge colours meet 4.5:1 contrast in light and dark, and severities can be filtered without scripts.
-- `.env.example`, `.env.sample` and `.env.template` files are checked for real-looking credentials.
-- More generated cache folders are ignored by default.
-- Removed a stale rule count from the report summary and a missing folder from the package file list.
-- Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
+- UTF-16 files with a byte-order mark are scanned. A byte-order mark no longer breaks `.vigilsutra.yml`.
+- Scoped npm packages get a valid purl in the SBOM.
+- `VS-IAC-001` reports open ingress that follows an egress block and Azure `*`/`Internet` sources. `VS-IAC-003` reports `*` anywhere in an action list.
 
-## Unreleased (after pull request 17)
+### Rules (42 to 56, rules version `1.6.0`)
 
-- New rule `VS-AGENT-004`: hidden Unicode (direction controls, tag characters, and zero-width characters in agent instruction files). Rules version `1.3.0`, 43 rules.
-- SARIF adds `security-severity`, `helpUri` and `automationDetails` for code scanning.
-- The GitHub Action writes the Markdown report to the job summary.
-- Fixed: `VS-IAC-001` again ignores `aws_vpc_security_group_egress_rule` and similar egress resources.
+- Hidden Unicode: `VS-AGENT-004`.
+- Web requests on the same line (JavaScript, TypeScript, Python): `VS-CODE-008` to `VS-CODE-012`.
+- Kubernetes and Compose: `VS-K8S-004` to `VS-K8S-006`, `VS-COMPOSE-001`.
+- Databases and cloud: `VS-DB-001`, `VS-DB-002`, `VS-IAC-004`, `VS-IAC-005`.
+- Workflows: `VS-CICD-002` reports checkout of `refs/pull/.../merge`; `VS-CICD-004` also reads `actions/github-script`.
 
-## Unreleased (reports, CLI and workflows)
+### Coverage
+
+- Secret rules read `dist/`, `build/`, `out/`, `vendor/` and `*.min.js`. Other rules skip them.
+- `VS-SECRET-004` reads unquoted values in configuration files, real-looking values in `.env` example files, and the names `token` and `cryptoKey`.
+- Lockfiles are read at any depth, including npm lockfile version 1 and Yarn Berry.
+- The SBOM reads `Cargo.lock`, `poetry.lock`, `composer.lock` and `Gemfile.lock`. Advisory matching covers Poetry (PyPI), not the other three ecosystems.
+- More generated cache folders are ignored.
+
+### Features
 
 - Custom rules from a JSON file with `--rules`, and `vigilsutra rules test <file>`.
-- `--annotate` prints GitHub Actions annotations; the Action uses it, so findings show on pull request files.
-- New rules `VS-DB-001`, `VS-DB-002` (databases without authentication), `VS-IAC-004` (public database or storage) and `VS-IAC-005` (access granted to everyone). Rules version `1.6.0`, 56 rules.
-- `vigilsutra completion <bash|zsh|powershell>` prints a shell completion script.
-- Tests fail when rule docs, rule counts or the help text drift from the code.
-- New JavaScript, TypeScript and Python rules `VS-CODE-008` to `VS-CODE-012`: NoSQL injection, path traversal, SSRF, open redirect and weak cookie flags. They match request data used on the same line. Rules version `1.5.0`, 52 rules.
-- Findings from Git history state the commit date and whether the file still exists in HEAD.
-- New rules `VS-K8S-004` (hostPath), `VS-K8S-005` (dangerous capabilities), `VS-K8S-006` (RBAC wildcard) and `VS-COMPOSE-001` (host-level Compose settings). Rules version `1.4.0`, 47 rules.
+- `--annotate` prints GitHub Actions annotations. The Action also writes the report to the job summary.
+- SARIF adds `security-severity`, `helpUri` and `automationDetails`.
+- `SOURCE_DATE_EPOCH` gives byte-identical reports and SBOM.
 - Waivers accept a wildcard path, an optional `:line` and an optional reason.
-- The SBOM reads `Cargo.lock`, `poetry.lock`, `composer.lock` and `Gemfile.lock`. Advisory matching covers the Poetry packages (PyPI), not the other three ecosystems.
-- Fixed: `--report-dir` on a folder with other files, such as the project root, no longer overwrites its `.gitignore`.
-- Report files are readable by the owner only (POSIX), and a report folder inside a commonly published folder prints a warning.
-- `SOURCE_DATE_EPOCH` pins report and SBOM timestamps and the SBOM serial number, for byte-identical output.
-- Mistyped commands and options suggest the closest one.
-- `VS-CICD-002` reports checkout of `refs/pull/.../merge`. `VS-CICD-004` also reads `actions/github-script` scripts.
+- Findings from Git history state the commit date and whether the file still exists in HEAD.
+- Long-line evidence shows the match. The HTML report has readable badge colours and severity filters.
+- Report files are owner-only on POSIX, with a warning for commonly published folders.
+- Shell completion for bash, zsh and PowerShell, and suggestions for mistyped commands.
 
 ## 0.4.2 - 2026-11-24
 

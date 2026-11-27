@@ -50,7 +50,7 @@ A Sanskrit word for a thread or a concise rule. The name suggests a thread of vi
 | A `vigilsutra-report/` folder appeared | It is the default output. It has its own `.gitignore`. Use `--no-report` to skip |
 | `.vigilsutra.yml line N: unsupported syntax` | The policy parser accepts a small YAML subset (`key: value` and `- item` lists) on purpose |
 | `unknown key "..."` | A typo in the policy. Unknown keys are errors so a typo cannot change scope silently |
-| Exit code 2 | Bad flag, bad path, or invalid policy or baseline file. The message says which |
+| Exit code 2 | Bad flag, bad path, invalid policy or baseline file, or a scan cut short while `--fail-on` was set. The message says which |
 | A finding you disagree with | `vigilsutra explain <rule id>` shows when it is a false positive. Open an issue with a minimal example (fake values only) |
 | Windows: file symlinks not followed | By design. Links are never followed |
 

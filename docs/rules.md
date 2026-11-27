@@ -1,4 +1,4 @@
-# Rules (version 1.3.0)
+# Rules (version 1.6.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -16,10 +16,18 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-DB-001 | Database accepts connections without a password | high | high | potential | InfraGuard | CWE-306 |
+| VS-DB-002 | Database or search engine security switched off | high | medium | potential | InfraGuard | CWE-306 |
+| VS-IAC-004 | Database or storage exposed publicly | high | high | potential | InfraGuard | CWE-284 |
+| VS-IAC-005 | Access granted to everyone | high | medium | potential | InfraGuard | CWE-732 |
+| VS-K8S-004 | Pod mounts a host path | medium | high | potential | ContainerGuard | CWE-668 |
+| VS-K8S-005 | Container adds a dangerous Linux capability | high | medium | potential | ContainerGuard | CWE-250 |
+| VS-K8S-006 | RBAC role grants a wildcard | high | high | potential | ContainerGuard | CWE-269 |
+| VS-COMPOSE-001 | Compose service has host-level access | high | high | confirmed | ContainerGuard | CWE-250 |
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
 | VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
-| VS-CICD-004 | Untrusted GitHub context interpolated into a shell step | high | medium | potential | PipelineGuard | CWE-78, CWE-77 |
+| VS-CICD-004 | Untrusted GitHub context interpolated into a script step | high | medium | potential | PipelineGuard | CWE-78, CWE-77 |
 | VS-DOCKER-001 | Container runs as root (no USER instruction) | medium | high | confirmed | ContainerGuard | CWE-250 |
 | VS-DOCKER-002 | Base image uses :latest or no tag | low | high | confirmed | ContainerGuard | CWE-829 |
 | VS-DOCKER-003 | Remote script piped into a shell during build | medium | medium | potential | ContainerGuard | CWE-494 |
@@ -36,6 +44,11 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-005 | TLS certificate verification disabled | high | high | confirmed | CodeGuard | CWE-295 |
 | VS-CODE-006 | Weak hash algorithm (MD5 / SHA-1) | low | low | potential | CodeGuard | CWE-327 |
 | VS-CODE-007 | Raw HTML sink (innerHTML / dangerouslySetInnerHTML) | medium | low | potential | CodeGuard | CWE-79 |
+| VS-CODE-008 | Request data used as a database query (NoSQL injection) | high | medium | potential | CodeGuard | CWE-943 |
+| VS-CODE-009 | Request data used as a file path (path traversal) | high | medium | potential | CodeGuard | CWE-22 |
+| VS-CODE-010 | Request data used as an outbound URL (SSRF) | high | medium | potential | CodeGuard | CWE-918 |
+| VS-CODE-011 | Redirect target taken from the request (open redirect) | medium | medium | potential | CodeGuard | CWE-601 |
+| VS-CODE-012 | Session cookie protection switched off | medium | medium | potential | CodeGuard | CWE-1004, CWE-614 |
 | VS-AGENT-004 | Hidden Unicode characters in code or agent instructions | medium | high | potential | AgentShield | CWE-1007 |
 | VS-AGENT-001 | Instruction file tries to override agent safety or scope | medium | low | potential | AgentShield | CWE-1427 |
 | VS-AGENT-002 | Agent configuration disables permission prompts | high | medium | potential | AgentShield | CWE-250 |
@@ -146,6 +159,70 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
 
+### VS-DB-001: Database accepts connections without a password
+
+A setting lets a database accept logins with no password (PostgreSQL `trust`, or an allowed empty MySQL or MariaDB password).
+
+- **Fix:** Require a password from a secret store and use `scram-sha-256` for PostgreSQL.
+- **Verify:** A connection without a password is refused.
+- **False positives:** Throw-away databases in local development or CI that no other host can reach.
+
+### VS-DB-002: Database or search engine security switched off
+
+Redis protected mode, Elasticsearch or OpenSearch security, or MongoDB authorization is disabled.
+
+- **Fix:** Enable authentication and bind the service to a private network.
+- **Verify:** An unauthenticated request is refused.
+- **False positives:** Local development setups that no other host can reach.
+
+### VS-IAC-004: Database or storage exposed publicly
+
+A Terraform setting makes a database publicly accessible, or turns off a block on public storage access.
+
+- **Fix:** Keep databases in private networks and leave public access blocks enabled.
+- **Verify:** The plan shows public access disabled.
+- **False positives:** Buckets or databases that are public by documented design.
+
+### VS-IAC-005: Access granted to everyone
+
+A policy grants access to `*`, `allUsers` or `allAuthenticatedUsers`.
+
+- **Fix:** Name the accounts, roles or service principals that need access, or add a restricting condition.
+- **Verify:** The grant names specific principals.
+- **False positives:** Public website objects, and statements narrowed by a condition. Check the condition.
+
+### VS-K8S-004: Pod mounts a host path
+
+A `hostPath` volume exposes files of the node to the pod. A writable or sensitive path lets a compromised container take over the node.
+
+- **Fix:** Use a persistent volume, ConfigMap or emptyDir. If a node agent needs the path, mount it read-only and as narrowly as possible.
+- **Verify:** No `hostPath` volume remains, or the exception is documented and read-only.
+- **False positives:** Node agents such as log collectors that must read one specific path.
+
+### VS-K8S-005: Container adds a dangerous Linux capability
+
+Adding `ALL`, `SYS_ADMIN`, `SYS_MODULE`, `SYS_PTRACE` or `NET_ADMIN` gives the container powers close to root on the host.
+
+- **Fix:** Drop all capabilities and add only a narrow one the workload is shown to need.
+- **Verify:** The capability is gone from `add` or `cap_add` and the workload still runs.
+- **False positives:** Network and storage agents that need the capability.
+
+### VS-K8S-006: RBAC role grants a wildcard
+
+A Role or ClusterRole lists `*` as a verb or resource, which grants far more than a workload needs.
+
+- **Fix:** List the exact verbs and resources, and prefer a namespaced Role.
+- **Verify:** No `*` remains in `verbs` or `resources`.
+- **False positives:** Cluster administration roles that are bound only to operators.
+
+### VS-COMPOSE-001: Compose service has host-level access
+
+`privileged: true`, host network or PID mode, or a mounted Docker socket lets the service control the host.
+
+- **Fix:** Remove the setting. If a tool needs the Docker API, put a filtering proxy in front of the socket.
+- **Verify:** The setting is gone and the service still starts.
+- **False positives:** Local development tools that manage containers by design.
+
 ### VS-CICD-001: GitHub Action not pinned to a commit SHA
 
 A third-party action is referenced by a mutable tag or branch. If the tag is moved or the publisher is compromised, the workflow runs attacker-controlled code.
@@ -170,9 +247,9 @@ A workflow triggered by `pull_request_target` runs with repository secrets and a
 - **Verify:** No `write-all` remains and the workflow still passes.
 - **False positives:** None expected; the setting is explicit.
 
-### VS-CICD-004: Untrusted GitHub context interpolated into a shell step
+### VS-CICD-004: Untrusted GitHub context interpolated into a script step
 
-Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands.
+Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` or `actions/github-script` script. A crafted value can inject commands.
 
 - **Fix:** Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `"$TITLE"` in the script.
 - **Verify:** The expression no longer appears inside a `run:` body.
@@ -305,6 +382,46 @@ Assigning strings to HTML sinks can cause cross-site scripting if the content in
 - **Fix:** Use `textContent` or the framework's escaped bindings. If HTML is required, sanitise with a vetted library.
 - **Verify:** Sink removed or input proven sanitised; test with a `<script>` payload.
 - **False positives:** Constant markup or content already sanitised.
+
+### VS-CODE-008: Request data used as a database query (NoSQL injection)
+
+A request object is passed straight into a query, or text is built into a `$where` clause. An attacker can send operators such as `$ne` or script and change what the query matches.
+
+- **Fix:** Pick the expected fields, check their type, and avoid `$where`.
+- **Verify:** Send an object where a string is expected and confirm it is rejected.
+- **False positives:** Input already validated against a schema before this line.
+
+### VS-CODE-009: Request data used as a file path (path traversal)
+
+A file is opened, sent or deleted using a request value, so `../` sequences can reach files outside the intended folder.
+
+- **Fix:** Resolve the path and require it to stay inside an allowed folder, or map an id to a known file name.
+- **Verify:** Request `../` and an absolute path and confirm both are refused.
+- **False positives:** Values already reduced to a base name or checked against an allow list.
+
+### VS-CODE-010: Request data used as an outbound URL (SSRF)
+
+The server fetches a URL taken from the request, which can reach internal services and cloud metadata endpoints.
+
+- **Fix:** Allow only known hosts, resolve and block private address ranges, and do not follow redirects to them.
+- **Verify:** Request a loopback or link-local address and confirm it is refused.
+- **False positives:** A value checked against an allow list before this line.
+
+### VS-CODE-011: Redirect target taken from the request (open redirect)
+
+The redirect destination comes from the request, so a link to this site can send people to an attacker's site.
+
+- **Fix:** Redirect to relative paths or to an allow list of destinations.
+- **Verify:** Request an external destination and confirm it is refused.
+- **False positives:** A value validated as a local path before this line.
+
+### VS-CODE-012: Session cookie protection switched off
+
+`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.
+
+- **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
+- **Verify:** The Set-Cookie response header carries HttpOnly and Secure.
+- **False positives:** Cookies that scripts must read, or settings used only for local development.
 
 ### VS-AGENT-004: Hidden Unicode characters in code or agent instructions
 

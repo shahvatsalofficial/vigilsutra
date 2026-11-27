@@ -126,6 +126,30 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 
 In the GitHub Action, pull request and merge queue runs read `.vigilsutra.yml` from the base commit, so a pull request cannot loosen its own gate. A policy change takes effect after it is merged. If the base commit or its policy file cannot be read, the built-in defaults apply. Protect the workflow file itself with branch rules or `CODEOWNERS`. In another CI system, pass the base branch copy with `--policy <file>`.
 
+## Custom rules
+
+Keep project-specific patterns in a JSON file and name it with `--rules`. The file is never read from the scanned project on its own, because a slow regular expression can stall a scan. In CI, take it from a trusted branch.
+
+```json
+{
+  "rules": [
+    {
+      "id": "VS-CUSTOM-001",
+      "title": "Internal service token",
+      "severity": "high",
+      "pattern": "\\b(itk_[a-z0-9]{20})\\b",
+      "secretGroup": 1,
+      "files": ["src/**"],
+      "tests": { "match": ["t = itk_aaaaaaaaaaaaaaaaaaaa"], "noMatch": ["t = itk_short"] }
+    }
+  ]
+}
+```
+
+Check the examples with `vigilsutra rules test rules.json`. Set `secretGroup` for secrets so the value is redacted. Custom findings appear in every report; the SARIF rule descriptions cover built-in rules only.
+
+Set `SOURCE_DATE_EPOCH` (seconds) to get byte-identical reports and SBOM from the same input.
+
 Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error, or an incomplete scan with `--fail-on`.
 
 ## What it checks (feature matrix)
@@ -136,6 +160,9 @@ Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `
 | Git history of those secret rules, from git objects, SHA-1 or SHA-256, until the time limit. Blobs over 1 MiB are skipped | | **Implemented** (`--no-history` skips it) |
 | Hidden Unicode in code and agent instruction files; SARIF severity scores and rule links; job summary in the Action | | **Implemented** |
 | GitHub Actions: unpinned actions, `pull_request_target` checkout, `write-all`, expression injection | `VS-CICD-001..004` | **Implemented** |
+| Request data used on the same line as a query, file path, outbound URL or redirect; weak cookie flags (JavaScript, TypeScript, Python) | `VS-CODE-008..012` | **Implemented** (same line only) |
+| Databases without a password or with security off; public databases and storage; access granted to everyone | `VS-DB-001..002`, `VS-IAC-004..005` | **Implemented** |
+| Host paths, dangerous capabilities, RBAC wildcards, host-level Docker Compose settings | `VS-K8S-004..006`, `VS-COMPOSE-001` | **Implemented** |
 | Docker: root user, `:latest`, `curl \| sh` | `VS-DOCKER-001..003` | **Implemented** |
 | Kubernetes: privileged, host namespaces, root / privilege escalation | `VS-K8S-001..003` | **Implemented** |
 | Terraform / IaC: open CIDR, public ACL, wildcard IAM | `VS-IAC-001..003` | **Implemented** |
@@ -216,7 +243,7 @@ VigilSutra is a lightweight first pass, not a replacement for mature scanners. U
 
 **Is it a penetration-testing tool?** No. It reads files only. It does not probe live systems, exploit anything or test credentials.
 
-**Does a clean report mean my project is secure?** No. It means the 43 implemented rules found nothing inside this scan. Auth design, mobile apps, and runtime state are not assessed. The advisory snapshot can be older than a vulnerability published after 2026-11-07. Name tracking stops at object fields, dynamic imports, and function returns.
+**Does a clean report mean my project is secure?** No. It means the 56 implemented rules found nothing inside this scan. Auth design, mobile apps, and runtime state are not assessed. The advisory snapshot can be older than a vulnerability published after 2026-11-07. Name tracking stops at object fields, dynamic imports, and function returns.
 
 **Will it find secrets in git history?** It reads commits reachable from HEAD, SHA-1 or SHA-256, without running `git`, until the time limit. A blob over 1 MiB is skipped. A secret of a type with no rule can still be missed. If a secret was ever committed, rotate it regardless of what the scan says.
 

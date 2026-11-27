@@ -23,7 +23,7 @@ export const DIAGRAMS = {
       box(10, 50, 130, 72, "1 Resolve", "real path of the root", "a"),
       box(165, 50, 130, 72, "2 Inventory", "walk files, skip links", "a"),
       box(320, 50, 130, 72, "3 Filter", "ignore, size, binary", "a"),
-      box(475, 50, 130, 72, "4 Check", "43 rules per file", "a"),
+      box(475, 50, 130, 72, "4 Check", "56 rules per file", "a"),
       box(630, 50, 130, 72, "5 Redact", "secrets removed first", "ok"),
       box(785, 50, 125, 72, "6 Report", "md, html, json, sarif", "ok"),
       arrow("M140 86H165"), arrow("M295 86H320"), arrow("M450 86H475"), arrow("M605 86H630"), arrow("M760 86H785"),

@@ -5,7 +5,7 @@ import { codeRules } from "./code.js";
 import { agentPrivacyRules, processRules } from "./agents-privacy.js";
 import { supplyRules } from "./supply.js";
 
-export const RULES_VERSION = "1.3.0";
+export const RULES_VERSION = "1.6.0";
 
 export const ALL_RULES: Rule[] = [...secretRules, ...infraRules, ...codeRules, ...agentPrivacyRules, ...processRules, ...supplyRules];
 

@@ -30,7 +30,7 @@ runs:
       run: |
         set -eu
         reports="$(mktemp -d)"
-        args=(audit "$VS_PATH" --fail-on "$VS_FAIL" --format sarif --out vigilsutra.sarif --report-dir "$reports")
+        args=(audit "$VS_PATH" --fail-on "$VS_FAIL" --format sarif --out vigilsutra.sarif --report-dir "$reports" --annotate)
         if [ "$VS_HISTORY" != "true" ]; then
           args+=(--no-history)
         fi

@@ -8,8 +8,9 @@ import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.
 import { readComponents } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
-import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, type Policy } from "./policy.js";
+import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, waiverCovers, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
+import { stamp } from "./clock.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
 export const VERSION = "0.4.2";
@@ -35,6 +36,8 @@ export interface AuditOptions {
   advisoriesFile?: string;
   /** Skip advisory matching. */
   advisories?: boolean;
+  /** Rules from a file the caller named; see custom-rules.ts. */
+  extraRules?: Rule[];
 }
 
 function sha(s: string): string {
@@ -179,7 +182,8 @@ export function audit(opts: AuditOptions): ScanResult {
   extraNotes.push(opened.note);
   let capped = 0;
   const disabled = new Set(policy.disableRules.map((r) => r.toUpperCase()));
-  const rules = ALL_RULES.filter((r) => !disabled.has(r.id));
+  const rules = ALL_RULES.concat(opts.extraRules ?? []).filter((r) => !disabled.has(r.id));
+  if (opts.extraRules?.length) extraNotes.push(`${opts.extraRules.length} custom rule(s) from --rules were applied.`);
   const generated = makeIgnoreMatcher(SECRETS_ONLY);
   const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
 
@@ -227,7 +231,8 @@ export function audit(opts: AuditOptions): ScanResult {
         const key = `${hit.excerpt ?? ""}`;
         const n = seen.get(key) ?? 0;
         seen.set(key, n + 1);
-        findings.push(toFinding(rule, file, hit, n, lineSecrets.get(hit.line) ?? []));
+        const noted = file.note ? { ...hit, note: [hit.note, file.note].filter(Boolean).join(" ") } : hit;
+        findings.push(toFinding(rule, file, noted, n, lineSecrets.get(hit.line) ?? []));
       }
     }
   }
@@ -267,7 +272,9 @@ export function audit(opts: AuditOptions): ScanResult {
       suppressed++;
       return false;
     }
-    const waiver = policy.waivers.find((w) => w.ruleId === f.ruleId && w.path === f.path);
+    const waiver = policy.waivers.filter((w) => waiverCovers(w, f.ruleId, f.path, f.startLine))
+      // An expired waiver must not shadow a current one for the same finding.
+      .sort((a, b) => (a.until < b.until ? 1 : -1))[0];
     if (!waiver) return true;
     if (waiver.until < today) {
       waiversExpired++;
@@ -322,7 +329,7 @@ export function audit(opts: AuditOptions): ScanResult {
   return {
     schemaVersion: "1.0",
     tool: { name: "vigilsutra", version: VERSION, rulesVersion: RULES_VERSION },
-    generatedAt: new Date().toISOString(),
+    generatedAt: stamp(),
     mode: "local",
     project: { name: basename(root), detected: detectProject(inv.files) },
     scope: inv.stats,

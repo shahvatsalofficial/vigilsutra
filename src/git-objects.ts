@@ -340,6 +340,12 @@ function commitTree(obj: GitObj): string | null {
   return m ? m[1] : null;
 }
 
+/** Committer date as YYYY-MM-DD. Author names and addresses are not copied into reports. */
+function commitDate(obj: GitObj): string | null {
+  const m = /^committer [^\n]*> (\d{1,11}) [+-]\d{4}$/m.exec(obj.data.toString("utf8"));
+  return m ? new Date(Number(m[1]) * 1000).toISOString().slice(0, 10) : null;
+}
+
 function commitParents(obj: GitObj): string[] {
   const out: string[] = [];
   for (const line of obj.data.toString("utf8").split("\n")) {
@@ -395,6 +401,7 @@ export function scanHistory(scanRoot: string, ignore: string[], current: Map<str
   const seenCommits = new Set<string>();
   const seenBlobs = new Set<string>();
   const queue = [head];
+  let inHead: Map<string, string> | undefined;
   const files: ScannedFile[] = [];
   let capped = false;
   while (queue.length) {
@@ -411,6 +418,7 @@ export function scanHistory(scanRoot: string, ignore: string[], current: Map<str
     const tree = commitTree(commit);
     if (!tree) continue;
     const blobs = flatten(store, tree, "");
+    inHead ??= blobs; // the first commit read is HEAD
     for (const [path, blobSha] of blobs) {
       if (prefix && !path.startsWith(prefix)) continue;
       const rel = prefix ? path.slice(prefix.length) : path;
@@ -423,7 +431,9 @@ export function scanHistory(scanRoot: string, ignore: string[], current: Map<str
       if (!obj || obj.type !== "blob" || obj.data.length > HISTORY_MAX_BLOB_BYTES) continue;
       const text = decodeText(obj.data);
       if (text === null || text === current.get(rel)) continue; // UTF-16 files do not match by blob hash
-      files.push(virtualFile(`git-history/${sha.slice(0, 12)}/${rel}`, text));
+      const date = commitDate(commit);
+      const note = `Newest commit holding this version: ${sha.slice(0, 12)}${date ? `, ${date}` : ""}. The file ${inHead.has(path) ? "still exists" : "no longer exists"} in HEAD. Deleting does not remove history: rotate any secret at the provider.`;
+      files.push({ ...virtualFile(`git-history/${sha.slice(0, 12)}/${rel}`, text), note });
     }
   }
   const notes = [...store.notes];

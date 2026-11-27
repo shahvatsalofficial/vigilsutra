@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { audit, exceeds, VERSION } from "./engine.js";
 import { loadPolicy } from "./policy.js";
 import { render, FORMATS, type Format } from "./reporters/index.js";
@@ -9,6 +9,9 @@ import { ADAPTERS, PACKAGE_ROOT, installAdapter, planAdapter, uninstallAdapter, 
 import { locateGit } from "./git-objects.js";
 import { cycloneDx, readComponents } from "./components.js";
 import { applyFixes, planFixes } from "./fix.js";
+import { closest } from "./suggest.js";
+import { loadCustomRules, testCustomRules } from "./custom-rules.js";
+import { annotations } from "./reporters/annotations.js";
 import { SEVERITY_ORDER, type ScanResult, type Severity } from "./types.js";
 
 const HELP = `VigilSutra AI ${VERSION} - offline, read-only security & privacy auditor. Created by Vatsal Shah (https://shahvatsal.com).
@@ -32,6 +35,8 @@ Commands:
       --no-advisories     Do not match the shipped advisory snapshot
       --advisories <file> Match this advisory snapshot instead of the shipped one
       --no-color          Plain output (also honours NO_COLOR)
+      --rules <file>      Also apply custom rules from this JSON file (never read from the project on its own)
+      --annotate          Also print GitHub Actions annotations; use with --out
   report [path]           Same scan as audit. Always writes report.md and report.html (plus JSON and SARIF)
   sbom [path]             Write a CycloneDX 1.6 JSON SBOM of pinned npm, PyPI and Go components
       --out <file>        Write the SBOM to a file instead of stdout
@@ -40,8 +45,10 @@ Commands:
   baseline [path] --out <file>   Record current findings as an accepted baseline
   verify [path] --previous <results.json>   Re-scan and compare with an earlier JSON result
   rules list              List implemented rules
+  rules test <file>       Run the examples in a custom rules file
   explain <RULE-ID>       Show rule details, fix and false-positive notes
   doctor                  Environment and offline-readiness check
+  completion <shell>      Print a completion script for bash, zsh or powershell
   init [path]             Create .vigilsutra.yml if absent (never overwrites)
       --hook              Also install templates/pre-commit as .git/hooks/pre-commit if that hook is absent
   adapters list           Show adapter status
@@ -57,9 +64,11 @@ interface Args {
   flags: Map<string, string | true>;
 }
 
-const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories"]);
+const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters", "completion"];
 
-const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run"]);
+const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories", "rules"]);
+
+const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run", "annotate"]);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -71,7 +80,10 @@ function parse(argv: string[]): Args {
       const name = eq < 0 ? a : a.slice(0, eq);
       const k = name === "-h" ? "help" : name.slice(2);
       // A mistyped flag must stop the run: ignoring it could silently disable a CI gate.
-      if (name !== "-h" && (!name.startsWith("--") || !(VALUE_FLAGS.has(k) || BOOL_FLAGS.has(k)))) throw new Error(`unknown option "${name}". Run: vigilsutra --help`);
+      if (name !== "-h" && (!name.startsWith("--") || !(VALUE_FLAGS.has(k) || BOOL_FLAGS.has(k)))) {
+        const near = closest(k, [...VALUE_FLAGS, ...BOOL_FLAGS]);
+        throw new Error(`unknown option "${name}".${near ? ` Did you mean --${near}?` : ""} Run: vigilsutra --help`);
+      }
       if (VALUE_FLAGS.has(k)) {
         const v = eq < 0 ? argv[++i] : a.slice(eq + 1);
         if (!v || (eq < 0 && v.startsWith("--"))) throw new Error(`--${k} needs a value`);
@@ -85,6 +97,16 @@ function parse(argv: string[]): Args {
   return { pos, flags };
 }
 
+/** A completion script for the given shell, built from the command and option lists. */
+function completion(shell: string): string | null {
+  const words = [...COMMANDS, ...[...VALUE_FLAGS, ...BOOL_FLAGS].map((f) => `--${f}`)].join(" ");
+  if (shell === "bash") return `complete -o default -W "${words}" vigilsutra\n`;
+  if (shell === "zsh") return `autoload -U +X bashcompinit && bashcompinit\ncomplete -o default -W "${words}" vigilsutra\n`;
+  if (shell === "powershell")
+    return `Register-ArgumentCompleter -Native -CommandName vigilsutra -ScriptBlock {\n  param($word)\n  '${words}'.Split(' ') | Where-Object { $_ -like "$word*" }\n}\n`;
+  return null;
+}
+
 function policyOpts(flags: Map<string, string | true>): { policyFile?: string; ignoreProjectPolicy?: boolean } {
   const p = flags.get("policy");
   return { policyFile: typeof p === "string" ? resolve(p) : undefined, ignoreProjectPolicy: flags.has("no-policy") };
@@ -93,7 +115,9 @@ function policyOpts(flags: Map<string, string | true>): { policyFile?: string; i
 function auditOpts(root: string, flags: Map<string, string | true>) {
   const since = flags.get("since");
   const advisories = flags.get("advisories");
+  const rules = flags.get("rules");
   return {
+    extraRules: typeof rules === "string" ? loadCustomRules(resolve(rules)).map((c) => c.rule) : undefined,
     root,
     history: !flags.has("no-history"),
     since: typeof since === "string" ? since : undefined,
@@ -115,14 +139,24 @@ function checkRoot(p: string): string {
   return realpathSync(abs);
 }
 
-/** Writes report.md, report.html, results.json and results.sarif. The folder gets a .gitignore so reports are not committed by accident. */
-function writeReportFolder(dir: string, result: ScanResult): void {
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "report.md"), render(result, "markdown"));
-  writeFileSync(join(dir, "report.html"), render(result, "html"));
-  writeFileSync(join(dir, "results.json"), render(result, "json"));
-  writeFileSync(join(dir, "results.sarif"), render(result, "sarif"));
-  writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
+const REPORT_FILES: [string, Format][] = [["report.md", "markdown"], ["report.html", "html"], ["results.json", "json"], ["results.sarif", "sarif"]];
+/** Folders that are commonly deployed or published. */
+const PUBLISHED = new Set(["docs", "public", "static", "site", "www", "dist", "build", "out"]);
+
+/**
+ * Writes report.md, report.html, results.json and results.sarif, readable by the owner only.
+ * A folder that holds nothing else also gets a .gitignore so reports are not committed by accident.
+ */
+function writeReportFolder(dir: string, result: ScanResult, root: string): void {
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const ours = new Set([".gitignore", ...REPORT_FILES.map(([name]) => name)]);
+  const shared = readdirSync(dir).some((name) => !ours.has(name));
+  for (const [name, format] of REPORT_FILES) writeFileSync(join(dir, name), render(result, format), { mode: 0o600 });
+  // Never replace or add an ignore-everything file in a folder with other content, such as the project root.
+  if (shared) process.stderr.write(`Warning: ${dir} holds other files, so no .gitignore was written. Do not commit or publish the reports.\n`);
+  else writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
+  const top = relative(root, realpathSync(dir)).split(/[\\/]/)[0];
+  if (PUBLISHED.has(top)) process.stderr.write(`Warning: reports are inside "${top}/", which is often published. Choose another --report-dir.\n`);
 }
 
 function writeOut(file: string, data: string): void {
@@ -173,11 +207,12 @@ function main(): void {
         writeOut(out, render(result, format as Format, false));
         process.stderr.write(`Report written to ${out} (${result.summary.total} findings)\n`);
       } else process.stdout.write(render(result, format as Format, color));
+      if (flags.has("annotate")) process.stdout.write(annotations(result));
       // Readable reports are files, not only a terminal scrollback. Stdout stays the chosen format.
       const dirFlag = flags.get("report-dir");
       if (!flags.has("no-report")) {
         const dir = resolve(typeof dirFlag === "string" ? dirFlag : "vigilsutra-report");
-        writeReportFolder(dir, result);
+        writeReportFolder(dir, result, root);
         process.stderr.write(`Reports written to ${dir}\n  report.html  open this in a browser\n  report.md    Markdown version\n  results.json, results.sarif  for tools and CI\n`);
       }
       if (failOn && exceeds(result, failOn)) process.exit(1);
@@ -245,7 +280,16 @@ function main(): void {
       return;
     }
     case "rules": {
-      if (pos[0] !== "list") fail("usage: vigilsutra rules list");
+      if (pos[0] === "test" && pos[1]) {
+        const custom = loadCustomRules(resolve(pos[1]));
+        const failures = testCustomRules(custom);
+        for (const f of failures) process.stdout.write(`FAIL ${f}\n`);
+        const examples = custom.reduce((n, c) => n + c.match.length + c.noMatch.length, 0);
+        process.stdout.write(`${custom.length} rule(s), ${examples} example(s), ${failures.length} failure(s)\n`);
+        if (failures.length) process.exit(1);
+        return;
+      }
+      if (pos[0] !== "list") fail("usage: vigilsutra rules list | rules test <file>");
       process.stdout.write(`Rules version ${RULES_VERSION}: ${ALL_RULES.length} rules\n`);
       for (const r of ALL_RULES) process.stdout.write(`${r.id.padEnd(15)} ${r.severity.padEnd(8)} ${r.status.padEnd(13)} ${r.agent.padEnd(13)} ${r.title}\n`);
       return;
@@ -268,6 +312,12 @@ function main(): void {
           .filter((l, i, a) => l !== "" || a[i - 1] !== "")
           .join("\n") + "\n"
       );
+      return;
+    }
+    case "completion": {
+      const script = completion(pos[0] ?? "");
+      if (!script) fail("usage: vigilsutra completion <bash|zsh|powershell>");
+      process.stdout.write(script);
       return;
     }
     case "doctor": {
@@ -343,7 +393,10 @@ function main(): void {
       fail("usage: vigilsutra adapters list | install <claude|cursor|codex|gemini|copilot> | uninstall <claude|cursor|codex|gemini|copilot>");
     }
     default:
-      fail(`unknown command "${cmd}". Run: vigilsutra --help`);
+{
+      const near = closest(cmd, COMMANDS);
+      fail(`unknown command "${cmd}".${near ? ` Did you mean "${near}"?` : ""} Run: vigilsutra --help`);
+    }
   }
 }
 

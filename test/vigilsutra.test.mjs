@@ -194,6 +194,118 @@ test("SARIF carries severity scores and rule help links that match the docs head
   assert.ok(headings.includes(rule.helpUri.split("#")[1]), rule.helpUri);
 });
 
+test("a report folder with other files keeps its .gitignore", () => {
+  const root = project({ "a.js": "1", ".gitignore": "node_modules/\n" });
+  const r = cli(["audit", root, "--report-dir", root]);
+  assert.equal(r.status, 0);
+  assert.equal(readFileSync(join(root, ".gitignore"), "utf8"), "node_modules/\n");
+  assert.match(r.stderr, /no \.gitignore was written/);
+  const published = cli(["audit", root, "--report-dir", join(root, "docs", "audit")]);
+  assert.match(published.stderr, /often published/);
+  assert.match(readFileSync(join(root, "docs", "audit", ".gitignore"), "utf8"), /^\*$/m);
+});
+
+test("SOURCE_DATE_EPOCH gives byte-identical reports and SBOM", () => {
+  const root = project({ "a.js": "eval(x)", "package-lock.json": JSON.stringify({ packages: { "node_modules/a": { version: "1.0.0" } } }) });
+  const run = (args) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, SOURCE_DATE_EPOCH: "1700000000" } }).stdout;
+  for (const args of [["audit", root, "--format", "json", "--no-report"], ["sbom", root]]) {
+    const first = run(args);
+    assert.match(first, /2023-11-14T22:13:20/);
+    assert.equal(run(args), first);
+  }
+});
+
+test("typos get a suggestion", () => {
+  assert.match(cli(["audti"]).stderr, /Did you mean "audit"\?/);
+  assert.match(cli(["audit", ".", "--fail-onn=high"]).stderr, /Did you mean --fail-on\?/);
+  assert.doesNotMatch(cli(["zzzzzzzz"]).stderr, /Did you mean/);
+});
+
+test("workflow rules read github-script and pull request merge refs", () => {
+  const wf = (body) => ids(scan({ ".github/workflows/w.yml": body }));
+  const title = "${{ github.event.pull_request.title }}";
+  assert.ok(wf(`on: pull_request\njobs:\n  a:\n    steps:\n      - uses: actions/github-script@v7\n        with:\n          script: |\n            console.log("${title}")\n`).includes("VS-CICD-004"));
+  assert.ok(!wf(`jobs:\n  a:\n    steps:\n      - uses: some/other@v1\n        with:\n          script: "${title}"\n`).includes("VS-CICD-004"));
+  assert.ok(wf("on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: refs/pull/${{ github.event.number }}/merge\n").includes("VS-CICD-002"));
+});
+
+test("waivers take a wildcard, a line and a reason without widening a plain path", () => {
+  const files = { "a.js": "eval(x)\neval(y)", "sub/a.js": "eval(z)", "gen/b.js": "eval(w)" };
+  const left = (waiver) => scan({ ...files, ".vigilsutra.yml": `waivers:\n  - VS-CODE-001|${waiver}\n` }).findings.filter((f) => f.ruleId === "VS-CODE-001").map((f) => `${f.path}:${f.startLine}`).sort();
+  assert.deepEqual(left("a.js|ada|2099-01-01"), ["gen/b.js:1", "sub/a.js:1"]);
+  assert.deepEqual(left("a.js:2|ada|2099-01-01|legacy parser"), ["a.js:1", "gen/b.js:1", "sub/a.js:1"]);
+  assert.deepEqual(left("gen/**|ada|2099-01-01"), ["a.js:1", "a.js:2", "sub/a.js:1"]);
+  assert.throws(() => parsePolicy("waivers:\n  - VS-CODE-001|a.js|ada|2099-01-01|x|y\n"));
+});
+
+test("SBOM reads Cargo, Poetry, Composer and Bundler lockfiles", () => {
+  const root = project({
+    "Cargo.lock": '[[package]]\nname = "serde"\nversion = "1.0.1"\n',
+    "poetry.lock": '[[package]]\nname = "Django"\nversion = "3.2.0"\n\n[metadata]\nversion = "9"\n',
+    "composer.lock": JSON.stringify({ packages: [{ name: "a/b", version: "v2.0.0" }] }),
+    "Gemfile.lock": "GEM\n  specs:\n    rack (3.0.0)\n      dep (>= 1.0)\n"
+  });
+  const bom = cycloneDx(readComponents(root), "0");
+  for (const p of ["pkg:cargo/serde@1.0.1", "pkg:pypi/django@3.2.0", "pkg:composer/a/b@2.0.0", "pkg:gem/rack@3.0.0"]) assert.ok(bom.includes(`"${p}"`), p);
+  assert.equal(readComponents(root).length, 4);
+});
+
+test("history findings carry the commit date and whether the file survives", () => {
+  const root = project({ "old.js": `const t = "${GH}";`, "keep.js": "1" });
+  const git = (...a) => assert.equal(spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root, env: { ...process.env, GIT_COMMITTER_DATE: "2020-03-04T05:06:07Z" } }).status, 0);
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "one");
+  rmSync(join(root, "old.js"));
+  git("add", "-A");
+  git("commit", "-qm", "two");
+  const f = audit({ root }).findings.find((x) => x.ruleId === "VS-SECRET-003");
+  assert.match(f.note, /2020-03-04/);
+  assert.match(f.note, /no longer exists in HEAD/);
+  assert.ok(!f.note.includes("example.invalid"));
+});
+
+test("docs, rule counts and help match the code", () => {
+  const read = (p) => readFileSync(p, "utf8").replace(/\r/g, "");
+  const generated = spawnSync(process.execPath, ["docs/gen-rules.mjs"], { encoding: "utf8" }).stdout.replace(/\r/g, "");
+  assert.equal(read("docs/rules.md"), generated, "run: node docs/gen-rules.mjs > docs/rules.md");
+  assert.ok(read("README.md").includes(`the ${ALL_RULES.length} implemented rules`), "README rule count");
+  assert.ok(read("site/diagrams.mjs").includes(`"${ALL_RULES.length} rules per file"`), "site diagram rule count");
+  const help = cli(["--help"]).stdout;
+  for (const command of ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters", "completion"]) assert.match(help, new RegExp(`^  ${command}\\b`, "m"), command);
+});
+
+test("completion scripts list the commands and options", () => {
+  for (const shell of ["bash", "zsh", "powershell"]) {
+    const r = cli(["completion", shell]);
+    assert.equal(r.status, 0, shell);
+    assert.match(r.stdout, /audit .*--fail-on/);
+  }
+  assert.equal(cli(["completion", "fish"]).status, 2);
+});
+
+test("custom rules apply only with --rules, redact secrets and test their examples", () => {
+  const token = "itk_" + "a".repeat(20);
+  const rule = { id: "VS-CUSTOM-001", title: "Token", severity: "high", pattern: "\\b(itk_[a-z]{20})\\b", secretGroup: 1, files: ["src/**"], tests: { match: [token], noMatch: ["itk_short"] } };
+  const root = project({ "src/a.js": `const t = "${token}";`, "other/b.js": token, "rules.json": JSON.stringify({ rules: [rule] }), "bad.json": JSON.stringify({ rules: [{ ...rule, tests: { match: ["nothing"] } }] }), "evil.json": JSON.stringify({ rules: [{ ...rule, id: "VS-SECRET-001" }] }) });
+  assert.ok(!ids(audit({ root })).includes("VS-CUSTOM-001"));
+  const r = cli(["audit", root, "--rules", join(root, "rules.json"), "--format", "json", "--no-report", "--fail-on", "high"]);
+  assert.equal(r.status, 1);
+  const found = JSON.parse(r.stdout).findings.filter((f) => f.ruleId === "VS-CUSTOM-001");
+  assert.deepEqual(found.map((f) => f.path), ["src/a.js"]);
+  assert.ok(!r.stdout.includes(token), "secret must be redacted");
+  assert.equal(cli(["rules", "test", join(root, "rules.json")]).status, 0);
+  assert.equal(cli(["rules", "test", join(root, "bad.json")]).status, 1);
+  assert.equal(cli(["rules", "test", join(root, "evil.json")]).status, 2);
+});
+
+test("annotations escape file names and skip history paths", () => {
+  const root = project({ "a,b.js": "eval(x)" });
+  const r = cli(["audit", root, "--no-report", "--annotate", "--format", "sarif", "--out", join(root, "..", "out.sarif")]);
+  assert.match(r.stdout, /^::error file=a%2Cb\.js,line=1,title=VS-CODE-001::/m);
+  assert.doesNotMatch(r.stdout, /git-history/);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -206,6 +318,19 @@ test("every rule has metadata and unique id", () => {
 
 const PAIRS = [
   ["VS-AGENT-004", { "a.py": "x = 1  # " + String.fromCodePoint(0x2066) }, { "a.py": "x = 1  # plain" }],
+  ["VS-K8S-004", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  volumes:\n    - name: h\n      hostPath:\n        path: /\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  volumes:\n    - name: h\n      emptyDir: {}\n" }],
+  ["VS-K8S-005", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          add:\n            - SYS_ADMIN\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          drop:\n            - ALL\n" }],
+  ["VS-K8S-006", { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['']\n    resources:\n      - '*'\n    verbs: ['get']\n" }, { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['*']\n    resources: ['pods']\n    verbs: ['get']\n" }],
+  ["VS-COMPOSE-001", { "docker-compose.yml": "services:\n  a:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n" }, { "docker-compose.yml": "services:\n  a:\n    privileged: false\n" }],
+  ["VS-CODE-008", { "a.js": "db.users.find(req.body)" }, { "a.js": "db.users.find({ name: String(req.body.name) })" }],
+  ["VS-CODE-009", { "a.js": "fs.readFile(req.query.file, cb)" }, { "a.js": "fs.readFile(safePath(id), cb)" }],
+  ["VS-CODE-010", { "a.py": "requests.get(request.args['u'])" }, { "a.py": "requests.get(API_URL)" }],
+  ["VS-CODE-011", { "a.js": "res.redirect(302, req.query.next)" }, { "a.js": "res.redirect('/home')" }],
+  ["VS-CODE-012", { "a.js": "app.use(session({\n  cookie: {\n    httpOnly: false\n  }\n}))" }, { "a.js": "const options = { secure: false };" }],
+  ["VS-DB-001", { "docker-compose.yml": "    environment:\n      POSTGRES_HOST_AUTH_METHOD: trust\n" }, { "docker-compose.yml": "    environment:\n      POSTGRES_HOST_AUTH_METHOD: scram-sha-256\n" }],
+  ["VS-DB-002", { "redis.conf": "protected-mode no" }, { "redis.conf": "protected-mode yes\n# protected-mode no" }],
+  ["VS-IAC-004", { "m.tf": "  publicly_accessible = true" }, { "m.tf": "  publicly_accessible = false\n  block_public_acls = true" }],
+  ["VS-IAC-005", { "p.json": '{"Statement":[{"Effect":"Allow","Principal":"*"}]}' }, { "p.json": '{\n "Effect": "Deny",\n "Principal": "*"\n}' }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

@@ -1,4 +1,4 @@
-import type { Hit, Rule } from "../types.js";
+import type { Hit, Rule, ScannedFile } from "../types.js";
 import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock } from "./util.js";
 
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
@@ -6,7 +6,161 @@ const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" }
 const k8 = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
 const iac = { version: "1.0.0", category: "iac", agent: "InfraGuard" };
 
+const isCompose = (f: ScannedFile): boolean => isYaml(f) && /^(?:docker-)?compose(?:[.-].*)?\.ya?ml$/.test(f.name);
+const isRbac = (f: ScannedFile): boolean => isYaml(f) && /^[ \t]*kind:[ \t]*(?:Cluster)?Role[ \t]*$/m.test(f.text);
+
+/** The key that owns a YAML list line: the line itself, or the nearest key above its `- item` lines. */
+function listKey(f: ScannedFile, lineNo: number): string {
+  for (let i = lineNo - 1; i >= 0; i--) {
+    const key = /^\s*(?:-\s+)?([A-Za-z_]+):/.exec(f.lines[i]);
+    if (key) return key[1];
+    if (!/^\s*(?:-|#|$)/.test(f.lines[i])) break;
+  }
+  return "";
+}
+
+const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || /\.(?:env|conf|cfg|ini|properties|sh)$|^\.env/.test(f.name);
+
 export const infraRules: Rule[] = [
+  {
+    ...iac,
+    id: "VS-DB-001",
+    title: "Database accepts connections without a password",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-306"],
+    description: "A setting lets a database accept logins with no password (PostgreSQL `trust`, or an allowed empty MySQL or MariaDB password).",
+    remediation: "Require a password from a secret store and use `scram-sha-256` for PostgreSQL.",
+    falsePositives: "Throw-away databases in local development or CI that no other host can reach.",
+    verification: "A connection without a password is refused.",
+    applies: isDbConfig,
+    check: (f) => lineRule(f, /\bPOSTGRES_HOST_AUTH_METHOD["']?\s*[:=]\s*["']?trust\b|\b(?:MYSQL|MARIADB)?_?ALLOW_EMPTY(?:_ROOT)?_PASSWORD["']?\s*[:=]\s*["']?(?:yes|true|1)\b/i, { skipComments: true })
+  },
+  {
+    ...iac,
+    id: "VS-DB-002",
+    title: "Database or search engine security switched off",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-306"],
+    description: "Redis protected mode, Elasticsearch or OpenSearch security, or MongoDB authorization is disabled.",
+    remediation: "Enable authentication and bind the service to a private network.",
+    falsePositives: "Local development setups that no other host can reach.",
+    verification: "An unauthenticated request is refused.",
+    applies: isDbConfig,
+    check: (f) => lineRule(f, /^\s*protected-mode\s+no\b|\bxpack\.security\.enabled["']?\s*[:=]\s*["']?false\b|\bplugins\.security\.disabled["']?\s*[:=]\s*["']?true\b|^\s*authorization:\s*["']?disabled\b/, { skipComments: true })
+  },
+  {
+    ...iac,
+    id: "VS-IAC-004",
+    title: "Database or storage exposed publicly",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-284"],
+    description: "A Terraform setting makes a database publicly accessible, or turns off a block on public storage access.",
+    remediation: "Keep databases in private networks and leave public access blocks enabled.",
+    falsePositives: "Buckets or databases that are public by documented design.",
+    verification: "The plan shows public access disabled.",
+    applies: isTerraform,
+    check: (f) => lineRule(f, /^\s*(?:publicly_accessible|allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b|^\s*(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b/)
+  },
+  {
+    ...iac,
+    id: "VS-IAC-005",
+    title: "Access granted to everyone",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-732"],
+    description: "A policy grants access to `*`, `allUsers` or `allAuthenticatedUsers`.",
+    remediation: "Name the accounts, roles or service principals that need access, or add a restricting condition.",
+    falsePositives: "Public website objects, and statements narrowed by a condition. Check the condition.",
+    verification: "The grant names specific principals.",
+    applies: (f) => isTerraform(f) || f.ext === ".json" || isYaml(f),
+    check: (f) =>
+      lineRule(f, /["'](?:allUsers|allAuthenticatedUsers)["']|["']?Principal["']?\s*[:=]\s*(?:\{\s*["']?AWS["']?\s*[:=]\s*)?["']\*["']/, {
+        skipComments: true,
+        // A Deny statement for everyone is a guardrail.
+        filter: (_m, _line, lineNo) => !/\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/.test(enclosingBlock(f, lineNo).body)
+      })
+  },
+  {
+    ...k8,
+    id: "VS-K8S-004",
+    title: "Pod mounts a host path",
+    severity: "medium",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-668"],
+    description: "A `hostPath` volume exposes files of the node to the pod. A writable or sensitive path lets a compromised container take over the node.",
+    remediation: "Use a persistent volume, ConfigMap or emptyDir. If a node agent needs the path, mount it read-only and as narrowly as possible.",
+    falsePositives: "Node agents such as log collectors that must read one specific path.",
+    verification: "No `hostPath` volume remains, or the exception is documented and read-only.",
+    applies: isK8s,
+    check: (f) => lineRule(f, /^\s*(?:-\s+)?hostPath:\s*(?:\{|$)/)
+  },
+  {
+    ...k8,
+    id: "VS-K8S-005",
+    title: "Container adds a dangerous Linux capability",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-250"],
+    description: "Adding `ALL`, `SYS_ADMIN`, `SYS_MODULE`, `SYS_PTRACE` or `NET_ADMIN` gives the container powers close to root on the host.",
+    remediation: "Drop all capabilities and add only a narrow one the workload is shown to need.",
+    falsePositives: "Network and storage agents that need the capability.",
+    verification: "The capability is gone from `add` or `cap_add` and the workload still runs.",
+    applies: (f) => isK8s(f) || isCompose(f),
+    check: (f) =>
+      lineRule(f, /\b(?:ALL|SYS_ADMIN|SYS_MODULE|SYS_PTRACE|NET_ADMIN)\b/, {
+        skipComments: true,
+        filter: (_m, line, lineNo) => {
+          const inline = /\b(add|cap_add|drop|cap_drop):/.exec(line);
+          return ["add", "cap_add"].includes(inline ? inline[1] : listKey(f, lineNo));
+        }
+      })
+  },
+  {
+    ...k8,
+    id: "VS-K8S-006",
+    title: "RBAC role grants a wildcard",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-269"],
+    description: "A Role or ClusterRole lists `*` as a verb or resource, which grants far more than a workload needs.",
+    remediation: "List the exact verbs and resources, and prefer a namespaced Role.",
+    falsePositives: "Cluster administration roles that are bound only to operators.",
+    verification: "No `*` remains in `verbs` or `resources`.",
+    applies: isRbac,
+    check: (f) =>
+      lineRule(f, /["']\*["']/, {
+        skipComments: true,
+        filter: (_m, line, lineNo) => {
+          const inline = /\b(verbs|resources):/.exec(line);
+          return ["verbs", "resources"].includes(inline ? inline[1] : listKey(f, lineNo));
+        }
+      })
+  },
+  {
+    ...k8,
+    id: "VS-COMPOSE-001",
+    title: "Compose service has host-level access",
+    severity: "high",
+    confidence: "high",
+    status: "confirmed",
+    cwe: ["CWE-250"],
+    description: "`privileged: true`, host network or PID mode, or a mounted Docker socket lets the service control the host.",
+    remediation: "Remove the setting. If a tool needs the Docker API, put a filtering proxy in front of the socket.",
+    falsePositives: "Local development tools that manage containers by design.",
+    verification: "The setting is gone and the service still starts.",
+    applies: isCompose,
+    check: (f) => lineRule(f, /^\s*privileged:\s*true\b|^\s*(?:network_mode|pid):\s*["']?host\b|^\s*-\s*["']?\/var\/run\/docker\.sock:/)
+  },
   {
     ...wf,
     id: "VS-CICD-001",
@@ -44,7 +198,7 @@ export const infraRules: Rule[] = [
     applies: isWorkflow,
     check: (f) => {
       if (!/^[ \t]*pull_request_target[ \t]*:|\bon:[ \t]*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
-      return lineRule(f, /ref:\s*\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}/);
+      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
     }
   },
   {
@@ -65,12 +219,12 @@ export const infraRules: Rule[] = [
   {
     ...wf,
     id: "VS-CICD-004",
-    title: "Untrusted GitHub context interpolated into a shell step",
+    title: "Untrusted GitHub context interpolated into a script step",
     severity: "high",
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-78", "CWE-77"],
-    description: "Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands.",
+    description: "Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` or `actions/github-script` script. A crafted value can inject commands.",
     remediation: "Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `\"$TITLE\"` in the script.",
     falsePositives: "Fields restricted by GitHub to safe characters. Only matches inside run blocks are reported when detectable; verify context.",
     verification: "The expression no longer appears inside a `run:` body.",
@@ -80,13 +234,15 @@ export const infraRules: Rule[] = [
       let inRun = false;
       let runIndent = 0;
       f.lines.forEach((line, i) => {
-        const run = /^(\s*)(?:-\s*)?run:\s*(.*)$/.exec(line);
+        const found = /^(\s*)(?:-\s*)?(run|script):\s*(.*)$/.exec(line);
+        // `script:` is code only as an input of actions/github-script.
+        const run = found && (found[2] === "run" || lookBack(f, i + 1, 8, /uses:\s*["']?actions\/github-script@/)) ? found : null;
         const indent = line.search(/\S|$/);
         if (run) {
           inRun = true;
           runIndent = run[1].length;
-          if (run[2] && !/^[|>][-+]?$/.test(run[2])) {
-            if (risky(run[2])) hits.push({ line: i + 1, excerpt: line });
+          if (run[3] && !/^[|>][-+]?$/.test(run[3])) {
+            if (risky(run[3])) hits.push({ line: i + 1, excerpt: line });
             inRun = false;
           }
           return;

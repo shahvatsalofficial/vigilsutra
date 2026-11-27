@@ -30,6 +30,24 @@
 - The GitHub Action writes the Markdown report to the job summary.
 - Fixed: `VS-IAC-001` again ignores `aws_vpc_security_group_egress_rule` and similar egress resources.
 
+## Unreleased (reports, CLI and workflows)
+
+- Custom rules from a JSON file with `--rules`, and `vigilsutra rules test <file>`.
+- `--annotate` prints GitHub Actions annotations; the Action uses it, so findings show on pull request files.
+- New rules `VS-DB-001`, `VS-DB-002` (databases without authentication), `VS-IAC-004` (public database or storage) and `VS-IAC-005` (access granted to everyone). Rules version `1.6.0`, 56 rules.
+- `vigilsutra completion <bash|zsh|powershell>` prints a shell completion script.
+- Tests fail when rule docs, rule counts or the help text drift from the code.
+- New JavaScript, TypeScript and Python rules `VS-CODE-008` to `VS-CODE-012`: NoSQL injection, path traversal, SSRF, open redirect and weak cookie flags. They match request data used on the same line. Rules version `1.5.0`, 52 rules.
+- Findings from Git history state the commit date and whether the file still exists in HEAD.
+- New rules `VS-K8S-004` (hostPath), `VS-K8S-005` (dangerous capabilities), `VS-K8S-006` (RBAC wildcard) and `VS-COMPOSE-001` (host-level Compose settings). Rules version `1.4.0`, 47 rules.
+- Waivers accept a wildcard path, an optional `:line` and an optional reason.
+- The SBOM reads `Cargo.lock`, `poetry.lock`, `composer.lock` and `Gemfile.lock`. Advisory matching covers the Poetry packages (PyPI), not the other three ecosystems.
+- Fixed: `--report-dir` on a folder with other files, such as the project root, no longer overwrites its `.gitignore`.
+- Report files are readable by the owner only (POSIX), and a report folder inside a commonly published folder prints a warning.
+- `SOURCE_DATE_EPOCH` pins report and SBOM timestamps and the SBOM serial number, for byte-identical output.
+- Mistyped commands and options suggest the closest one.
+- `VS-CICD-002` reports checkout of `refs/pull/.../merge`. `VS-CICD-004` also reads `actions/github-script` scripts.
+
 ## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.

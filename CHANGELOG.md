@@ -32,6 +32,9 @@
 
 ## Unreleased (reports, CLI and workflows)
 
+- New rules `VS-DB-001`, `VS-DB-002` (databases without authentication), `VS-IAC-004` (public database or storage) and `VS-IAC-005` (access granted to everyone). Rules version `1.6.0`, 56 rules.
+- `vigilsutra completion <bash|zsh|powershell>` prints a shell completion script.
+- Tests fail when rule docs, rule counts or the help text drift from the code.
 - New JavaScript, TypeScript and Python rules `VS-CODE-008` to `VS-CODE-012`: NoSQL injection, path traversal, SSRF, open redirect and weak cookie flags. They match request data used on the same line. Rules version `1.5.0`, 52 rules.
 - Findings from Git history state the commit date and whether the file still exists in HEAD.
 - New rules `VS-K8S-004` (hostPath), `VS-K8S-005` (dangerous capabilities), `VS-K8S-006` (RBAC wildcard) and `VS-COMPOSE-001` (host-level Compose settings). Rules version `1.4.0`, 47 rules.

@@ -19,7 +19,74 @@ function listKey(f: ScannedFile, lineNo: number): string {
   return "";
 }
 
+const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || /\.(?:env|conf|cfg|ini|properties|sh)$|^\.env/.test(f.name);
+
 export const infraRules: Rule[] = [
+  {
+    ...iac,
+    id: "VS-DB-001",
+    title: "Database accepts connections without a password",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-306"],
+    description: "A setting lets a database accept logins with no password (PostgreSQL `trust`, or an allowed empty MySQL or MariaDB password).",
+    remediation: "Require a password from a secret store and use `scram-sha-256` for PostgreSQL.",
+    falsePositives: "Throw-away databases in local development or CI that no other host can reach.",
+    verification: "A connection without a password is refused.",
+    applies: isDbConfig,
+    check: (f) => lineRule(f, /\bPOSTGRES_HOST_AUTH_METHOD["']?\s*[:=]\s*["']?trust\b|\b(?:MYSQL|MARIADB)?_?ALLOW_EMPTY(?:_ROOT)?_PASSWORD["']?\s*[:=]\s*["']?(?:yes|true|1)\b/i, { skipComments: true })
+  },
+  {
+    ...iac,
+    id: "VS-DB-002",
+    title: "Database or search engine security switched off",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-306"],
+    description: "Redis protected mode, Elasticsearch or OpenSearch security, or MongoDB authorization is disabled.",
+    remediation: "Enable authentication and bind the service to a private network.",
+    falsePositives: "Local development setups that no other host can reach.",
+    verification: "An unauthenticated request is refused.",
+    applies: isDbConfig,
+    check: (f) => lineRule(f, /^\s*protected-mode\s+no\b|\bxpack\.security\.enabled["']?\s*[:=]\s*["']?false\b|\bplugins\.security\.disabled["']?\s*[:=]\s*["']?true\b|^\s*authorization:\s*["']?disabled\b/, { skipComments: true })
+  },
+  {
+    ...iac,
+    id: "VS-IAC-004",
+    title: "Database or storage exposed publicly",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-284"],
+    description: "A Terraform setting makes a database publicly accessible, or turns off a block on public storage access.",
+    remediation: "Keep databases in private networks and leave public access blocks enabled.",
+    falsePositives: "Buckets or databases that are public by documented design.",
+    verification: "The plan shows public access disabled.",
+    applies: isTerraform,
+    check: (f) => lineRule(f, /^\s*(?:publicly_accessible|allow_blob_public_access|allow_nested_items_to_be_public)\s*=\s*true\b|^\s*(?:block_public_acls|block_public_policy|ignore_public_acls|restrict_public_buckets)\s*=\s*false\b/)
+  },
+  {
+    ...iac,
+    id: "VS-IAC-005",
+    title: "Access granted to everyone",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-732"],
+    description: "A policy grants access to `*`, `allUsers` or `allAuthenticatedUsers`.",
+    remediation: "Name the accounts, roles or service principals that need access, or add a restricting condition.",
+    falsePositives: "Public website objects, and statements narrowed by a condition. Check the condition.",
+    verification: "The grant names specific principals.",
+    applies: (f) => isTerraform(f) || f.ext === ".json" || isYaml(f),
+    check: (f) =>
+      lineRule(f, /["'](?:allUsers|allAuthenticatedUsers)["']|["']?Principal["']?\s*[:=]\s*(?:\{\s*["']?AWS["']?\s*[:=]\s*)?["']\*["']/, {
+        skipComments: true,
+        // A Deny statement for everyone is a guardrail.
+        filter: (_m, _line, lineNo) => !/\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/.test(enclosingBlock(f, lineNo).body)
+      })
+  },
   {
     ...k8,
     id: "VS-K8S-004",

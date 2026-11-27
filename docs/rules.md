@@ -1,4 +1,4 @@
-# Rules (version 1.5.0)
+# Rules (version 1.6.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -16,6 +16,10 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-DB-001 | Database accepts connections without a password | high | high | potential | InfraGuard | CWE-306 |
+| VS-DB-002 | Database or search engine security switched off | high | medium | potential | InfraGuard | CWE-306 |
+| VS-IAC-004 | Database or storage exposed publicly | high | high | potential | InfraGuard | CWE-284 |
+| VS-IAC-005 | Access granted to everyone | high | medium | potential | InfraGuard | CWE-732 |
 | VS-K8S-004 | Pod mounts a host path | medium | high | potential | ContainerGuard | CWE-668 |
 | VS-K8S-005 | Container adds a dangerous Linux capability | high | medium | potential | ContainerGuard | CWE-250 |
 | VS-K8S-006 | RBAC role grants a wildcard | high | high | potential | ContainerGuard | CWE-269 |
@@ -154,6 +158,38 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
+
+### VS-DB-001: Database accepts connections without a password
+
+A setting lets a database accept logins with no password (PostgreSQL `trust`, or an allowed empty MySQL or MariaDB password).
+
+- **Fix:** Require a password from a secret store and use `scram-sha-256` for PostgreSQL.
+- **Verify:** A connection without a password is refused.
+- **False positives:** Throw-away databases in local development or CI that no other host can reach.
+
+### VS-DB-002: Database or search engine security switched off
+
+Redis protected mode, Elasticsearch or OpenSearch security, or MongoDB authorization is disabled.
+
+- **Fix:** Enable authentication and bind the service to a private network.
+- **Verify:** An unauthenticated request is refused.
+- **False positives:** Local development setups that no other host can reach.
+
+### VS-IAC-004: Database or storage exposed publicly
+
+A Terraform setting makes a database publicly accessible, or turns off a block on public storage access.
+
+- **Fix:** Keep databases in private networks and leave public access blocks enabled.
+- **Verify:** The plan shows public access disabled.
+- **False positives:** Buckets or databases that are public by documented design.
+
+### VS-IAC-005: Access granted to everyone
+
+A policy grants access to `*`, `allUsers` or `allAuthenticatedUsers`.
+
+- **Fix:** Name the accounts, roles or service principals that need access, or add a restricting condition.
+- **Verify:** The grant names specific principals.
+- **False positives:** Public website objects, and statements narrowed by a condition. Check the condition.
 
 ### VS-K8S-004: Pod mounts a host path
 

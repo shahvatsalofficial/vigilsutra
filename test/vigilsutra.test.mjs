@@ -265,6 +265,25 @@ test("history findings carry the commit date and whether the file survives", () 
   assert.ok(!f.note.includes("example.invalid"));
 });
 
+test("docs, rule counts and help match the code", () => {
+  const read = (p) => readFileSync(p, "utf8").replace(/\r/g, "");
+  const generated = spawnSync(process.execPath, ["docs/gen-rules.mjs"], { encoding: "utf8" }).stdout.replace(/\r/g, "");
+  assert.equal(read("docs/rules.md"), generated, "run: node docs/gen-rules.mjs > docs/rules.md");
+  assert.ok(read("README.md").includes(`the ${ALL_RULES.length} implemented rules`), "README rule count");
+  assert.ok(read("site/diagrams.mjs").includes(`"${ALL_RULES.length} rules per file"`), "site diagram rule count");
+  const help = cli(["--help"]).stdout;
+  for (const command of ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters", "completion"]) assert.match(help, new RegExp(`^  ${command}\\b`, "m"), command);
+});
+
+test("completion scripts list the commands and options", () => {
+  for (const shell of ["bash", "zsh", "powershell"]) {
+    const r = cli(["completion", shell]);
+    assert.equal(r.status, 0, shell);
+    assert.match(r.stdout, /audit .*--fail-on/);
+  }
+  assert.equal(cli(["completion", "fish"]).status, 2);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -286,6 +305,10 @@ const PAIRS = [
   ["VS-CODE-010", { "a.py": "requests.get(request.args['u'])" }, { "a.py": "requests.get(API_URL)" }],
   ["VS-CODE-011", { "a.js": "res.redirect(302, req.query.next)" }, { "a.js": "res.redirect('/home')" }],
   ["VS-CODE-012", { "a.js": "app.use(session({\n  cookie: {\n    httpOnly: false\n  }\n}))" }, { "a.js": "const options = { secure: false };" }],
+  ["VS-DB-001", { "docker-compose.yml": "    environment:\n      POSTGRES_HOST_AUTH_METHOD: trust\n" }, { "docker-compose.yml": "    environment:\n      POSTGRES_HOST_AUTH_METHOD: scram-sha-256\n" }],
+  ["VS-DB-002", { "redis.conf": "protected-mode no" }, { "redis.conf": "protected-mode yes\n# protected-mode no" }],
+  ["VS-IAC-004", { "m.tf": "  publicly_accessible = true" }, { "m.tf": "  publicly_accessible = false\n  block_public_acls = true" }],
+  ["VS-IAC-005", { "p.json": '{"Statement":[{"Effect":"Allow","Principal":"*"}]}' }, { "p.json": '{\n "Effect": "Deny",\n "Principal": "*"\n}' }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

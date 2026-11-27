@@ -43,6 +43,7 @@ Commands:
   rules list              List implemented rules
   explain <RULE-ID>       Show rule details, fix and false-positive notes
   doctor                  Environment and offline-readiness check
+  completion <shell>      Print a completion script for bash, zsh or powershell
   init [path]             Create .vigilsutra.yml if absent (never overwrites)
       --hook              Also install templates/pre-commit as .git/hooks/pre-commit if that hook is absent
   adapters list           Show adapter status
@@ -58,7 +59,7 @@ interface Args {
   flags: Map<string, string | true>;
 }
 
-const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters"];
+const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters", "completion"];
 
 const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories"]);
 
@@ -89,6 +90,16 @@ function parse(argv: string[]): Args {
     } else pos.push(a);
   }
   return { pos, flags };
+}
+
+/** A completion script for the given shell, built from the command and option lists. */
+function completion(shell: string): string | null {
+  const words = [...COMMANDS, ...[...VALUE_FLAGS, ...BOOL_FLAGS].map((f) => `--${f}`)].join(" ");
+  if (shell === "bash") return `complete -o default -W "${words}" vigilsutra\n`;
+  if (shell === "zsh") return `autoload -U +X bashcompinit && bashcompinit\ncomplete -o default -W "${words}" vigilsutra\n`;
+  if (shell === "powershell")
+    return `Register-ArgumentCompleter -Native -CommandName vigilsutra -ScriptBlock {\n  param($word)\n  '${words}'.Split(' ') | Where-Object { $_ -like "$word*" }\n}\n`;
+  return null;
 }
 
 function policyOpts(flags: Map<string, string | true>): { policyFile?: string; ignoreProjectPolicy?: boolean } {
@@ -284,6 +295,12 @@ function main(): void {
           .filter((l, i, a) => l !== "" || a[i - 1] !== "")
           .join("\n") + "\n"
       );
+      return;
+    }
+    case "completion": {
+      const script = completion(pos[0] ?? "");
+      if (!script) fail("usage: vigilsutra completion <bash|zsh|powershell>");
+      process.stdout.write(script);
       return;
     }
     case "doctor": {

@@ -168,6 +168,32 @@ test("HTML severity badges meet 4.5:1 contrast in both themes and filter without
   assert.doesNotMatch(html, /<script/i);
 });
 
+test("egress rule resources are not open ingress", () => {
+  assert.ok(!ids(scan({ "m.tf": 'resource "aws_vpc_security_group_egress_rule" "e" {\n  cidr_ipv4 = "0.0.0.0/0"\n}' })).includes("VS-IAC-001"));
+});
+
+test("hidden Unicode is reported and made visible; emoji and Indic joiners are not", () => {
+  const cp = (...n) => String.fromCodePoint(...n);
+  const bidi = scan({ "a.js": `const admin = false; // ${cp(0x202e)} }` }).findings.find((f) => f.ruleId === "VS-AGENT-004");
+  assert.equal(bidi.severity, "medium");
+  assert.match(bidi.excerpt, /<U\+202E>/);
+  const tags = scan({ "AGENTS.md": `Be helpful.${cp(0xe0041, 0xe0042)}` }).findings.find((f) => f.ruleId === "VS-AGENT-004");
+  assert.equal(tags.severity, "high");
+  assert.ok(ids(scan({ "CLAUDE.md": `run${cp(0x200b)}this` })).includes("VS-AGENT-004"));
+  const fine = { "AGENTS.md": `Flag ${cp(0x1f3f4, 0xe0067, 0xe0062, 0xe007f)} family ${cp(0x1f468, 0x200d, 0x1f469)} ${cp(0x915, 0x94d, 0x200d)}`, "a.js": `const s = "x${cp(0x200b)}y";` };
+  assert.ok(!ids(scan(fine)).includes("VS-AGENT-004"));
+});
+
+test("SARIF carries severity scores and rule help links that match the docs headings", () => {
+  const sarif = JSON.parse(render(scan({ "a.js": "eval(x)" }), "sarif"));
+  const run = sarif.runs[0];
+  const rule = run.tool.driver.rules.find((x) => x.id === "VS-CODE-001");
+  assert.ok(Number(rule.properties["security-severity"]) > 0);
+  assert.equal(run.automationDetails.id, "vigilsutra/");
+  const headings = readFileSync("docs/rules.md", "utf8").split(/\r?\n/).filter((l) => l.startsWith("### ")).map((l) => l.slice(4).toLowerCase().replace(/[^a-z0-9 _-]/g, "").replace(/ /g, "-"));
+  assert.ok(headings.includes(rule.helpUri.split("#")[1]), rule.helpUri);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -179,6 +205,7 @@ test("every rule has metadata and unique id", () => {
 });
 
 const PAIRS = [
+  ["VS-AGENT-004", { "a.py": "x = 1  # " + String.fromCodePoint(0x2066) }, { "a.py": "x = 1  # plain" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

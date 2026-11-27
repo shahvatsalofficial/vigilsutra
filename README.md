@@ -134,6 +134,7 @@ Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `
 |---|---|---|
 | Secrets: AWS key IDs, GitHub tokens, Slack tokens, private keys, hardcoded credentials, tracked `.env` files, JWT, npm tokens, Stripe secret keys, Google API keys, Azure storage keys, GitLab tokens | `VS-SECRET-001..012` | **Implemented** |
 | Git history of those secret rules, from git objects, SHA-1 or SHA-256, until the time limit. Blobs over 1 MiB are skipped | | **Implemented** (`--no-history` skips it) |
+| Hidden Unicode in code and agent instruction files; SARIF severity scores and rule links; job summary in the Action | | **Implemented** |
 | GitHub Actions: unpinned actions, `pull_request_target` checkout, `write-all`, expression injection | `VS-CICD-001..004` | **Implemented** |
 | Docker: root user, `:latest`, `curl \| sh` | `VS-DOCKER-001..003` | **Implemented** |
 | Kubernetes: privileged, host namespaces, root / privilege escalation | `VS-K8S-001..003` | **Implemented** |
@@ -215,7 +216,7 @@ VigilSutra is a lightweight first pass, not a replacement for mature scanners. U
 
 **Is it a penetration-testing tool?** No. It reads files only. It does not probe live systems, exploit anything or test credentials.
 
-**Does a clean report mean my project is secure?** No. It means the 42 implemented rules found nothing inside this scan. Auth design, mobile apps, and runtime state are not assessed. The advisory snapshot can be older than a vulnerability published after 2026-11-07. Name tracking stops at object fields, dynamic imports, and function returns.
+**Does a clean report mean my project is secure?** No. It means the 43 implemented rules found nothing inside this scan. Auth design, mobile apps, and runtime state are not assessed. The advisory snapshot can be older than a vulnerability published after 2026-11-07. Name tracking stops at object fields, dynamic imports, and function returns.
 
 **Will it find secrets in git history?** It reads commits reachable from HEAD, SHA-1 or SHA-256, without running `git`, until the time limit. A blob over 1 MiB is skipped. A secret of a type with no rule can still be missed. If a secret was ever committed, rotate it regardless of what the scan says.
 

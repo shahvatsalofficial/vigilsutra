@@ -1,6 +1,7 @@
 import type { Hit, Rule, ScannedFile } from "../types.js";
-import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock } from "./util.js";
+import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock, isCompositeAction } from "./util.js";
 
+const workflowOrAction = (f: ScannedFile): boolean => isWorkflow(f) || isCompositeAction(f);
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
 const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
 const k8 = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
@@ -22,6 +23,44 @@ function listKey(f: ScannedFile, lineNo: number): string {
 const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || /\.(?:env|conf|cfg|ini|properties|sh)$|^\.env/.test(f.name);
 
 export const infraRules: Rule[] = [
+  {
+    ...wf,
+    id: "VS-CICD-005",
+    title: "Workflow does not limit token permissions",
+    severity: "low",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-250"],
+    description: "The workflow declares no `permissions`, so its token gets the repository default, which may include write access.",
+    remediation: "Add `permissions: contents: read` at the top level and grant more to single jobs only where needed.",
+    falsePositives: "Repositories whose default token permission is already read-only.",
+    verification: "The workflow declares `permissions` and still passes.",
+    applies: isWorkflow,
+    check: (f) => {
+      if (/^[ \t]*permissions[ \t]*:/m.test(f.text)) return [];
+      const at = f.lines.findIndex((l) => /^jobs[ \t]*:/.test(l));
+      return at < 0 ? [] : [{ line: at + 1, excerpt: f.lines[at] }];
+    }
+  },
+  {
+    ...k8,
+    id: "VS-K8S-007",
+    title: "Workload sets no resource limits",
+    severity: "low",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-770"],
+    description: "No `limits` appear in the manifest, so one container can use all the CPU or memory of a node.",
+    remediation: "Set memory and CPU requests and limits for each container.",
+    falsePositives: "Clusters that apply defaults with a LimitRange. The check looks at the whole file, not each container.",
+    verification: "`kubectl describe pod` shows limits.",
+    applies: isK8s,
+    check: (f) => {
+      if (/\blimits[ \t]*:/.test(f.text)) return [];
+      const at = f.lines.findIndex((l) => /^\s*(?:-\s+)?containers\s*:/.test(l));
+      return at < 0 ? [] : [{ line: at + 1, excerpt: f.lines[at] }];
+    }
+  },
   {
     ...iac,
     id: "VS-DB-001",
@@ -173,7 +212,7 @@ export const infraRules: Rule[] = [
     remediation: "Pin third-party actions to a full 40-character commit SHA and keep a trailing comment with the version. Use Dependabot or Renovate to update pins.",
     falsePositives: "First-party `actions/*` references are lower risk; local `./` actions and Docker digests are skipped.",
     verification: "Every `uses:` line for a non-local action ends in @<40 hex>.",
-    applies: isWorkflow,
+    applies: workflowOrAction,
     check: (f) =>
       lineRule(f, /^\s*(?:-\s*)?uses:\s*([^\s#]+)/, {
         filter: (m) => {
@@ -186,19 +225,19 @@ export const infraRules: Rule[] = [
   {
     ...wf,
     id: "VS-CICD-002",
-    title: "pull_request_target workflow checks out pull-request code",
+    title: "Privileged workflow checks out pull-request code",
     severity: "high",
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-829", "CWE-94"],
-    description: "A workflow triggered by `pull_request_target` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.",
+    description: "A workflow triggered by `pull_request_target` or `workflow_run` runs with repository secrets and a write token. Checking out the PR head and then running its code lets an outside contributor execute code with those privileges.",
     remediation: "Use `pull_request` for untrusted code. If `pull_request_target` is required, do not check out or execute PR-controlled content, and keep permissions minimal.",
     falsePositives: "Workflows that check out the PR head but never build, run or source it (for example, labelling only).",
     verification: "Confirm no step after the checkout executes files from the PR head, or remove the head checkout.",
     applies: isWorkflow,
     check: (f) => {
-      if (!/^[ \t]*pull_request_target[ \t]*:|\bon:[ \t]*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
-      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
+      if (!/^[ \t]*(?:pull_request_target|workflow_run)[ \t]*:|\bon:[ \t]*\[?[^\n]*(?:pull_request_target|workflow_run)/m.test(f.text)) return [];
+      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|event\.workflow_run\.head_(?:sha|branch)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
     }
   },
   {
@@ -228,7 +267,7 @@ export const infraRules: Rule[] = [
     remediation: "Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `\"$TITLE\"` in the script.",
     falsePositives: "Fields restricted by GitHub to safe characters. Only matches inside run blocks are reported when detectable; verify context.",
     verification: "The expression no longer appears inside a `run:` body.",
-    applies: isWorkflow,
+    applies: workflowOrAction,
     check: (f) => {
       const hits: Hit[] = [];
       let inRun = false;

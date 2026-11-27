@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { audit, exceeds, VERSION } from "./engine.js";
+import { audit, contentKey, exceeds, VERSION } from "./engine.js";
 import { loadPolicy } from "./policy.js";
 import { render, FORMATS, type Format } from "./reporters/index.js";
 import { ALL_RULES, findRule, RULES_VERSION } from "./rules/index.js";
@@ -143,6 +143,16 @@ const REPORT_FILES: [string, Format][] = [["report.md", "markdown"], ["report.ht
 /** Folders that are commonly deployed or published. */
 const PUBLISHED = new Set(["docs", "public", "static", "site", "www", "dist", "build", "out"]);
 
+/** The `files` entries of the project's package.json, without leading `./`. */
+function packageFiles(root: string): string[] {
+  try {
+    const { files } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { files?: unknown };
+    return Array.isArray(files) ? files.filter((x): x is string => typeof x === "string").map((x) => x.replace(/^\.?\//, "")) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Writes report.md, report.html, results.json and results.sarif, readable by the owner only.
  * A folder that holds nothing else also gets a .gitignore so reports are not committed by accident.
@@ -156,6 +166,7 @@ function writeReportFolder(dir: string, result: ScanResult, root: string): void 
   if (shared) process.stderr.write(`Warning: ${dir} holds other files, so no .gitignore was written. Do not commit or publish the reports.\n`);
   else writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
   const top = relative(root, realpathSync(dir)).split(/[\\/]/)[0];
+  if (top && packageFiles(root).some((entry) => entry === top || entry.startsWith(`${top}/`))) process.stderr.write(`Warning: package.json "files" includes "${top}/", so the reports would be published with the package.\n`);
   if (PUBLISHED.has(top)) process.stderr.write(`Warning: reports are inside "${top}/", which is often published. Choose another --report-dir.\n`);
 }
 
@@ -225,7 +236,7 @@ function main(): void {
       const out = flags.get("out");
       if (typeof out !== "string") fail("baseline needs --out <file>");
       const result = audit(auditOpts(root, flags));
-      writeOut(out, JSON.stringify({ tool: "vigilsutra", version: VERSION, createdAt: result.generatedAt, fingerprints: result.findings.map((f) => f.fingerprint).sort() }, null, 2) + "\n");
+      writeOut(out, JSON.stringify({ tool: "vigilsutra", version: VERSION, createdAt: result.generatedAt, fingerprints: result.findings.map((f) => f.fingerprint).sort(), entries: result.findings.filter((f) => f.path !== "." && !f.path.startsWith("git-history/")).map((f) => ({ path: f.path, key: contentKey(f) })) }, null, 2) + "\n");
       process.stdout.write(`Baseline of ${result.findings.length} finding(s) written to ${out}\n`);
       return;
     }

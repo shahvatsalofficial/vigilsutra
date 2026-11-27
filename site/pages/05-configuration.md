@@ -58,7 +58,7 @@ vigilsutra baseline . --out .vigilsutra-baseline.json
 vigilsutra audit . --baseline .vigilsutra-baseline.json
 ```
 
-The summary keeps counting what is hidden ("16 suppressed by baseline"), so the debt stays visible. See [scenario 2](scenarios.html#scenario-2-adopt-it-on-a-legacy-repo-without-a-red-build).
+The summary keeps counting what is hidden ("16 suppressed by baseline"), so the debt stays visible. If a file is moved, its accepted findings stay accepted; a copy is still reported. See [scenario 2](scenarios.html#scenario-2-adopt-it-on-a-legacy-repo-without-a-red-build).
 
 ### Waivers
 

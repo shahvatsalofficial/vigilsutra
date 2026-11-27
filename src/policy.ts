@@ -114,7 +114,7 @@ function parseWaiver(item: string): Waiver {
   const [ruleId, target, owner, until, reason] = parts;
   const at = /^(.*):([1-9]\d*)$/.exec(target);
   const path = at ? at[1] : target;
-  if (!/^VS-[A-Z]+-\d{3}$/.test(ruleId)) throw new Error(`.vigilsutra.yml: waiver rule id "${ruleId}" is not a rule id`);
+  if (!/^VS-[A-Z0-9]+-\d{3}$/.test(ruleId)) throw new Error(`.vigilsutra.yml: waiver rule id "${ruleId}" is not a rule id`);
   if (!path || path.startsWith("/") || path.split("/").includes("..")) throw new Error(`.vigilsutra.yml: waiver path must stay inside the project`);
   if (!owner || owner.length > 80) throw new Error(`.vigilsutra.yml: waiver needs an owner`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || Number.isNaN(Date.parse(until + "T00:00:00Z"))) throw new Error(`.vigilsutra.yml: waiver until must be YYYY-MM-DD`);

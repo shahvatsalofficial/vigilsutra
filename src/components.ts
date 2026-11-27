@@ -8,6 +8,10 @@ export interface Component {
   name: string;
   version: string;
   path: string;
+  /** Subresource integrity string from an npm lockfile. */
+  integrity?: string;
+  /** Licence text as the lockfile states it. */
+  license?: string;
 }
 
 const MAX = 20 * 1024 * 1024;
@@ -68,12 +72,12 @@ export function readComponents(root: string, skip: (rel: string) => boolean = ()
     const lines = text.split(/\r?\n/);
     if (file === "package-lock.json" || file === "npm-shrinkwrap.json") {
       try {
-        const json = JSON.parse(text) as { packages?: Record<string, { version?: string; name?: string }>; dependencies?: Record<string, V1Dependency> };
+        const json = JSON.parse(text) as { packages?: Record<string, { version?: string; name?: string; integrity?: string; license?: unknown }>; dependencies?: Record<string, V1Dependency> };
         for (const [at, meta] of Object.entries(json.packages ?? {})) {
           if (!at || !meta.version) continue;
           const name = meta.name ?? at.split("node_modules/").pop();
           if (!name || name === at) continue;
-          add({ ecosystem: "npm", name, version: meta.version, path });
+          add({ ecosystem: "npm", name, version: meta.version, path, integrity: meta.integrity, license: typeof meta.license === "string" ? meta.license : undefined });
         }
         // Lockfile version 1 has only a nested dependency tree.
         const walk = (deps: Record<string, V1Dependency>) => {
@@ -145,6 +149,12 @@ function serial(components: Component[], version: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
+/** CycloneDX wants hexadecimal digests. Strings that are not a SHA integrity value are left out. */
+function hashes(integrity: string | undefined): { hashes?: { alg: string; content: string }[] } {
+  const m = /^sha(1|256|384|512)-([A-Za-z0-9+/]+={0,2})(?:\s|$)/.exec(typeof integrity === "string" ? integrity : "");
+  return m ? { hashes: [{ alg: `SHA-${m[1]}`, content: Buffer.from(m[2], "base64").toString("hex") }] } : {};
+}
+
 export function cycloneDx(components: Component[], version: string): string {
   const bom = {
     bomFormat: "CycloneDX",
@@ -161,6 +171,8 @@ export function cycloneDx(components: Component[], version: string): string {
       name: c.name,
       version: c.version,
       purl: purl(c),
+      ...hashes(c.integrity),
+      ...(c.license ? { licenses: [{ license: { name: c.license } }] } : {}),
       properties: [{ name: "vigilsutra:manifest", value: c.path }]
     }))
   };

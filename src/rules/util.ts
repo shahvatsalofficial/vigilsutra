@@ -7,6 +7,8 @@ export const isCode = (f: ScannedFile): boolean => CODE_EXT.has(f.ext);
 export const isJs = (f: ScannedFile): boolean => JS_EXT.has(f.ext);
 export const isPy = (f: ScannedFile): boolean => f.ext === ".py";
 export const isWorkflow = (f: ScannedFile): boolean => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f.path);
+/** A composite action: its steps use `uses:` and `run:` like a workflow job. */
+export const isCompositeAction = (f: ScannedFile): boolean => /^action\.ya?ml$/.test(f.name) && /^\s*using:\s*["']?composite\b/m.test(f.text);
 export const isDockerfile = (f: ScannedFile): boolean => /^dockerfile(\..+)?$/.test(f.name) || f.name.endsWith(".dockerfile");
 export const isYaml = (f: ScannedFile): boolean => f.ext === ".yaml" || f.ext === ".yml";
 export const isTerraform = (f: ScannedFile): boolean => f.ext === ".tf";

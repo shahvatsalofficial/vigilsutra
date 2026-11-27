@@ -71,9 +71,17 @@ function spansOf(text: string, secrets: string[]): [number, number][] {
   return spans;
 }
 
+/** Identity of a finding without its path, so a baseline can follow a moved file. */
+const contentKeys = new WeakMap<Finding, string>();
+export const contentKey = (f: Finding): string | undefined => contentKeys.get(f);
+
 function fingerprint(rule: Rule, path: string, hit: Hit, occurrence: number, spans: [number, number][]): string {
   const basis = redactAll(hit.excerpt ?? "", spans).replace(/\s+/g, " ").trim();
   return sha(`${rule.id}|${rule.version}|${path}|${basis}|${occurrence}`).slice(0, 32);
+}
+
+function pathless(rule: Rule, hit: Hit, occurrence: number, spans: [number, number][]): string {
+  return fingerprint(rule, "", hit, occurrence, spans);
 }
 
 function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: number, secrets: string[] = hit.secrets ?? []): Finding {
@@ -89,7 +97,7 @@ function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: num
   const excerpt = tidy(shown);
   const fp = fingerprint(rule, file.path, hit, occurrence, spans);
   const testCtx = file.path !== "." && isTestPath(file.path) && rule.category !== "process";
-  return {
+  const finding: Finding = {
     id: `${rule.id}-${fp.slice(0, 8)}`,
     fingerprint: fp,
     ruleId: rule.id,
@@ -116,6 +124,8 @@ function toFinding(rule: Rule, file: { path: string }, hit: Hit, occurrence: num
     note: testCtx ? [hit.note, "Located in a test, example, archived or vendored path; confidence lowered."].filter(Boolean).join(" ") : hit.note,
     ...(testCtx ? { pathContext: "test-or-example" as const } : {})
   };
+  contentKeys.set(finding, pathless(rule, hit, occurrence, spans));
+  return finding;
 }
 
 export function detectProject(files: ScannedFile[]): string[] {
@@ -132,10 +142,20 @@ export function detectProject(files: ScannedFile[]): string[] {
   return out;
 }
 
-export function loadBaseline(file: string): Set<string> {
-  const data = JSON.parse(readFileSync(file, "utf8")) as { fingerprints?: unknown };
+export interface Baseline {
+  fingerprints: Set<string>;
+  /** Accepted findings by content, used only when the original file is gone. */
+  entries: { path: string; key: string }[];
+}
+
+export function loadBaseline(file: string): Baseline {
+  const data = JSON.parse(readFileSync(file, "utf8")) as { fingerprints?: unknown; entries?: unknown };
   if (!Array.isArray(data.fingerprints)) throw new Error("baseline file has no fingerprints array");
-  return new Set(data.fingerprints.filter((x): x is string => typeof x === "string"));
+  const entries = Array.isArray(data.entries) ? (data.entries as { path?: unknown; key?: unknown }[]) : [];
+  return {
+    fingerprints: new Set(data.fingerprints.filter((x): x is string => typeof x === "string")),
+    entries: entries.filter((e): e is { path: string; key: string } => typeof e?.path === "string" && typeof e.key === "string")
+  };
 }
 
 export function audit(opts: AuditOptions): ScanResult {
@@ -185,7 +205,7 @@ export function audit(opts: AuditOptions): ScanResult {
   const rules = ALL_RULES.concat(opts.extraRules ?? []).filter((r) => !disabled.has(r.id));
   if (opts.extraRules?.length) extraNotes.push(`${opts.extraRules.length} custom rule(s) from --rules were applied.`);
   const generated = makeIgnoreMatcher(SECRETS_ONLY);
-  const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
+  const baseline: Baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : { fingerprints: new Set(), entries: [] };
 
   let findings: Finding[] = [];
   for (const file of files) {
@@ -268,7 +288,11 @@ export function audit(opts: AuditOptions): ScanResult {
   let waiversExpired = 0;
   const today = new Date().toISOString().slice(0, 10);
   findings = findings.filter((f) => {
-    if (baseline.has(f.fingerprint)) {
+    // A moved file: same content, and the accepted path no longer exists. Each entry covers one finding, so a copy is still reported.
+    const moved = baseline.entries.findIndex((e) => e.key === contentKeys.get(f) && f.path !== "." && !f.path.startsWith("git-history/") && !existsSync(join(root, e.path)));
+    const exact = baseline.fingerprints.has(f.fingerprint);
+    if (!exact && moved >= 0) baseline.entries.splice(moved, 1);
+    if (exact || moved >= 0) {
       suppressed++;
       return false;
     }

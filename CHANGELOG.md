@@ -11,6 +11,7 @@
 - UTF-16 files with a byte-order mark are scanned. A byte-order mark no longer breaks `.vigilsutra.yml`.
 - SBOM: scoped npm packages get a valid purl (`pkg:npm/%40scope/name@1.0.0`).
 - `fix --apply` no longer rewrites SHA-1, which protocols such as the WebSocket handshake require.
+- GitHub Action: pull request and merge queue runs use the base commit's `.vigilsutra.yml`, so a pull request cannot ignore its own findings.
 - Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
 
 ## 0.4.2 - 2026-11-24

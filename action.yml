@@ -26,10 +26,24 @@ runs:
         VS_PATH: ${{ inputs.path }}
         VS_FAIL: ${{ inputs.fail-on }}
         VS_HISTORY: ${{ inputs.history }}
+        VS_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
       run: |
         set -eu
         args=(audit "$VS_PATH" --fail-on "$VS_FAIL" --format sarif --out vigilsutra.sarif --no-report)
         if [ "$VS_HISTORY" != "true" ]; then
           args+=(--no-history)
+        fi
+        # A pull request must not loosen its own gate: take .vigilsutra.yml from the base commit.
+        # If the base commit or its policy file cannot be read, the built-in defaults apply.
+        if [ -n "${VS_BASE:-}" ]; then
+          git -C "$VS_PATH" cat-file -e "$VS_BASE^{commit}" 2>/dev/null ||
+            git -C "$VS_PATH" fetch --quiet --no-tags --depth=1 origin "$VS_BASE" ||
+            echo "::warning::VigilSutra could not fetch the base commit; the project policy is ignored."
+          trusted="$(mktemp)"
+          if git -C "$VS_PATH" show "$VS_BASE:./.vigilsutra.yml" >"$trusted" 2>/dev/null; then
+            args+=(--policy "$trusted")
+          else
+            args+=(--no-policy)
+          fi
         fi
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

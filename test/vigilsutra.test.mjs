@@ -82,6 +82,26 @@ test("scoped npm purl and SHA-1 left alone by fix", () => {
   assert.ok(readFileSync(join(root, "h.js"), "utf8").includes('createHash("sha1")'));
 });
 
+test("the action reads the policy from the base commit", { skip: process.platform === "win32" && !process.env.VS_BASH && "set VS_BASH to a POSIX bash" }, () => {
+  const root = project({ "a.js": "1" });
+  const git = (...a) => {
+    const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout.trim();
+  };
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "base");
+  const base = git("rev-parse", "HEAD");
+  writeFileSync(join(root, "a.js"), `const t = "${GH}";`);
+  writeFileSync(join(root, ".vigilsutra.yml"), "ignore:\n  - a.js\n");
+  const script = readFileSync("action.yml", "utf8").replace(/\r/g, "").split("      run: |\n")[1].replace(/^ {8}/gm, "");
+  const run = (VS_BASE) => spawnSync(process.env.VS_BASH || "bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_ACTION_PATH: resolve("."), VS_PATH: ".", VS_FAIL: "high", VS_HISTORY: "false", VS_BASE } });
+  assert.equal(run("").status, 0);
+  assert.equal(run(base).status, 1);
+  assert.equal(run("0".repeat(40)).status, 1); // unreadable base commit: defaults apply
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

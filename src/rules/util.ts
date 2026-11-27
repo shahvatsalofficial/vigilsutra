@@ -85,6 +85,36 @@ export function stripStrings(line: string): string {
   return line.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, '""');
 }
 
+const blockCache = new WeakMap<ScannedFile, { open: number[][]; end: Map<number, number> }>();
+
+/**
+ * The `{}` blocks around a line: the opener lines, outermost first, and the text of the innermost block.
+ * Braces are counted per line; comment lines are ignored.
+ */
+export function enclosingBlock(f: ScannedFile, line: number): { openers: string[]; body: string } {
+  let b = blockCache.get(f);
+  if (!b) {
+    const open: number[][] = [];
+    const end = new Map<number, number>();
+    const stack: number[] = [];
+    f.lines.forEach((text, i) => {
+      open.push(stack.slice(-8));
+      if (isCommentLine(text)) return;
+      for (const c of text) {
+        if (c === "{") stack.push(i);
+        else if (c === "}" && stack.length) end.set(stack.pop()!, i);
+      }
+    });
+    blockCache.set(f, (b = { open, end }));
+  }
+  const chain = b.open[line - 1] ?? [];
+  const inner = chain[chain.length - 1];
+  return {
+    openers: chain.map((i) => f.lines[i]),
+    body: inner === undefined ? "" : f.lines.slice(inner, (b.end.get(inner) ?? f.lines.length - 1) + 1).join("\n")
+  };
+}
+
 /** Looks back up to `n` lines (inclusive of the hit line) for a pattern. */
 export function lookBack(f: ScannedFile, line: number, n: number, re: RegExp): boolean {
   for (let i = Math.max(0, line - 1 - n); i <= line - 1; i++) if (re.test(f.lines[i] ?? "")) return true;

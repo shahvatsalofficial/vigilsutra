@@ -227,7 +227,7 @@ hostNetwork, hostPID or hostIPC removes namespace isolation between the pod and 
 
 ### VS-IAC-001: Security group or firewall open to the whole internet
 
-A Terraform rule allows 0.0.0.0/0 (or ::/0). Open ingress to administrative or database ports exposes them to internet scanning and attack.
+A Terraform rule allows 0.0.0.0/0, ::/0 or an Azure `*`/`Internet` source. Open ingress to administrative or database ports exposes them to internet scanning and attack.
 
 - **Fix:** Restrict CIDR ranges to known addresses or place the service behind a load balancer, VPN or bastion.
 - **Verify:** Ingress CIDRs are restricted or documented as intentionally public.

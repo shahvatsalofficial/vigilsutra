@@ -1,5 +1,5 @@
 import type { Hit, Rule } from "../types.js";
-import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack } from "./util.js";
+import { isDockerfile, isK8s, isTerraform, isWorkflow, isYaml, lineRule, lookBack, enclosingBlock } from "./util.js";
 
 const wf = { version: "1.0.0", category: "cicd", agent: "PipelineGuard" };
 const dk = { version: "1.0.0", category: "containers", agent: "ContainerGuard" };
@@ -219,18 +219,20 @@ export const infraRules: Rule[] = [
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-284"],
-    description: "A Terraform rule allows 0.0.0.0/0 (or ::/0). Open ingress to administrative or database ports exposes them to internet scanning and attack.",
+    description: "A Terraform rule allows 0.0.0.0/0, ::/0 or an Azure `*`/`Internet` source. Open ingress to administrative or database ports exposes them to internet scanning and attack.",
     remediation: "Restrict CIDR ranges to known addresses or place the service behind a load balancer, VPN or bastion.",
     falsePositives: "Intentionally public web ports (80/443) and egress rules. Review the port and direction.",
     verification: "Ingress CIDRs are restricted or documented as intentionally public.",
     applies: isTerraform,
     check: (f) =>
-      lineRule(f, /["'](?:0\.0\.0\.0\/0|::\/0)["']/, {
+      lineRule(f, /["'](?:0\.0\.0\.0\/0|::\/0)["']|\bsource_address_prefix(?:es)?\s*=\s*\[?\s*["'](?:\*|Internet)["']/, {
         skipComments: true,
         filter: (_m, line, lineNo) => {
-          // Routes and egress rules are not internet-facing ingress.
-          if (/destination_(?:ipv6_)?cidr_block/.test(line)) return false;
-          return !(lookBack(f, lineNo, 6, /^\s*(?:route|egress)\s*\{/) || lookBack(f, lineNo, 6, /type\s*=\s*["']egress["']|egress_/));
+          // Routes, egress rules and deny rules are not internet-facing ingress. Only the enclosing blocks count.
+          if (/destination_(?:ipv6_)?(?:cidr_block|address)|\begress\b|egress_/.test(line)) return false;
+          const { openers, body } = enclosingBlock(f, lineNo);
+          if (openers.some((o) => /^\s*(?:route|egress|deny)\b|egress_/.test(o))) return false;
+          return !/\btype\s*=\s*["']egress["']|\bdirection\s*=\s*["'](?:egress|outbound)["']|\baccess\s*=\s*["']deny["']|^\s*deny\s*\{/im.test(body);
         }
       })
   },
@@ -263,9 +265,20 @@ export const infraRules: Rule[] = [
     verification: "Wildcard replaced with an explicit action list.",
     applies: (f) => isTerraform(f) || f.ext === ".json" || isYaml(f),
     check: (f) =>
-      lineRule(f, /["']?(?:Action|actions)["']?\s*[:=]\s*(?:\[\s*)?["']\*["']/, {
-        // A Deny statement with a wildcard is a guardrail, not a grant.
-        filter: (_m, _line, lineNo) => !lookBack(f, lineNo, 4, /\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/)
+      lineRule(f, /["']\*["']/, {
+        filter: (_m, line, lineNo) => {
+          let isAction = /\b(?:Action|actions)["']?\s*[:=]\s*(?:\[[^\]]*)?["']\*["']/i.test(line);
+          // A `*` on its own line inside a multi-line action list.
+          for (let i = lineNo - 2; !isAction && !line.includes("=") && i >= 0 && !f.lines[i].includes("]"); i--) {
+            if (/\b(?:Action|actions)["']?\s*[:=]\s*\[/i.test(f.lines[i])) isAction = true;
+            else if (/[:=]\s*\[/.test(f.lines[i])) break;
+          }
+          if (!isAction) return false;
+          // A Deny statement with a wildcard is a guardrail, not a grant.
+          const deny = /\b[Ee]ffect["']?\s*[:=]\s*["']Deny["']/;
+          const { body } = enclosingBlock(f, lineNo);
+          return !(body ? deny.test(body) : lookBack(f, lineNo, 4, deny));
+        }
       })
   }
 ];

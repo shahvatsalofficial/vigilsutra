@@ -26,10 +26,6 @@ export interface Policy {
 export const DEFAULT_IGNORE = [
   "**/.git/**",
   "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/out/**",
-  "**/vendor/**",
   "**/.venv/**",
   "**/venv/**",
   "**/__pycache__/**",
@@ -37,11 +33,13 @@ export const DEFAULT_IGNORE = [
   "**/.next/**",
   "**/target/**",
   "**/vigilsutra-report/**",
-  "*.min.js",
   "package-lock.json",
   "yarn.lock",
   "pnpm-lock.yaml"
 ];
+
+/** Generated and vendored files ship to users, so secret rules read them. Every other rule skips them. */
+export const SECRETS_ONLY = ["**/dist/**", "**/build/**", "**/out/**", "**/vendor/**", "*.min.js"];
 
 export const DEFAULT_POLICY: Policy = {
   ignore: DEFAULT_IGNORE,

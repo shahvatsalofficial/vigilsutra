@@ -8,7 +8,7 @@ import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.
 import { readComponents } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
-import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, type Policy } from "./policy.js";
+import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
@@ -174,6 +174,7 @@ export function audit(opts: AuditOptions): ScanResult {
   let capped = 0;
   const disabled = new Set(policy.disableRules.map((r) => r.toUpperCase()));
   const rules = ALL_RULES.filter((r) => !disabled.has(r.id));
+  const generated = makeIgnoreMatcher(SECRETS_ONLY);
   const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
 
   let findings: Finding[] = [];
@@ -187,7 +188,9 @@ export function audit(opts: AuditOptions): ScanResult {
     const raw: { rule: Rule; hits: Hit[] }[] = [];
     // Every secret span found on a line is redacted from every finding that quotes that line.
     const lineSecrets = new Map<number, string[]>();
+    const secretsOnly = generated(file.path);
     for (const rule of rules) {
+      if (secretsOnly && rule.category !== "secrets") continue;
       let applies = false;
       try {
         applies = rule.applies(file);
@@ -225,7 +228,7 @@ export function audit(opts: AuditOptions): ScanResult {
 
   const advRule = findRule("VS-SUPPLY-004");
   if (advRule && opened.db && !disabled.has(advRule.id)) {
-    const matches = matchAdvisories(readComponents(root), opened.db);
+    const matches = matchAdvisories(readComponents(root, makeIgnoreMatcher(policy.ignore.slice(DEFAULT_POLICY.ignore.length))), opened.db);
     const shown = matches.slice(0, 500);
     if (matches.length > shown.length) extraNotes.push(`${matches.length - shown.length} advisory match(es) were not listed (cap 500).`);
     for (const m of shown) {

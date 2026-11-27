@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export interface Component {
@@ -23,8 +23,34 @@ function readText(root: string, rel: string): string | null {
   }
 }
 
+const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod"]);
+const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "vendor", ".venv", "venv", "__pycache__", "coverage", ".next", "target", "vigilsutra-report"]);
+
+/** Relative paths of manifests at any depth. Symlinks are not followed. */
+function findManifests(root: string, skip: (rel: string) => boolean, dir = "", depth = 0): string[] {
+  let entries;
+  try {
+    entries = readdirSync(join(root, dir), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const out: string[] = [];
+  for (const e of entries) {
+    const rel = dir ? `${dir}/${e.name}` : e.name;
+    if (e.isFile() && MANIFESTS.has(e.name) && !skip(rel)) out.push(rel);
+    if (e.isDirectory() && depth < 8 && !SKIP_DIRS.has(e.name) && !skip(rel + "/placeholder")) out.push(...findManifests(root, skip, rel, depth + 1));
+  }
+  return out;
+}
+
+interface V1Dependency {
+  version?: string;
+  dependencies?: Record<string, V1Dependency>;
+}
+
 /** Resolved components from lockfiles and pinned manifests. Ranges are skipped. Lockfiles are read even when the scan ignores them. */
-export function readComponents(root: string): Component[] {
+export function readComponents(root: string, skip: (rel: string) => boolean = () => false): Component[] {
   const out: Component[] = [];
   const seen = new Set<string>();
   const add = (c: Component) => {
@@ -34,51 +60,54 @@ export function readComponents(root: string): Component[] {
     seen.add(key);
     out.push(c);
   };
-  const lock = readText(root, "package-lock.json");
-  if (lock) {
-    try {
-      const json = JSON.parse(lock) as { packages?: Record<string, { version?: string; name?: string }> };
-      for (const [path, meta] of Object.entries(json.packages ?? {})) {
-        if (!path || !meta.version) continue;
-        const name = meta.name ?? path.split("node_modules/").pop();
-        if (!name || name === path) continue;
-        add({ ecosystem: "npm", name, version: meta.version, path: "package-lock.json" });
+  for (const path of findManifests(root, skip)) {
+    const text = readText(root, path);
+    if (!text) continue;
+    const file = path.split("/").pop()!;
+    const lines = text.split(/\r?\n/);
+    if (file === "package-lock.json" || file === "npm-shrinkwrap.json") {
+      try {
+        const json = JSON.parse(text) as { packages?: Record<string, { version?: string; name?: string }>; dependencies?: Record<string, V1Dependency> };
+        for (const [at, meta] of Object.entries(json.packages ?? {})) {
+          if (!at || !meta.version) continue;
+          const name = meta.name ?? at.split("node_modules/").pop();
+          if (!name || name === at) continue;
+          add({ ecosystem: "npm", name, version: meta.version, path });
+        }
+        // Lockfile version 1 has only a nested dependency tree.
+        const walk = (deps: Record<string, V1Dependency>) => {
+          for (const [name, meta] of Object.entries(deps)) {
+            add({ ecosystem: "npm", name, version: meta.version ?? "", path });
+            if (meta.dependencies) walk(meta.dependencies);
+          }
+        };
+        if (!json.packages) walk(json.dependencies ?? {});
+      } catch {
+        /* not a lockfile */
       }
-    } catch {
-      /* not a lockfile */
-    }
-  }
-  const req = readText(root, "requirements.txt");
-  if (req) {
-    for (const line of req.split(/\n/)) {
-      const m = /^\s*([A-Za-z0-9_.-]+)\s*==\s*([0-9][^\\\s]*)/.exec(line);
-      if (m) add({ ecosystem: "pypi", name: m[1], version: m[2], path: "requirements.txt" });
-    }
-  }
-  const yarn = readText(root, "yarn.lock");
-  if (yarn) {
-    let name = "";
-    for (const line of yarn.split(/\n/)) {
-      if (!line.startsWith(" ") && !line.startsWith("\t")) {
-        const head = /^"?(@?[^@"\s]+)@/.exec(line);
-        if (head) name = head[1];
+    } else if (file === "requirements.txt") {
+      for (const line of lines) {
+        const m = /^\s*([A-Za-z0-9_.-]+)\s*==\s*([0-9][^\\\s]*)/.exec(line);
+        if (m) add({ ecosystem: "pypi", name: m[1], version: m[2], path });
       }
-      const ver = /^ {2}version "(\d[^"]*)"/.exec(line);
-      if (ver && name) add({ ecosystem: "npm", name, version: ver[1], path: "yarn.lock" });
-    }
-  }
-  const pnpm = readText(root, "pnpm-lock.yaml");
-  if (pnpm) {
-    for (const line of pnpm.split(/\n/)) {
-      const m = /^\s{2}\/?(@?[^@\s'"]+)@(\d[^:(/'"]*)/.exec(line);
-      if (m) add({ ecosystem: "npm", name: m[1], version: m[2], path: "pnpm-lock.yaml" });
-    }
-  }
-  const gomod = readText(root, "go.mod");
-  if (gomod) {
-    for (const line of gomod.split(/\n/)) {
-      const m = /(?:^|\s)([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+)\s+v([0-9][^\s]*)/.exec(line);
-      if (m) add({ ecosystem: "golang", name: m[1], version: m[2], path: "go.mod" });
+    } else if (file === "yarn.lock") {
+      let name = "";
+      for (const line of lines) {
+        if (line && !line.startsWith(" ") && !line.startsWith("\t")) name = line.includes("@workspace:") ? "" : (/^"?(@?[^@"\s]+)@/.exec(line)?.[1] ?? "");
+        // Classic writes `version "1.0.0"`, Berry writes `version: 1.0.0`.
+        const ver = /^ {2}version:? "?(\d[^"\s]*)/.exec(line);
+        if (ver && name) add({ ecosystem: "npm", name, version: ver[1], path });
+      }
+    } else if (file === "pnpm-lock.yaml") {
+      for (const line of lines) {
+        const m = /^\s{2}['"]?\/?(@?[^@\s'"]+)@(\d[^:(/'"]*)/.exec(line);
+        if (m) add({ ecosystem: "npm", name: m[1], version: m[2], path });
+      }
+    } else {
+      for (const line of lines) {
+        const m = /(?:^|\s)([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+)\s+v([0-9][^\s]*)/.exec(line);
+        if (m) add({ ecosystem: "golang", name: m[1], version: m[2], path });
+      }
     }
   }
   return out;

@@ -12,6 +12,10 @@
 - SBOM: scoped npm packages get a valid purl (`pkg:npm/%40scope/name@1.0.0`).
 - `fix --apply` no longer rewrites SHA-1, which protocols such as the WebSocket handshake require.
 - GitHub Action: pull request and merge queue runs use the base commit's `.vigilsutra.yml`, so a pull request cannot ignore its own findings.
+- Secret rules now read `dist/`, `build/`, `out/`, `vendor/` and `*.min.js`. Other rules still skip them.
+- `VS-SECRET-004` reads unquoted values in YAML, shell, `.npmrc`, `.properties`, TOML, INI and Dockerfiles, and the names `token` and `cryptoKey`.
+- Advisory matching and the SBOM read lockfiles at any depth, npm lockfile version 1 and Yarn Berry.
+- `VS-IAC-001` reports open ingress that follows an egress block, and Azure `*`/`Internet` sources. `VS-IAC-003` reports `*` anywhere in an action list.
 - Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
 
 ## 0.4.2 - 2026-11-24

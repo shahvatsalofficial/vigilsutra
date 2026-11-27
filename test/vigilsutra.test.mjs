@@ -102,6 +102,42 @@ test("the action reads the policy from the base commit", { skip: process.platfor
   assert.equal(run("0".repeat(40)).status, 1); // unreadable base commit: defaults apply
 });
 
+test("build folders are read for secrets only", () => {
+  const r = scan({ "dist/a.js": `const t = "${GH}"; eval(x)`, "lib.min.js": `const t = "${GH}"`, "node_modules/p/a.js": `const t = "${GH}"` });
+  assert.deepEqual(r.findings.filter((f) => f.ruleId !== "VS-PROC-001").map((f) => `${f.ruleId} ${f.path}`).sort(), ["VS-SECRET-003 dist/a.js", "VS-SECRET-003 lib.min.js"]);
+});
+
+test("unquoted secret values in configuration files", () => {
+  const v = "Xk9" + "fQ2vLm81";
+  for (const files of [{ "c.yml": `  DB_PASSWORD: ${v}` }, { "docker-compose.yml": `      - API_KEY=${v}` }, { ".npmrc": `//registry.example.invalid/:_authToken=${v}` }, { "e.sh": `export TOKEN=${v}` }, { "a.properties": `db.password=${v}` }, { "a.js": `const cryptoKey = "${v}";` }]) {
+    const r = scan(files);
+    assert.ok(ids(r).includes("VS-SECRET-004"), JSON.stringify(files));
+    assert.ok(!render(r, "json").includes(v), JSON.stringify(files));
+  }
+  for (const line of ["password: ${DB_PASSWORD}", "token: ${{ secrets.TOKEN }}", "secret: /run/secrets/db_password", "password: required", "csrfToken: " + v + "x: y"]) assert.ok(!ids(scan({ "c.yml": line })).includes("VS-SECRET-004"), line);
+});
+
+test("nested, version 1 and Yarn Berry lockfiles are read", () => {
+  const root = project({
+    "apps/web/package-lock.json": JSON.stringify({ lockfileVersion: 1, dependencies: { a: { version: "1.0.0", dependencies: { b: { version: "2.0.0" } } } } }),
+    "apps/api/yarn.lock": '__metadata:\r\n  version: 8\r\n\r\n"c@npm:^3.0.0":\r\n  version: 3.1.0\r\n\r\n"me@workspace:.":\r\n  version: 0.0.0\r\n',
+    "node_modules/x/package-lock.json": JSON.stringify({ dependencies: { z: { version: "9.0.0" } } })
+  });
+  assert.deepEqual(readComponents(root).map((c) => `${c.name}@${c.version}`).sort(), ["a@1.0.0", "b@2.0.0", "c@3.1.0"]);
+});
+
+test("Terraform: ingress after egress, Azure sources and wildcards inside action lists", () => {
+  const hit = (tf, id) => ids(scan({ "m.tf": tf })).includes(id);
+  assert.ok(hit('resource "x" "y" {\n  egress {\n    cidr_blocks = ["10.0.0.0/8"]\n  }\n  ingress {\n    cidr_blocks = ["0.0.0.0/0"]\n  }\n}', "VS-IAC-001"));
+  assert.ok(hit('security_rule {\n  direction = "Inbound"\n  source_address_prefix = "*"\n}', "VS-IAC-001"));
+  assert.ok(!hit('security_rule {\n  direction = "Outbound"\n  source_address_prefix = "*"\n}', "VS-IAC-001"));
+  assert.ok(!hit('egress {\n  from_port = 0\n  cidr_blocks = ["0.0.0.0/0"]\n}', "VS-IAC-001"));
+  assert.ok(hit('actions = ["s3:GetObject", "*"]', "VS-IAC-003"));
+  assert.ok(hit('Action = [\n  "s3:GetObject",\n  "*"\n]', "VS-IAC-003"));
+  assert.ok(hit('statement {\n  effect = "Deny"\n  actions = ["x:y"]\n}\nstatement {\n  actions = ["*"]\n}', "VS-IAC-003"));
+  assert.ok(!hit('actions = ["s3:GetObject"]\nresources = ["*"]', "VS-IAC-003"));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

@@ -366,6 +366,39 @@ test("a baseline follows a moved file but not a copy", () => {
   assert.equal(open().length, 1);
 });
 
+test("every finding obeys the published schema: types, enums and patterns", () => {
+  const schema = JSON.parse(readFileSync("schemas/finding.schema.json", "utf8"));
+  // One project holding every vulnerable fixture, so all rules take part.
+  const r = PAIRS.flatMap(([, bad]) => scan(bad).findings);
+  assert.ok(new Set(r.map((f) => f.ruleId)).size >= 40);
+  for (const f of r) {
+    for (const k of schema.required) assert.ok(f[k] !== undefined, `${f.ruleId}.${k}`);
+    for (const [k, rule] of Object.entries(schema.properties)) {
+      const v = f[k];
+      if (v === undefined) continue;
+      const where = `${f.ruleId}.${k}=${JSON.stringify(v)}`;
+      if (rule.enum) assert.ok(rule.enum.includes(v), where);
+      if (rule.pattern) assert.match(v, new RegExp(rule.pattern), where);
+      if (rule.type === "integer") assert.ok(Number.isInteger(v) && v >= (rule.minimum ?? v), where);
+      else if (rule.type === "array") assert.ok(Array.isArray(v), where);
+      else if (rule.type) assert.equal(typeof v, rule.type, where);
+    }
+  }
+});
+
+test("Kubernetes rules can be waived", () => {
+  const pod = "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        privileged: true\n";
+  const r = scan({ "p.yaml": pod, ".vigilsutra.yml": "waivers:\n  - VS-K8S-001|p.yaml|ada|2099-01-01\n" });
+  assert.ok(!ids(r).includes("VS-K8S-001"));
+  assert.equal(r.summary.waiversApplied, 1);
+});
+
+test("a report folder listed in package.json files is warned about", () => {
+  const root = project({ "package.json": JSON.stringify({ name: "x", files: ["./reports-out"] }) });
+  assert.match(cli(["audit", root, "--report-dir", join(root, "reports-out")]).stderr, /would be published/);
+  assert.doesNotMatch(cli(["audit", root, "--report-dir", join(root, "private")]).stderr, /would be published/);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -392,6 +425,8 @@ const PAIRS = [
   ["VS-IAC-004", { "m.tf": "  publicly_accessible = true" }, { "m.tf": "  publicly_accessible = false\n  block_public_acls = true" }],
   ["VS-IAC-005", { "p.json": '{"Statement":[{"Effect":"Allow","Principal":"*"}]}' }, { "p.json": '{\n "Effect": "Deny",\n "Principal": "*"\n}' }],
   ["VS-CODE-013", { "a.php": "<?php system('ping ' . $_GET['h']);" }, { "a.php": "<?php system('ping ' . escapeshellarg($_GET['h']));" }],
+  ["VS-CICD-005", { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    runs-on: x\n" }, { ".github/workflows/w.yml": "on: push\npermissions:\n  contents: read\njobs:\n  a:\n    runs-on: x\n" }],
+  ["VS-K8S-007", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      resources:\n        limits:\n          memory: 1Gi\n" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

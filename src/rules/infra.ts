@@ -24,6 +24,44 @@ const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || 
 
 export const infraRules: Rule[] = [
   {
+    ...wf,
+    id: "VS-CICD-005",
+    title: "Workflow does not limit token permissions",
+    severity: "low",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-250"],
+    description: "The workflow declares no `permissions`, so its token gets the repository default, which may include write access.",
+    remediation: "Add `permissions: contents: read` at the top level and grant more to single jobs only where needed.",
+    falsePositives: "Repositories whose default token permission is already read-only.",
+    verification: "The workflow declares `permissions` and still passes.",
+    applies: isWorkflow,
+    check: (f) => {
+      if (/^[ \t]*permissions[ \t]*:/m.test(f.text)) return [];
+      const at = f.lines.findIndex((l) => /^jobs[ \t]*:/.test(l));
+      return at < 0 ? [] : [{ line: at + 1, excerpt: f.lines[at] }];
+    }
+  },
+  {
+    ...k8,
+    id: "VS-K8S-007",
+    title: "Workload sets no resource limits",
+    severity: "low",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-770"],
+    description: "No `limits` appear in the manifest, so one container can use all the CPU or memory of a node.",
+    remediation: "Set memory and CPU requests and limits for each container.",
+    falsePositives: "Clusters that apply defaults with a LimitRange. The check looks at the whole file, not each container.",
+    verification: "`kubectl describe pod` shows limits.",
+    applies: isK8s,
+    check: (f) => {
+      if (/\blimits[ \t]*:/.test(f.text)) return [];
+      const at = f.lines.findIndex((l) => /^\s*(?:-\s+)?containers\s*:/.test(l));
+      return at < 0 ? [] : [{ line: at + 1, excerpt: f.lines[at] }];
+    }
+  },
+  {
     ...iac,
     id: "VS-DB-001",
     title: "Database accepts connections without a password",

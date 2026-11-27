@@ -1,4 +1,4 @@
-# Rules (version 1.8.0)
+# Rules (version 1.9.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -16,6 +16,8 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-CICD-005 | Workflow does not limit token permissions | low | high | potential | PipelineGuard | CWE-250 |
+| VS-K8S-007 | Workload sets no resource limits | low | medium | potential | ContainerGuard | CWE-770 |
 | VS-DB-001 | Database accepts connections without a password | high | high | potential | InfraGuard | CWE-306 |
 | VS-DB-002 | Database or search engine security switched off | high | medium | potential | InfraGuard | CWE-306 |
 | VS-IAC-004 | Database or storage exposed publicly | high | high | potential | InfraGuard | CWE-284 |
@@ -159,6 +161,22 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
+
+### VS-CICD-005: Workflow does not limit token permissions
+
+The workflow declares no `permissions`, so its token gets the repository default, which may include write access.
+
+- **Fix:** Add `permissions: contents: read` at the top level and grant more to single jobs only where needed.
+- **Verify:** The workflow declares `permissions` and still passes.
+- **False positives:** Repositories whose default token permission is already read-only.
+
+### VS-K8S-007: Workload sets no resource limits
+
+No `limits` appear in the manifest, so one container can use all the CPU or memory of a node.
+
+- **Fix:** Set memory and CPU requests and limits for each container.
+- **Verify:** `kubectl describe pod` shows limits.
+- **False positives:** Clusters that apply defaults with a LimitRange. The check looks at the whole file, not each container.
 
 ### VS-DB-001: Database accepts connections without a password
 

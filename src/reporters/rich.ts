@@ -13,7 +13,7 @@ export const htmlEsc = (s: string): string =>
 /** One plain-language sentence a non-specialist can act on. */
 export function plainSummary(r: ScanResult): string {
   const b = r.summary.bySeverity;
-  if (r.summary.total === 0) return "No problems were found by the 32 built-in checks. That is not proof the project is secure: some areas are not checked (see Scope and limits).";
+  if (r.summary.total === 0) return "No problems were found by the built-in checks. That is not proof the project is secure: some areas are not checked (see Scope and limits).";
   const urgent = b.critical + b.high;
   if (urgent > 0) return `Start with the ${urgent} critical and high item${urgent === 1 ? "" : "s"}. They are the most likely to cause real harm. The rest can be scheduled afterwards.`;
   if (b.medium > 0) return `No critical or high items. Review the ${b.medium} medium item${b.medium === 1 ? "" : "s"} next; low and info items are hardening and housekeeping.`;
@@ -109,15 +109,17 @@ const md = (s: string): string =>
     .replace(/`([^`]+)`/g, "<code>$1</code>");
 
 const CSS = `
-:root{--bg:#f6f7fb;--card:#fff;--text:#161a2b;--muted:#586079;--line:#dde1ee;--accent:#3b46d9;--crit:#7a0f1a;--high:#c0392b;--med:#b9770e;--low:#2563eb;--info:#6b7280;--ok:#0f7a4d}
-@media (prefers-color-scheme:dark){:root{--bg:#0d111c;--card:#151b2e;--text:#e8ebf7;--muted:#9aa4c2;--line:#27304f;--accent:#8c96ff;--crit:#ff6b7d;--high:#ff8a80;--med:#f2c35b;--low:#7aa7ff;--info:#9aa4c2;--ok:#52d6a0}}
+:root{--bg:#f6f7fb;--card:#fff;--text:#161a2b;--muted:#586079;--line:#dde1ee;--accent:#3b46d9;--crit:#7a0f1a;--high:#b03024;--med:#8a5800;--low:#1d4fc4;--info:#4b5563;--ok:#0f7a4d;--on:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0d111c;--card:#151b2e;--text:#e8ebf7;--muted:#9aa4c2;--line:#27304f;--accent:#8c96ff;--crit:#ff6b7d;--high:#ff8a80;--med:#f2c35b;--low:#7aa7ff;--info:#9aa4c2;--ok:#52d6a0;--on:#0d111c}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:62rem;margin:0 auto;padding:1.5rem 1rem 4rem}h1{font-size:1.9rem;margin:.2rem 0}h2{margin:2.2rem 0 .7rem;font-size:1.35rem}
 .meta{color:var(--muted);font-size:.9rem}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem 1.2rem;margin:.8rem 0}
 .lead{font-size:1.15rem;font-weight:600}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.7rem}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem 1rem}.stat b{display:block;font-size:1.7rem;line-height:1.1}.stat span{color:var(--muted);font-size:.85rem}
 .bar{height:.5rem;border-radius:99px;background:var(--line);margin-top:.5rem;overflow:hidden}.bar i{display:block;height:100%}
-.sev{display:inline-block;padding:.05rem .55rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:#fff}
+.sev{display:inline-block;padding:.05rem .55rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:var(--on)}
+.filters{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;border:0;padding:0;margin:.6rem 0}.filters label{cursor:pointer;min-height:2rem;display:inline-flex;align-items:center;gap:.35rem}
+${SEV.map((s) => `body:has(#show-${s}:not(:checked)) .f-${s}{display:none}`).join("")}
 .critical{background:var(--crit)}.high{background:var(--high)}.medium{background:var(--med)}.low{background:var(--low)}.info{background:var(--info)}
 .chip{display:inline-block;padding:.05rem .55rem;border-radius:99px;border:1px solid var(--line);font-size:.78rem;color:var(--muted);margin-right:.3rem}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:.5rem 0;padding:.1rem 1rem}summary{cursor:pointer;padding:.7rem 0;font-weight:600}
@@ -129,7 +131,7 @@ a{color:var(--accent)}dt{font-weight:700;margin-top:.5rem}dd{margin:0 0 .3rem 0;
 @media print{details{break-inside:avoid}details>*{display:block}}`;
 
 function findingHtml(f: Finding, i: number): string {
-  return `<details id="f-${htmlEsc(f.fingerprint.slice(0, 12))}"${f.severity === "critical" || f.severity === "high" ? " open" : ""}>
+  return `<details class="f-${f.severity}" id="f-${htmlEsc(f.fingerprint.slice(0, 12))}"${f.severity === "critical" || f.severity === "high" ? " open" : ""}>
 <summary><span class="sev ${f.severity}">${f.severity}</span> ${htmlEsc(f.ruleId)}: ${htmlEsc(f.title)}</summary>
 <p class="where">${htmlEsc(f.path)}:${f.startLine}</p>
 <p><span class="chip">${htmlEsc(f.status)}</span><span class="chip">confidence ${htmlEsc(f.confidence)}</span>${f.pathContext ? '<span class="chip">test, example or vendored path</span>' : ""}${f.cwe.map((c) => `<span class="chip">${htmlEsc(c)}</span>`).join("")}</p>
@@ -149,9 +151,9 @@ export function toHtml(r: ScanResult): string {
   const groups = SEV.map((s) => {
     const g = r.findings.filter((f) => f.severity === s);
     if (!g.length) return "";
-    return `<h3>${SEV_LABEL[s]} (${g.length})</h3>\n${g.map((f) => findingHtml(f, ++n)).join("\n")}`;
+    return `<h3 class="f-${s}">${SEV_LABEL[s]} (${g.length})</h3>\n${g.map((f) => findingHtml(f, ++n)).join("\n")}`;
   }).join("\n");
-  const rows = r.findings.map((f, i) => `<tr><td>${i + 1}</td><td><span class="sev ${f.severity}">${f.severity}</span></td><td>${htmlEsc(f.ruleId)}</td><td>${htmlEsc(f.title)}</td><td class="where"><a href="#f-${htmlEsc(f.fingerprint.slice(0, 12))}">${htmlEsc(f.path)}:${f.startLine}</a></td><td>${htmlEsc(f.status)}</td></tr>`).join("");
+  const rows = r.findings.map((f, i) => `<tr class="f-${f.severity}"><td>${i + 1}</td><td><span class="sev ${f.severity}">${f.severity}</span></td><td>${htmlEsc(f.ruleId)}</td><td>${htmlEsc(f.title)}</td><td class="where"><a href="#f-${htmlEsc(f.fingerprint.slice(0, 12))}">${htmlEsc(f.path)}:${f.startLine}</a></td><td>${htmlEsc(f.status)}</td></tr>`).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
@@ -168,6 +170,7 @@ ${top.length ? `<h2>Top priorities</h2><ol>${top.map((f) => `<li><a href="#f-${h
 <h2>How to read this report</h2>
 <dl>${READING_GUIDE.map(([k, v]) => `<dt>${htmlEsc(k)}</dt><dd>${md(v)}</dd>`).join("")}</dl>
 <h2>All findings</h2>
+${r.findings.length ? `<fieldset class="filters"><legend class="meta">Show severities</legend>${SEV.filter((s) => r.summary.bySeverity[s]).map((s) => `<label><input type="checkbox" id="show-${s}" checked> ${SEV_LABEL[s]} (${r.summary.bySeverity[s]})</label>`).join("")}</fieldset>` : ""}
 ${r.findings.length ? `<div class="tw card"><table><thead><tr><th>#</th><th>Severity</th><th>Rule</th><th>What</th><th>Where</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>` : "<p>No findings from the implemented rules. This is not proof of security.</p>"}
 <h2>Details</h2>
 ${groups || "<p>Nothing to show.</p>"}

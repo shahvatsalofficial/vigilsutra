@@ -17,13 +17,17 @@ export function isCommentLine(line: string): boolean {
   return /^\s*(\/\/|#|\*|\/\*|<!--)/.test(line);
 }
 
+const FILLER = new Set("your my example change me changeme placeholder dummy sample test todo password secret none null undefined key token api here value xxx".split(" "));
+
 /** Values that are clearly placeholders, examples or templating. */
 export function isPlaceholder(value: string): boolean {
   const v = value.trim();
   return (
     v.length < 8 ||
     /^\[?redacted\]?$/i.test(v) ||
-    /^(x+|\*+|\.+|<.*>|\$\{.*\}|\{\{.*\}\}|%.*%|your[-_ ]|example|changeme|change[-_]me|placeholder|dummy|sample|test|todo|password|secret|none|null|undefined|process\.env|os\.environ|env\()/i.test(v) ||
+    /^(x+|\*+|\.+|<.*>|\$\{.*\}|\{\{.*\}\}|%.*%)$|^(your[-_ ]|process\.env|os\.environ|env\()/i.test(v) ||
+    // Only a value made entirely of filler words is a placeholder: "test-password-123" is, "password-Xk9fQ2" is not.
+    v.toLowerCase().split(/[-_ .!]+|\d+/).every((w) => !w || FILLER.has(w)) ||
     /(^|[^a-z])(example|placeholder|dummy|changeme|xxxx)/i.test(v)
   );
 }
@@ -35,21 +39,25 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
     // Long lines are scanned in overlapping windows so a token past 2,000 characters is still seen.
     // The excerpt is the window, not the whole line.
     const parts = line.length > 2000 ? windows(line, 2000, 1900) : [{ text: line }];
-    for (const part of parts) {
+    let hit: Hit | undefined;
+    const secrets: string[] = [];
+    const matched = new Set<number>(); // line offsets; windows overlap
+    for (const [p, part] of parts.entries()) {
       if (opts.skipComments && isCommentLine(part.text)) continue;
       g.lastIndex = 0;
-      const m = g.exec(part.text);
-      if (!m) continue;
-      if (opts.filter && !opts.filter(m, part.text, i + 1)) continue;
-      const hit: Hit = { line: i + 1, excerpt: part.text };
-      if (opts.secretGroup !== undefined) {
-        const val = m[opts.secretGroup];
-        const start = part.text.indexOf(val, m.index);
-        hit.secretSpan = [start, start + val.length];
+      // Every match is read: to count them, and so that no second secret on the line survives in an excerpt.
+      for (let m = g.exec(part.text); m; m = g.exec(part.text)) {
+        if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup]);
+        if (!opts.filter || opts.filter(m, part.text, i + 1)) {
+          hit ??= { line: i + 1, excerpt: part.text, at: m.index };
+          matched.add(p * 1900 + m.index);
+        }
+        if (!m[0]) g.lastIndex++;
       }
-      hits.push(hit);
-      break;
     }
+    if (!hit) return;
+    if (matched.size > 1) hit.note = `${matched.size - 1} more match(es) on this line.`;
+    hits.push(secrets.length ? { ...hit, secrets } : hit);
   });
   return hits;
 }
@@ -79,6 +87,36 @@ export function insideString(line: string, idx: number): boolean {
 /** Line with the contents of string literals removed, to test identifiers only. */
 export function stripStrings(line: string): string {
   return line.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, '""');
+}
+
+const blockCache = new WeakMap<ScannedFile, { open: number[][]; end: Map<number, number> }>();
+
+/**
+ * The `{}` blocks around a line: the opener lines, outermost first, and the text of the innermost block.
+ * Braces are counted per line; comment lines are ignored.
+ */
+export function enclosingBlock(f: ScannedFile, line: number): { openers: string[]; body: string } {
+  let b = blockCache.get(f);
+  if (!b) {
+    const open: number[][] = [];
+    const end = new Map<number, number>();
+    const stack: number[] = [];
+    f.lines.forEach((text, i) => {
+      open.push(stack.slice(-8));
+      if (isCommentLine(text)) return;
+      for (const c of text) {
+        if (c === "{") stack.push(i);
+        else if (c === "}" && stack.length) end.set(stack.pop()!, i);
+      }
+    });
+    blockCache.set(f, (b = { open, end }));
+  }
+  const chain = b.open[line - 1] ?? [];
+  const inner = chain[chain.length - 1];
+  return {
+    openers: chain.map((i) => f.lines[i]),
+    body: inner === undefined ? "" : f.lines.slice(inner, (b.end.get(inner) ?? f.lines.length - 1) + 1).join("\n")
+  };
 }
 
 /** Looks back up to `n` lines (inclusive of the hit line) for a pattern. */

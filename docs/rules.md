@@ -95,7 +95,7 @@ A `.env` file (not an example, sample, or template) contains a secret-named vari
 
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
-- **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.
+- **False positives:** Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are left to VS-SECRET-004, which reports values that look real. A local `.env` that git does not track is not a finding.
 
 ### VS-SECRET-007: JSON Web Token in source
 
@@ -227,7 +227,7 @@ hostNetwork, hostPID or hostIPC removes namespace isolation between the pod and 
 
 ### VS-IAC-001: Security group or firewall open to the whole internet
 
-A Terraform rule allows 0.0.0.0/0 (or ::/0). Open ingress to administrative or database ports exposes them to internet scanning and attack.
+A Terraform rule allows 0.0.0.0/0, ::/0 or an Azure `*`/`Internet` source. Open ingress to administrative or database ports exposes them to internet scanning and attack.
 
 - **Fix:** Restrict CIDR ranges to known addresses or place the service behind a load balancer, VPN or bastion.
 - **Verify:** Ingress CIDRs are restricted or documented as intentionally public.

@@ -34,6 +34,140 @@ const ids = (r) => r.findings.map((f) => f.ruleId);
 const scan = (files) => audit({ root: project(files) });
 const cli = (args, cwd) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", cwd });
 
+test("every secret on a line is redacted, also after a placeholder", () => {
+  const a = "Zq7-first-" + "value", b = "Zq7-second-" + "value";
+  const r = scan({ "a.js": `const password = "changeme123", secret = "${a}", client_secret = "${b}";` });
+  assert.ok(ids(r).includes("VS-SECRET-004"));
+  for (const f of ["json", "markdown", "html", "sarif"]) for (const v of [a, b]) assert.ok(!render(r, f).includes(v), f);
+});
+
+test("only an all-filler value is a placeholder", () => {
+  const found = (v) => ids(scan({ "a.js": `const password = "${v}";` })).includes("VS-SECRET-004");
+  for (const v of ["password-" + "Xk9fQ2vL", "test" + "Q8zr41mNpa", "secret_" + "9fKd02LmQ"]) assert.ok(found(v), v);
+  for (const v of ["test-password-123", "your-api-key-here", "secret-value"]) assert.ok(!found(v), v);
+});
+
+test("--flag=value gates the exit code and unknown options fail", () => {
+  const root = project({ "a.js": `const t = "${GH}";` });
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on=high"]).status, 1);
+  for (const bad of ["--fail-onn=high", "--failon", "--no-report=1", "--fail-on="]) assert.equal(cli(["audit", root, "--no-report", bad]).status, 2, bad);
+});
+
+test("--staged honours ignore patterns and the size limit", () => {
+  const root = project({ "keep.js": "1", "skip/a.js": `const t = "${GH}";`, "big.js": `const t = "${GH}";\n` + "x".repeat(3000), ".vigilsutra.yml": "ignore:\n  - skip/**\nmaxFileSize: 2000\n" });
+  const git = (...a) => assert.equal(spawnSync("git", a, { cwd: root }).status, 0);
+  git("init", "-q");
+  git("add", "-A");
+  assert.ok(!ids(audit({ root, staged: true })).includes("VS-SECRET-003"));
+});
+
+test("an incomplete scan cannot pass --fail-on", () => {
+  const root = project({ "a.js": "1", "b.js": "2", ".vigilsutra.yml": "\uFEFFmaxFiles: 1\n" });
+  assert.equal(cli(["audit", root, "--no-report", "--fail-on", "high"]).status, 2);
+  assert.equal(cli(["audit", root, "--no-report"]).status, 0);
+});
+
+test("UTF-16 files are scanned", () => {
+  const le = Buffer.from("\uFEFFconst t = \"" + GH + "\";", "utf16le");
+  for (const buf of [le, Buffer.from(le).swap16()]) assert.ok(ids(scan({ "a.js": buf })).includes("VS-SECRET-003"));
+});
+
+test("scoped npm purl and SHA-1 left alone by fix", () => {
+  const root = project({
+    "package-lock.json": JSON.stringify({ packages: { "node_modules/@scope/pkg": { version: "1.0.0" } } }),
+    "h.js": 'import { createHash } from "node:crypto";\nexport const accept = (k) => createHash("sha1").update(k).digest("base64");\n'
+  });
+  assert.ok(cycloneDx(readComponents(root), "0").includes('"pkg:npm/%40scope/pkg@1.0.0"'));
+  assert.equal(cli(["fix", root, "--apply"]).status, 0);
+  assert.ok(readFileSync(join(root, "h.js"), "utf8").includes('createHash("sha1")'));
+});
+
+test("the action reads the policy from the base commit", { skip: process.platform === "win32" && !process.env.VS_BASH && "set VS_BASH to a POSIX bash" }, () => {
+  const root = project({ "a.js": "1" });
+  const git = (...a) => {
+    const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout.trim();
+  };
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "base");
+  const base = git("rev-parse", "HEAD");
+  writeFileSync(join(root, "a.js"), `const t = "${GH}";`);
+  writeFileSync(join(root, ".vigilsutra.yml"), "ignore:\n  - a.js\n");
+  const script = readFileSync("action.yml", "utf8").replace(/\r/g, "").split("      run: |\n")[1].replace(/^ {8}/gm, "");
+  const run = (VS_BASE) => spawnSync(process.env.VS_BASH || "bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_ACTION_PATH: resolve("."), VS_PATH: ".", VS_FAIL: "high", VS_HISTORY: "false", VS_BASE } });
+  assert.equal(run("").status, 0);
+  assert.equal(run(base).status, 1);
+  assert.equal(run("0".repeat(40)).status, 1); // unreadable base commit: defaults apply
+});
+
+test("build folders are read for secrets only", () => {
+  const r = scan({ "dist/a.js": `const t = "${GH}"; eval(x)`, "lib.min.js": `const t = "${GH}"`, "node_modules/p/a.js": `const t = "${GH}"` });
+  assert.deepEqual(r.findings.filter((f) => f.ruleId !== "VS-PROC-001").map((f) => `${f.ruleId} ${f.path}`).sort(), ["VS-SECRET-003 dist/a.js", "VS-SECRET-003 lib.min.js"]);
+});
+
+test("unquoted secret values in configuration files", () => {
+  const v = "Xk9" + "fQ2vLm81";
+  for (const files of [{ "c.yml": `  DB_PASSWORD: ${v}` }, { "docker-compose.yml": `      - API_KEY=${v}` }, { ".npmrc": `//registry.example.invalid/:_authToken=${v}` }, { "e.sh": `export TOKEN=${v}` }, { "a.properties": `db.password=${v}` }, { "a.js": `const cryptoKey = "${v}";` }]) {
+    const r = scan(files);
+    assert.ok(ids(r).includes("VS-SECRET-004"), JSON.stringify(files));
+    assert.ok(!render(r, "json").includes(v), JSON.stringify(files));
+  }
+  for (const line of ["password: ${DB_PASSWORD}", "token: ${{ secrets.TOKEN }}", "secret: /run/secrets/db_password", "password: required", "csrfToken: " + v + "x: y"]) assert.ok(!ids(scan({ "c.yml": line })).includes("VS-SECRET-004"), line);
+});
+
+test("nested, version 1 and Yarn Berry lockfiles are read", () => {
+  const root = project({
+    "apps/web/package-lock.json": JSON.stringify({ lockfileVersion: 1, dependencies: { a: { version: "1.0.0", dependencies: { b: { version: "2.0.0" } } } } }),
+    "apps/api/yarn.lock": '__metadata:\r\n  version: 8\r\n\r\n"c@npm:^3.0.0":\r\n  version: 3.1.0\r\n\r\n"me@workspace:.":\r\n  version: 0.0.0\r\n',
+    "node_modules/x/package-lock.json": JSON.stringify({ dependencies: { z: { version: "9.0.0" } } })
+  });
+  assert.deepEqual(readComponents(root).map((c) => `${c.name}@${c.version}`).sort(), ["a@1.0.0", "b@2.0.0", "c@3.1.0"]);
+});
+
+test("Terraform: ingress after egress, Azure sources and wildcards inside action lists", () => {
+  const hit = (tf, id) => ids(scan({ "m.tf": tf })).includes(id);
+  assert.ok(hit('resource "x" "y" {\n  egress {\n    cidr_blocks = ["10.0.0.0/8"]\n  }\n  ingress {\n    cidr_blocks = ["0.0.0.0/0"]\n  }\n}', "VS-IAC-001"));
+  assert.ok(hit('security_rule {\n  direction = "Inbound"\n  source_address_prefix = "*"\n}', "VS-IAC-001"));
+  assert.ok(!hit('security_rule {\n  direction = "Outbound"\n  source_address_prefix = "*"\n}', "VS-IAC-001"));
+  assert.ok(!hit('egress {\n  from_port = 0\n  cidr_blocks = ["0.0.0.0/0"]\n}', "VS-IAC-001"));
+  assert.ok(hit('actions = ["s3:GetObject", "*"]', "VS-IAC-003"));
+  assert.ok(hit('Action = [\n  "s3:GetObject",\n  "*"\n]', "VS-IAC-003"));
+  assert.ok(hit('statement {\n  effect = "Deny"\n  actions = ["x:y"]\n}\nstatement {\n  actions = ["*"]\n}', "VS-IAC-003"));
+  assert.ok(!hit('actions = ["s3:GetObject"]\nresources = ["*"]', "VS-IAC-003"));
+});
+
+test("evidence from a long line shows the match, counts the rest and stays redacted", () => {
+  const line = "a=1;".repeat(200) + "eval(first);" + "b=2;".repeat(20) + "eval(second);" + `t="${GH}";`;
+  const f = scan({ "a.js": line }).findings.find((x) => x.ruleId === "VS-CODE-001");
+  assert.ok(f.excerpt.includes("eval(first)"), f.excerpt);
+  assert.match(f.note, /1 more match/);
+  assert.ok(!f.excerpt.includes(GH.slice(0, 12)));
+});
+
+test("real-looking values in env example files are reported, placeholders are not", () => {
+  assert.ok(ids(scan({ ".env.example": "DB_PASSWORD=" + "Xk9" + "fQ2vLm81" })).includes("VS-SECRET-004"));
+  assert.ok(!ids(scan({ ".env.example": "DB_PASSWORD=changeme\nAPI_TOKEN=your-token-here" })).includes("VS-SECRET-004"));
+});
+
+test("HTML severity badges meet 4.5:1 contrast in both themes and filter without scripts", () => {
+  const html = render(scan({ "a.js": "eval(x)" }), "html");
+  const lum = (hex) => {
+    const full = hex.length === 4 ? "#" + [...hex.slice(1)].map((c) => c + c).join("") : hex;
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(full.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const themes = [...html.matchAll(/:root\{([^}]*)\}/g)].map((m) => Object.fromEntries(m[1].split(";").map((d) => d.split(":"))));
+  assert.equal(themes.length, 2);
+  for (const t of themes) for (const k of ["--crit", "--high", "--med", "--low", "--info"]) {
+    const [hi, lo] = [lum(t[k]), lum(t["--on"])].sort((a, b) => b - a);
+    assert.ok((hi + 0.05) / (lo + 0.05) >= 4.5, `${k} ${t[k]} on ${t["--on"]}`);
+  }
+  assert.match(html, /id="show-high" checked/);
+  assert.doesNotMatch(html, /<script/i);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

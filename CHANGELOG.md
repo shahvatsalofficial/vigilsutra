@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+- Security: every secret on a line is redacted, including a second value matched by the same rule and values found in different windows of a long line.
+- A placeholder first on a line no longer hides a real secret after it.
+- The placeholder filter now skips only values made entirely of filler words, so real secrets that start with `password`, `secret`, `test` and similar are reported.
+- The CLI accepts `--flag=value` and rejects unknown options, so a mistyped `--fail-on` can no longer pass a CI gate.
+- `--staged` applies policy ignore patterns and the file size limit.
+- With `--fail-on`, an incomplete scan (time or file limit, including git history) exits 2 instead of passing.
+- UTF-16 files with a byte-order mark are scanned. A byte-order mark no longer breaks `.vigilsutra.yml`.
+- SBOM: scoped npm packages get a valid purl (`pkg:npm/%40scope/name@1.0.0`).
+- `fix --apply` no longer rewrites SHA-1, which protocols such as the WebSocket handshake require.
+- GitHub Action: pull request and merge queue runs use the base commit's `.vigilsutra.yml`, so a pull request cannot ignore its own findings.
+- Secret rules now read `dist/`, `build/`, `out/`, `vendor/` and `*.min.js`. Other rules still skip them.
+- `VS-SECRET-004` reads unquoted values in YAML, shell, `.npmrc`, `.properties`, TOML, INI and Dockerfiles, and the names `token` and `cryptoKey`.
+- Advisory matching and the SBOM read lockfiles at any depth, npm lockfile version 1 and Yarn Berry.
+- `VS-IAC-001` reports open ingress that follows an egress block, and Azure `*`/`Internet` sources. `VS-IAC-003` reports `*` anywhere in an action list.
+- Evidence for long lines shows the matched text, and a note counts further matches on the same line.
+- HTML report: badge colours meet 4.5:1 contrast in light and dark, and severities can be filtered without scripts.
+- `.env.example`, `.env.sample` and `.env.template` files are checked for real-looking credentials.
+- More generated cache folders are ignored by default.
+- Removed a stale rule count from the report summary and a missing folder from the package file list.
+- Fingerprints can change for lines with repeated secrets; refresh a baseline if needed.
+
 ## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.

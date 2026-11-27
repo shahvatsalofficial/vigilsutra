@@ -49,7 +49,7 @@ Commands:
   adapters uninstall <claude|cursor|codex|gemini|copilot> [--project <dir>]
   --help, --version
 
-Exit codes: 0 ok | 1 findings at/above --fail-on | 2 usage or runtime error
+Exit codes: 0 ok | 1 findings at/above --fail-on | 2 usage or runtime error, or an incomplete scan with --fail-on
 `;
 
 interface Args {
@@ -59,18 +59,27 @@ interface Args {
 
 const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories"]);
 
+const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run"]);
+
 function parse(argv: string[]): Args {
   const pos: string[] = [];
   const flags = new Map<string, string | true>();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith("--")) {
-      const k = a.slice(2);
+    if (a.startsWith("-") && a.length > 1) {
+      const eq = a.indexOf("=");
+      const name = eq < 0 ? a : a.slice(0, eq);
+      const k = name === "-h" ? "help" : name.slice(2);
+      // A mistyped flag must stop the run: ignoring it could silently disable a CI gate.
+      if (name !== "-h" && (!name.startsWith("--") || !(VALUE_FLAGS.has(k) || BOOL_FLAGS.has(k)))) throw new Error(`unknown option "${name}". Run: vigilsutra --help`);
       if (VALUE_FLAGS.has(k)) {
-        const v = argv[++i];
-        if (v === undefined) throw new Error(`--${k} needs a value`);
+        const v = eq < 0 ? argv[++i] : a.slice(eq + 1);
+        if (!v || (eq < 0 && v.startsWith("--"))) throw new Error(`--${k} needs a value`);
         flags.set(k, v);
-      } else flags.set(k, true);
+      } else {
+        if (eq >= 0) throw new Error(`${name} does not take a value`);
+        flags.set(k, true);
+      }
     } else pos.push(a);
   }
   return { pos, flags };
@@ -140,6 +149,10 @@ function main(): void {
   }
   const cmd = argv[0];
   const { pos, flags } = parse(argv.slice(1));
+  if (flags.has("help")) {
+    process.stdout.write(HELP);
+    return;
+  }
   const color = !flags.has("no-color") && !process.env.NO_COLOR && !!process.stdout.isTTY;
 
   switch (cmd) {
@@ -168,6 +181,8 @@ function main(): void {
         process.stderr.write(`Reports written to ${dir}\n  report.html  open this in a browser\n  report.md    Markdown version\n  results.json, results.sarif  for tools and CI\n`);
       }
       if (failOn && exceeds(result, failOn)) process.exit(1);
+      // A gate cannot pass on a scan that did not finish.
+      if (failOn && result.scope.truncated) fail(`scan incomplete (${result.scope.truncatedReason}); --fail-on cannot pass. Raise timeLimitMs or maxFiles, or narrow the path.`);
       return;
     }
     case "baseline": {

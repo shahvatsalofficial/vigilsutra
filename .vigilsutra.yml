@@ -4,6 +4,8 @@ version: 1
 ignore:
   - src/rules/**
   - src/redact.ts
+  - dist/rules/**
+  - dist/redact.js
   - test/**
   - docs/rules.md
   - examples/intentionally-insecure/**

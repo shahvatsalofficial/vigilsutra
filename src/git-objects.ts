@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { decodeText } from "./decode.js";
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, extname, basename, isAbsolute } from "node:path";
 import { inflateSync } from "node:zlib";
@@ -420,8 +421,8 @@ export function scanHistory(scanRoot: string, ignore: string[], current: Map<str
       if (current.get(rel) !== undefined && createHash(store.hashAlgo).update(`blob ${Buffer.byteLength(current.get(rel)!)}\0${current.get(rel)}`).digest("hex") === blobSha) continue;
       const obj = store.get(blobSha);
       if (!obj || obj.type !== "blob" || obj.data.length > HISTORY_MAX_BLOB_BYTES) continue;
-      if (obj.data.subarray(0, 8192).includes(0)) continue;
-      const text = obj.data.toString("utf8");
+      const text = decodeText(obj.data);
+      if (text === null || text === current.get(rel)) continue; // UTF-16 files do not match by blob hash
       files.push(virtualFile(`git-history/${sha.slice(0, 12)}/${rel}`, text));
     }
   }
@@ -488,8 +489,8 @@ export function stagedBlobs(scanRoot: string): { path: string; text: string }[] 
     if (e.path.includes("..")) continue;
     const obj = store.get(e.sha);
     if (!obj || obj.type !== "blob" || obj.data.length > HISTORY_MAX_BLOB_BYTES) continue;
-    if (obj.data.subarray(0, 8192).includes(0)) continue;
-    out.push({ path: e.path, text: obj.data.toString("utf8") });
+    const text = decodeText(obj.data);
+    if (text !== null) out.push({ path: e.path, text });
   }
   return out;
 }

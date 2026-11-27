@@ -2,6 +2,7 @@ import { lstatSync, readdirSync, realpathSync, openSync, readSync, closeSync, fs
 import { join, basename, extname, relative, isAbsolute } from "node:path";
 import type { ScannedFile, ScopeStats } from "./types.js";
 import { makeIgnoreMatcher, type Policy } from "./policy.js";
+import { decodeText } from "./decode.js";
 import { createGitCache, sameIdentity, shouldSkipUntrackedDotenv } from "./git-index.js";
 
 export interface Inventory {
@@ -35,9 +36,7 @@ function readChecked(abs: string, expected: Stats): string | "binary" | "swapped
       if (n === 0) break;
       off += n;
     }
-    const head = Math.min(off, 8192);
-    for (let i = 0; i < head; i++) if (buf[i] === 0) return "binary";
-    return buf.toString("utf8", 0, off);
+    return decodeText(buf.subarray(0, off)) ?? "binary";
   } finally {
     closeSync(fd);
   }

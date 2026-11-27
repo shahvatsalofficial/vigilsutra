@@ -124,7 +124,9 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 | `vigilsutra init` | Create `.vigilsutra.yml` (never overwrites). `--hook` installs `templates/pre-commit` when that hook is absent. |
 | `vigilsutra adapters list / install <name> / uninstall <name>` | `claude`, `cursor`, `codex`, `gemini`, `copilot`. File copy is tested. In-IDE invocation is not. `--dry-run` previews. |
 
-Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error.
+In the GitHub Action, pull request and merge queue runs read `.vigilsutra.yml` from the base commit, so a pull request cannot loosen its own gate. A policy change takes effect after it is merged. If the base commit or its policy file cannot be read, the built-in defaults apply. Protect the workflow file itself with branch rules or `CODEOWNERS`. In another CI system, pass the base branch copy with `--policy <file>`.
+
+Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error, or an incomplete scan with `--fail-on`.
 
 ## What it checks (feature matrix)
 

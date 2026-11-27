@@ -1,6 +1,14 @@
 import type { Rule } from "../types.js";
 import { isPlaceholder, lineRule } from "./util.js";
 
+const SECRET_NAME = String.raw`(?:pass(?:word|wd)?|secret|api[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret|crypto[_-]?key|\btoken)`;
+const QUOTED = new RegExp(SECRET_NAME + String.raw`["']?\s*[:=]\s*["']([^"'\s]{8,})["']`, "i");
+// `key: value` and `KEY=value` lines in configuration files, where quotes are optional.
+const UNQUOTED = /^\s*(?:-\s+)?(?:(?:export|ENV|set)\s+)?[\w./:-]*?(?:pass(?:word|wd)?|secret|api[_-]?key|token|private[_-]?key|crypto[_-]?key)\s*[:=]\s*([^\s"'#,;{}[\]<>$`|&()]{8,})\s*(?:#.*)?$/i;
+const CONFIG_FILE = /\.(ya?ml|properties|ini|conf|cfg|toml|sh|bash)$|^\.npmrc$|^dockerfile|^\.env.*\.(example|sample|template)$/;
+
+const realValue = (v: string): boolean => !isPlaceholder(v) && !/^\$\{?\w+\}?$/.test(v) && /[A-Za-z0-9]/.test(v);
+
 const base = {
   version: "1.0.0",
   category: "secrets",
@@ -37,7 +45,7 @@ export const secretRules: Rule[] = [
     applies: () => true,
     check: (f) => {
       const hits = lineRule(f, /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/);
-      return hits.map((h) => ({ ...h, excerpt: "-----BEGIN PRIVATE KEY----- [REDACTED]", secretSpan: undefined }));
+      return hits.map((h) => ({ ...h, excerpt: "-----BEGIN PRIVATE KEY----- [REDACTED]", at: undefined, secrets: undefined }));
     }
   },
   {
@@ -62,14 +70,16 @@ export const secretRules: Rule[] = [
     description: "A variable or key named like a password, secret, token or API key is assigned a non-placeholder string literal.",
     falsePositives: "Test data, example config, i18n labels. Values that look like placeholders, environment lookups or templates are skipped.",
     applies: (f) => !/\.(md|txt|lock)$/.test(f.name) && !/(^|\/)(i18n|locales?|lang|translations?)\//i.test(f.path),
-    check: (f) =>
-      lineRule(f, /(?:pass(?:word|wd)?|secret|api[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret)["']?\s*[:=]\s*["']([^"'\s]{8,})["']/i, {
-        skipComments: true,
-        secretGroup: 1,
-        // Skip placeholders and variable references such as '$password' used in templates or SQL text.
-        // A real credential contains ASCII letters or digits; UI labels in other scripts do not.
-        filter: (m) => !isPlaceholder(m[1]) && !/^\$\{?\w+\}?$/.test(m[1]) && /[A-Za-z0-9]/.test(m[1])
-      })
+    check: (f) => {
+      // Skip placeholders and variable references such as '$password' used in templates or SQL text.
+      // A real credential contains ASCII letters or digits; UI labels in other scripts do not.
+      const quoted = lineRule(f, QUOTED, { skipComments: true, secretGroup: 1, filter: (m) => realValue(m[1]) });
+      if (!CONFIG_FILE.test(f.name)) return quoted;
+      // Without quotes, a plain word or a file path is usually a name or a reference, so require a digit or symbol.
+      // No comment skipping: `.npmrc` keys start with `//`, and UNQUOTED cannot match a `#` comment.
+      const bare = lineRule(f, UNQUOTED, { secretGroup: 1, filter: (m) => realValue(m[1]) && /[\d!@%^*+=]/.test(m[1]) && !/^(\d+|[./~].*)$/.test(m[1]) });
+      return [...quoted, ...bare.filter((h) => !quoted.some((q) => q.line === h.line))];
+    }
   },
   {
     ...base,
@@ -92,7 +102,7 @@ export const secretRules: Rule[] = [
     status: "potential",
     cwe: ["CWE-312", "CWE-798"],
     description: "A `.env` file (not an example, sample, or template) contains a secret-named variable with a non-placeholder value. File contents are not echoed. When a git index is present, environment files that are not listed in it are not read. When there is no usable git index, the file is still reviewed.",
-    falsePositives: "Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are not reported. A local `.env` that git does not track is not a finding.",
+    falsePositives: "Placeholder values and non-secret settings. `.env.example`, `.env.sample`, and `.env.template` are left to VS-SECRET-004, which reports values that look real. A local `.env` that git does not track is not a finding.",
     applies: (f) => /^\.env(\..+)?$/.test(f.name) && !/\.(example|sample|template)$/.test(f.name),
     check: (f) => {
       const idx = f.lines.findIndex((l) => {

@@ -26,22 +26,28 @@ export interface Policy {
 export const DEFAULT_IGNORE = [
   "**/.git/**",
   "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/out/**",
-  "**/vendor/**",
   "**/.venv/**",
   "**/venv/**",
   "**/__pycache__/**",
   "**/coverage/**",
   "**/.next/**",
   "**/target/**",
+  "**/.cache/**",
+  "**/.turbo/**",
+  "**/.nuxt/**",
+  "**/.svelte-kit/**",
+  "**/.mypy_cache/**",
+  "**/.pytest_cache/**",
+  "**/.ruff_cache/**",
+  "**/.tox/**",
   "**/vigilsutra-report/**",
-  "*.min.js",
   "package-lock.json",
   "yarn.lock",
   "pnpm-lock.yaml"
 ];
+
+/** Generated and vendored files ship to users, so secret rules read them. Every other rule skips them. */
+export const SECRETS_ONLY = ["**/dist/**", "**/build/**", "**/out/**", "**/vendor/**", "*.min.js"];
 
 export const DEFAULT_POLICY: Policy = {
   ignore: DEFAULT_IGNORE,
@@ -60,7 +66,7 @@ export const DEFAULT_POLICY: Policy = {
 export function parsePolicy(text: string): Partial<Policy> {
   const out: Record<string, string | string[]> = {};
   let listKey: string | null = null;
-  const lines = text.split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/); // Windows editors add a byte-order mark
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i].replace(/\s+#.*$/, "").replace(/^#.*$/, "");
     if (!raw.trim()) continue;

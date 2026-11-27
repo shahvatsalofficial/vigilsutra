@@ -1,4 +1,4 @@
-# Rules (version 1.4.0)
+# Rules (version 1.5.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -40,6 +40,11 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-005 | TLS certificate verification disabled | high | high | confirmed | CodeGuard | CWE-295 |
 | VS-CODE-006 | Weak hash algorithm (MD5 / SHA-1) | low | low | potential | CodeGuard | CWE-327 |
 | VS-CODE-007 | Raw HTML sink (innerHTML / dangerouslySetInnerHTML) | medium | low | potential | CodeGuard | CWE-79 |
+| VS-CODE-008 | Request data used as a database query (NoSQL injection) | high | medium | potential | CodeGuard | CWE-943 |
+| VS-CODE-009 | Request data used as a file path (path traversal) | high | medium | potential | CodeGuard | CWE-22 |
+| VS-CODE-010 | Request data used as an outbound URL (SSRF) | high | medium | potential | CodeGuard | CWE-918 |
+| VS-CODE-011 | Redirect target taken from the request (open redirect) | medium | medium | potential | CodeGuard | CWE-601 |
+| VS-CODE-012 | Session cookie protection switched off | medium | medium | potential | CodeGuard | CWE-1004, CWE-614 |
 | VS-AGENT-004 | Hidden Unicode characters in code or agent instructions | medium | high | potential | AgentShield | CWE-1007 |
 | VS-AGENT-001 | Instruction file tries to override agent safety or scope | medium | low | potential | AgentShield | CWE-1427 |
 | VS-AGENT-002 | Agent configuration disables permission prompts | high | medium | potential | AgentShield | CWE-250 |
@@ -341,6 +346,46 @@ Assigning strings to HTML sinks can cause cross-site scripting if the content in
 - **Fix:** Use `textContent` or the framework's escaped bindings. If HTML is required, sanitise with a vetted library.
 - **Verify:** Sink removed or input proven sanitised; test with a `<script>` payload.
 - **False positives:** Constant markup or content already sanitised.
+
+### VS-CODE-008: Request data used as a database query (NoSQL injection)
+
+A request object is passed straight into a query, or text is built into a `$where` clause. An attacker can send operators such as `$ne` or script and change what the query matches.
+
+- **Fix:** Pick the expected fields, check their type, and avoid `$where`.
+- **Verify:** Send an object where a string is expected and confirm it is rejected.
+- **False positives:** Input already validated against a schema before this line.
+
+### VS-CODE-009: Request data used as a file path (path traversal)
+
+A file is opened, sent or deleted using a request value, so `../` sequences can reach files outside the intended folder.
+
+- **Fix:** Resolve the path and require it to stay inside an allowed folder, or map an id to a known file name.
+- **Verify:** Request `../` and an absolute path and confirm both are refused.
+- **False positives:** Values already reduced to a base name or checked against an allow list.
+
+### VS-CODE-010: Request data used as an outbound URL (SSRF)
+
+The server fetches a URL taken from the request, which can reach internal services and cloud metadata endpoints.
+
+- **Fix:** Allow only known hosts, resolve and block private address ranges, and do not follow redirects to them.
+- **Verify:** Request a loopback or link-local address and confirm it is refused.
+- **False positives:** A value checked against an allow list before this line.
+
+### VS-CODE-011: Redirect target taken from the request (open redirect)
+
+The redirect destination comes from the request, so a link to this site can send people to an attacker's site.
+
+- **Fix:** Redirect to relative paths or to an allow list of destinations.
+- **Verify:** Request an external destination and confirm it is refused.
+- **False positives:** A value validated as a local path before this line.
+
+### VS-CODE-012: Session cookie protection switched off
+
+`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.
+
+- **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
+- **Verify:** The Set-Cookie response header carries HttpOnly and Secure.
+- **False positives:** Cookies that scripts must read, or settings used only for local development.
 
 ### VS-AGENT-004: Hidden Unicode characters in code or agent instructions
 

@@ -14,6 +14,8 @@ export interface ScannedFile {
   ext: string;
   text: string;
   lines: string[];
+  /** Context added to every finding in this file. */
+  note?: string;
   /** Names in this file that trace to a request-like value, including through a relative import. */
   tainted?: ReadonlySet<string>;
 }

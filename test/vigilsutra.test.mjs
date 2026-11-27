@@ -250,6 +250,21 @@ test("SBOM reads Cargo, Poetry, Composer and Bundler lockfiles", () => {
   assert.equal(readComponents(root).length, 4);
 });
 
+test("history findings carry the commit date and whether the file survives", () => {
+  const root = project({ "old.js": `const t = "${GH}";`, "keep.js": "1" });
+  const git = (...a) => assert.equal(spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root, env: { ...process.env, GIT_COMMITTER_DATE: "2020-03-04T05:06:07Z" } }).status, 0);
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "one");
+  rmSync(join(root, "old.js"));
+  git("add", "-A");
+  git("commit", "-qm", "two");
+  const f = audit({ root }).findings.find((x) => x.ruleId === "VS-SECRET-003");
+  assert.match(f.note, /2020-03-04/);
+  assert.match(f.note, /no longer exists in HEAD/);
+  assert.ok(!f.note.includes("example.invalid"));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -266,6 +281,11 @@ const PAIRS = [
   ["VS-K8S-005", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          add:\n            - SYS_ADMIN\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - securityContext:\n        capabilities:\n          drop:\n            - ALL\n" }],
   ["VS-K8S-006", { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['']\n    resources:\n      - '*'\n    verbs: ['get']\n" }, { "r.yaml": "apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nrules:\n  - apiGroups: ['*']\n    resources: ['pods']\n    verbs: ['get']\n" }],
   ["VS-COMPOSE-001", { "docker-compose.yml": "services:\n  a:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n" }, { "docker-compose.yml": "services:\n  a:\n    privileged: false\n" }],
+  ["VS-CODE-008", { "a.js": "db.users.find(req.body)" }, { "a.js": "db.users.find({ name: String(req.body.name) })" }],
+  ["VS-CODE-009", { "a.js": "fs.readFile(req.query.file, cb)" }, { "a.js": "fs.readFile(safePath(id), cb)" }],
+  ["VS-CODE-010", { "a.py": "requests.get(request.args['u'])" }, { "a.py": "requests.get(API_URL)" }],
+  ["VS-CODE-011", { "a.js": "res.redirect(302, req.query.next)" }, { "a.js": "res.redirect('/home')" }],
+  ["VS-CODE-012", { "a.js": "app.use(session({\n  cookie: {\n    httpOnly: false\n  }\n}))" }, { "a.js": "const options = { secure: false };" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

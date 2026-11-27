@@ -228,7 +228,8 @@ export function audit(opts: AuditOptions): ScanResult {
         const key = `${hit.excerpt ?? ""}`;
         const n = seen.get(key) ?? 0;
         seen.set(key, n + 1);
-        findings.push(toFinding(rule, file, hit, n, lineSecrets.get(hit.line) ?? []));
+        const noted = file.note ? { ...hit, note: [hit.note, file.note].filter(Boolean).join(" ") } : hit;
+        findings.push(toFinding(rule, file, noted, n, lineSecrets.get(hit.line) ?? []));
       }
     }
   }

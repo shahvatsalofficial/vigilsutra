@@ -1,7 +1,97 @@
 import type { Rule } from "../types.js";
-import { isJs, isPy, isCode, lineRule, insideString } from "./util.js";
+import { isJs, isPy, isCode, lineRule, insideString, lookBack } from "./util.js";
 
 const b = { version: "1.0.0", category: "code", agent: "CodeGuard" };
+
+/** A web rule: user input from a request reaches a sensitive call on the same line. */
+function webRule(meta: Pick<Rule, "id" | "title" | "severity" | "cwe" | "description" | "remediation" | "falsePositives" | "verification">, js: RegExp, py: RegExp): Rule {
+  return {
+    ...b,
+    ...meta,
+    confidence: "medium",
+    status: "potential",
+    applies: isCode,
+    check: (f) => lineRule(f, isPy(f) ? py : js, { skipComments: true, filter: (m, line) => !insideString(line, m.index) })
+  };
+}
+
+const webRules: Rule[] = [
+  webRule(
+    {
+      id: "VS-CODE-008",
+      title: "Request data used as a database query (NoSQL injection)",
+      severity: "high",
+      cwe: ["CWE-943"],
+      description: "A request object is passed straight into a query, or text is built into a `$where` clause. An attacker can send operators such as `$ne` or script and change what the query matches.",
+      remediation: "Pick the expected fields, check their type, and avoid `$where`.",
+      falsePositives: "Input already validated against a schema before this line.",
+      verification: "Send an object where a string is expected and confirm it is rejected."
+    },
+    /\.(?:find|findOne|findOneAndUpdate|updateOne|updateMany|deleteOne|deleteMany|countDocuments)\s*\(\s*req(?:uest)?\.(?:body|query)\s*[,)]|(?<![\w"'])\$where\s*:\s*(?:`[^`]*\$\{|["'][^"']*["']\s*\+|req(?:uest)?\.)/,
+    /\.(?:find|find_one|update_one|delete_one|delete_many)\s*\(\s*request\.(?:json|get_json\(\))\s*[,)]/
+  ),
+  webRule(
+    {
+      id: "VS-CODE-009",
+      title: "Request data used as a file path (path traversal)",
+      severity: "high",
+      cwe: ["CWE-22"],
+      description: "A file is opened, sent or deleted using a request value, so `../` sequences can reach files outside the intended folder.",
+      remediation: "Resolve the path and require it to stay inside an allowed folder, or map an id to a known file name.",
+      falsePositives: "Values already reduced to a base name or checked against an allow list.",
+      verification: "Request `../` and an absolute path and confirm both are refused."
+    },
+    /\b(?:readFile|readFileSync|createReadStream|createWriteStream|sendFile|unlink|unlinkSync|writeFile|writeFileSync)\s*\(\s*req(?:uest)?\.(?:params|query|body)\b/,
+    /(?<![\w.])(?:open|send_file)\s*\(\s*request\.(?:args|form|values)\b/
+  ),
+  webRule(
+    {
+      id: "VS-CODE-010",
+      title: "Request data used as an outbound URL (SSRF)",
+      severity: "high",
+      cwe: ["CWE-918"],
+      description: "The server fetches a URL taken from the request, which can reach internal services and cloud metadata endpoints.",
+      remediation: "Allow only known hosts, resolve and block private address ranges, and do not follow redirects to them.",
+      falsePositives: "A value checked against an allow list before this line.",
+      verification: "Request a loopback or link-local address and confirm it is refused."
+    },
+    /(?<![\w.])(?:fetch|got|axios(?:\.(?:get|post|put|delete|request))?)\s*\(\s*req(?:uest)?\.(?:params|query|body)\b/,
+    /\b(?:requests|httpx)\.(?:get|post|put|delete|head)\s*\(\s*request\.(?:args|form|values)\b/
+  ),
+  webRule(
+    {
+      id: "VS-CODE-011",
+      title: "Redirect target taken from the request (open redirect)",
+      severity: "medium",
+      cwe: ["CWE-601"],
+      description: "The redirect destination comes from the request, so a link to this site can send people to an attacker's site.",
+      remediation: "Redirect to relative paths or to an allow list of destinations.",
+      falsePositives: "A value validated as a local path before this line.",
+      verification: "Request an external destination and confirm it is refused."
+    },
+    /\.redirect\s*\(\s*(?:\d{3}\s*,\s*)?req(?:uest)?\.(?:params|query|body)\b/,
+    /(?<![\w.])redirect\s*\(\s*request\.(?:args|form|values)\b/
+  ),
+  {
+    ...b,
+    id: "VS-CODE-012",
+    title: "Session cookie protection switched off",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-1004", "CWE-614"],
+    description: "`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.",
+    remediation: "Set `httpOnly` and `secure` to true and choose a `sameSite` value.",
+    falsePositives: "Cookies that scripts must read, or settings used only for local development.",
+    verification: "The Set-Cookie response header carries HttpOnly and Secure.",
+    applies: isCode,
+    check: (f) =>
+      lineRule(f, /\b(?:httpOnly|httponly|secure|SESSION_COOKIE_(?:SECURE|HTTPONLY))\s*[:=]\s*(?:false|False)\b/, {
+        skipComments: true,
+        filter: (m, line, lineNo) => !insideString(line, m.index) && (/cookie|session/i.test(line) || lookBack(f, lineNo, 6, /cookie|session/i))
+      })
+  }
+];
 
 export const codeRules: Rule[] = [
   {
@@ -156,5 +246,6 @@ export const codeRules: Rule[] = [
         // and content passed through an obvious sanitizer.
         filter: (m, line) => !insideString(line, m.index) && !/\.innerHTML\s*=\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*;?\s*(?:\/\/.*)?$/.test(line) && !/sanitiz|DOMPurify|escapeHtml|xss\(/i.test(line)
       })
-  }
+  },
+  ...webRules
 ];

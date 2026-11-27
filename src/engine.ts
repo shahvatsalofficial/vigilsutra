@@ -10,6 +10,7 @@ import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
 import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, type Policy } from "./policy.js";
 import { redactSpan, scrubTokens, tidy } from "./redact.js";
+import { stamp } from "./clock.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
 export const VERSION = "0.4.2";
@@ -322,7 +323,7 @@ export function audit(opts: AuditOptions): ScanResult {
   return {
     schemaVersion: "1.0",
     tool: { name: "vigilsutra", version: VERSION, rulesVersion: RULES_VERSION },
-    generatedAt: new Date().toISOString(),
+    generatedAt: stamp(),
     mode: "local",
     project: { name: basename(root), detected: detectProject(inv.files) },
     scope: inv.stats,

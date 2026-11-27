@@ -44,7 +44,7 @@ export const infraRules: Rule[] = [
     applies: isWorkflow,
     check: (f) => {
       if (!/^[ \t]*pull_request_target[ \t]*:|\bon:[ \t]*\[?[^\n]*pull_request_target/m.test(f.text)) return [];
-      return lineRule(f, /ref:\s*\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}/);
+      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
     }
   },
   {
@@ -65,12 +65,12 @@ export const infraRules: Rule[] = [
   {
     ...wf,
     id: "VS-CICD-004",
-    title: "Untrusted GitHub context interpolated into a shell step",
+    title: "Untrusted GitHub context interpolated into a script step",
     severity: "high",
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-78", "CWE-77"],
-    description: "Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands.",
+    description: "Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` or `actions/github-script` script. A crafted value can inject commands.",
     remediation: "Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `\"$TITLE\"` in the script.",
     falsePositives: "Fields restricted by GitHub to safe characters. Only matches inside run blocks are reported when detectable; verify context.",
     verification: "The expression no longer appears inside a `run:` body.",
@@ -80,13 +80,15 @@ export const infraRules: Rule[] = [
       let inRun = false;
       let runIndent = 0;
       f.lines.forEach((line, i) => {
-        const run = /^(\s*)(?:-\s*)?run:\s*(.*)$/.exec(line);
+        const found = /^(\s*)(?:-\s*)?(run|script):\s*(.*)$/.exec(line);
+        // `script:` is code only as an input of actions/github-script.
+        const run = found && (found[2] === "run" || lookBack(f, i + 1, 8, /uses:\s*["']?actions\/github-script@/)) ? found : null;
         const indent = line.search(/\S|$/);
         if (run) {
           inRun = true;
           runIndent = run[1].length;
-          if (run[2] && !/^[|>][-+]?$/.test(run[2])) {
-            if (risky(run[2])) hits.push({ line: i + 1, excerpt: line });
+          if (run[3] && !/^[|>][-+]?$/.test(run[3])) {
+            if (risky(run[3])) hits.push({ line: i + 1, excerpt: line });
             inRun = false;
           }
           return;

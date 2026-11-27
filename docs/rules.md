@@ -19,7 +19,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CICD-001 | GitHub Action not pinned to a commit SHA | low | high | potential | PipelineGuard | CWE-829 |
 | VS-CICD-002 | pull_request_target workflow checks out pull-request code | high | medium | potential | PipelineGuard | CWE-829, CWE-94 |
 | VS-CICD-003 | Workflow grants write-all permissions | medium | high | confirmed | PipelineGuard | CWE-250, CWE-732 |
-| VS-CICD-004 | Untrusted GitHub context interpolated into a shell step | high | medium | potential | PipelineGuard | CWE-78, CWE-77 |
+| VS-CICD-004 | Untrusted GitHub context interpolated into a script step | high | medium | potential | PipelineGuard | CWE-78, CWE-77 |
 | VS-DOCKER-001 | Container runs as root (no USER instruction) | medium | high | confirmed | ContainerGuard | CWE-250 |
 | VS-DOCKER-002 | Base image uses :latest or no tag | low | high | confirmed | ContainerGuard | CWE-829 |
 | VS-DOCKER-003 | Remote script piped into a shell during build | medium | medium | potential | ContainerGuard | CWE-494 |
@@ -170,9 +170,9 @@ A workflow triggered by `pull_request_target` runs with repository secrets and a
 - **Verify:** No `write-all` remains and the workflow still passes.
 - **False positives:** None expected; the setting is explicit.
 
-### VS-CICD-004: Untrusted GitHub context interpolated into a shell step
+### VS-CICD-004: Untrusted GitHub context interpolated into a script step
 
-Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` script. A crafted value can inject shell commands.
+Attacker-controlled fields (PR title/body, branch name, issue or comment text) are expanded directly inside a `run:` or `actions/github-script` script. A crafted value can inject commands.
 
 - **Fix:** Pass the value through an environment variable (`env: TITLE: ${{ github.event.pull_request.title }}`) and reference it as `"$TITLE"` in the script.
 - **Verify:** The expression no longer appears inside a `run:` body.

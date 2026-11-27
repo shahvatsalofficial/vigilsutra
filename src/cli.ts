@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { audit, exceeds, VERSION } from "./engine.js";
 import { loadPolicy } from "./policy.js";
 import { render, FORMATS, type Format } from "./reporters/index.js";
@@ -9,6 +9,7 @@ import { ADAPTERS, PACKAGE_ROOT, installAdapter, planAdapter, uninstallAdapter, 
 import { locateGit } from "./git-objects.js";
 import { cycloneDx, readComponents } from "./components.js";
 import { applyFixes, planFixes } from "./fix.js";
+import { closest } from "./suggest.js";
 import { SEVERITY_ORDER, type ScanResult, type Severity } from "./types.js";
 
 const HELP = `VigilSutra AI ${VERSION} - offline, read-only security & privacy auditor. Created by Vatsal Shah (https://shahvatsal.com).
@@ -57,6 +58,8 @@ interface Args {
   flags: Map<string, string | true>;
 }
 
+const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters"];
+
 const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories"]);
 
 const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run"]);
@@ -71,7 +74,10 @@ function parse(argv: string[]): Args {
       const name = eq < 0 ? a : a.slice(0, eq);
       const k = name === "-h" ? "help" : name.slice(2);
       // A mistyped flag must stop the run: ignoring it could silently disable a CI gate.
-      if (name !== "-h" && (!name.startsWith("--") || !(VALUE_FLAGS.has(k) || BOOL_FLAGS.has(k)))) throw new Error(`unknown option "${name}". Run: vigilsutra --help`);
+      if (name !== "-h" && (!name.startsWith("--") || !(VALUE_FLAGS.has(k) || BOOL_FLAGS.has(k)))) {
+        const near = closest(k, [...VALUE_FLAGS, ...BOOL_FLAGS]);
+        throw new Error(`unknown option "${name}".${near ? ` Did you mean --${near}?` : ""} Run: vigilsutra --help`);
+      }
       if (VALUE_FLAGS.has(k)) {
         const v = eq < 0 ? argv[++i] : a.slice(eq + 1);
         if (!v || (eq < 0 && v.startsWith("--"))) throw new Error(`--${k} needs a value`);
@@ -115,14 +121,24 @@ function checkRoot(p: string): string {
   return realpathSync(abs);
 }
 
-/** Writes report.md, report.html, results.json and results.sarif. The folder gets a .gitignore so reports are not committed by accident. */
-function writeReportFolder(dir: string, result: ScanResult): void {
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "report.md"), render(result, "markdown"));
-  writeFileSync(join(dir, "report.html"), render(result, "html"));
-  writeFileSync(join(dir, "results.json"), render(result, "json"));
-  writeFileSync(join(dir, "results.sarif"), render(result, "sarif"));
-  writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
+const REPORT_FILES: [string, Format][] = [["report.md", "markdown"], ["report.html", "html"], ["results.json", "json"], ["results.sarif", "sarif"]];
+/** Folders that are commonly deployed or published. */
+const PUBLISHED = new Set(["docs", "public", "static", "site", "www", "dist", "build", "out"]);
+
+/**
+ * Writes report.md, report.html, results.json and results.sarif, readable by the owner only.
+ * A folder that holds nothing else also gets a .gitignore so reports are not committed by accident.
+ */
+function writeReportFolder(dir: string, result: ScanResult, root: string): void {
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const ours = new Set([".gitignore", ...REPORT_FILES.map(([name]) => name)]);
+  const shared = readdirSync(dir).some((name) => !ours.has(name));
+  for (const [name, format] of REPORT_FILES) writeFileSync(join(dir, name), render(result, format), { mode: 0o600 });
+  // Never replace or add an ignore-everything file in a folder with other content, such as the project root.
+  if (shared) process.stderr.write(`Warning: ${dir} holds other files, so no .gitignore was written. Do not commit or publish the reports.\n`);
+  else writeFileSync(join(dir, ".gitignore"), "# Reports contain file paths and redacted excerpts; do not commit them.\n*\n");
+  const top = relative(root, realpathSync(dir)).split(/[\\/]/)[0];
+  if (PUBLISHED.has(top)) process.stderr.write(`Warning: reports are inside "${top}/", which is often published. Choose another --report-dir.\n`);
 }
 
 function writeOut(file: string, data: string): void {
@@ -177,7 +193,7 @@ function main(): void {
       const dirFlag = flags.get("report-dir");
       if (!flags.has("no-report")) {
         const dir = resolve(typeof dirFlag === "string" ? dirFlag : "vigilsutra-report");
-        writeReportFolder(dir, result);
+        writeReportFolder(dir, result, root);
         process.stderr.write(`Reports written to ${dir}\n  report.html  open this in a browser\n  report.md    Markdown version\n  results.json, results.sarif  for tools and CI\n`);
       }
       if (failOn && exceeds(result, failOn)) process.exit(1);
@@ -343,7 +359,10 @@ function main(): void {
       fail("usage: vigilsutra adapters list | install <claude|cursor|codex|gemini|copilot> | uninstall <claude|cursor|codex|gemini|copilot>");
     }
     default:
-      fail(`unknown command "${cmd}". Run: vigilsutra --help`);
+{
+      const near = closest(cmd, COMMANDS);
+      fail(`unknown command "${cmd}".${near ? ` Did you mean "${near}"?` : ""} Run: vigilsutra --help`);
+    }
   }
 }
 

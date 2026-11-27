@@ -194,6 +194,41 @@ test("SARIF carries severity scores and rule help links that match the docs head
   assert.ok(headings.includes(rule.helpUri.split("#")[1]), rule.helpUri);
 });
 
+test("a report folder with other files keeps its .gitignore", () => {
+  const root = project({ "a.js": "1", ".gitignore": "node_modules/\n" });
+  const r = cli(["audit", root, "--report-dir", root]);
+  assert.equal(r.status, 0);
+  assert.equal(readFileSync(join(root, ".gitignore"), "utf8"), "node_modules/\n");
+  assert.match(r.stderr, /no \.gitignore was written/);
+  const published = cli(["audit", root, "--report-dir", join(root, "docs", "audit")]);
+  assert.match(published.stderr, /often published/);
+  assert.match(readFileSync(join(root, "docs", "audit", ".gitignore"), "utf8"), /^\*$/m);
+});
+
+test("SOURCE_DATE_EPOCH gives byte-identical reports and SBOM", () => {
+  const root = project({ "a.js": "eval(x)", "package-lock.json": JSON.stringify({ packages: { "node_modules/a": { version: "1.0.0" } } }) });
+  const run = (args) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, SOURCE_DATE_EPOCH: "1700000000" } }).stdout;
+  for (const args of [["audit", root, "--format", "json", "--no-report"], ["sbom", root]]) {
+    const first = run(args);
+    assert.match(first, /2023-11-14T22:13:20/);
+    assert.equal(run(args), first);
+  }
+});
+
+test("typos get a suggestion", () => {
+  assert.match(cli(["audti"]).stderr, /Did you mean "audit"\?/);
+  assert.match(cli(["audit", ".", "--fail-onn=high"]).stderr, /Did you mean --fail-on\?/);
+  assert.doesNotMatch(cli(["zzzzzzzz"]).stderr, /Did you mean/);
+});
+
+test("workflow rules read github-script and pull request merge refs", () => {
+  const wf = (body) => ids(scan({ ".github/workflows/w.yml": body }));
+  const title = "${{ github.event.pull_request.title }}";
+  assert.ok(wf(`on: pull_request\njobs:\n  a:\n    steps:\n      - uses: actions/github-script@v7\n        with:\n          script: |\n            console.log("${title}")\n`).includes("VS-CICD-004"));
+  assert.ok(!wf(`jobs:\n  a:\n    steps:\n      - uses: some/other@v1\n        with:\n          script: "${title}"\n`).includes("VS-CICD-004"));
+  assert.ok(wf("on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: refs/pull/${{ github.event.number }}/merge\n").includes("VS-CICD-002"));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

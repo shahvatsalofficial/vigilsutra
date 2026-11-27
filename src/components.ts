@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { stamp } from "./clock.js";
 
 export interface Component {
   ecosystem: "npm" | "pypi" | "golang";
@@ -113,14 +114,21 @@ export function readComponents(root: string, skip: (rel: string) => boolean = ()
   return out;
 }
 
+/** Random by default; derived from the content when SOURCE_DATE_EPOCH asks for reproducible output. */
+function serial(components: Component[], version: string): string {
+  if (!process.env.SOURCE_DATE_EPOCH) return randomUUID();
+  const h = createHash("sha256").update(JSON.stringify([version, components])).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
 export function cycloneDx(components: Component[], version: string): string {
   const bom = {
     bomFormat: "CycloneDX",
     specVersion: "1.6",
-    serialNumber: `urn:uuid:${randomUUID()}`,
+    serialNumber: `urn:uuid:${serial(components, version)}`,
     version: 1,
     metadata: {
-      timestamp: new Date().toISOString(),
+      timestamp: stamp(),
       tools: { components: [{ type: "application", name: "vigilsutra", version }] },
       component: { type: "application", name: "scanned-project" }
     },

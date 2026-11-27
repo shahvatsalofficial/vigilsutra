@@ -30,6 +30,14 @@
 - The GitHub Action writes the Markdown report to the job summary.
 - Fixed: `VS-IAC-001` again ignores `aws_vpc_security_group_egress_rule` and similar egress resources.
 
+## Unreleased (reports, CLI and workflows)
+
+- Fixed: `--report-dir` on a folder with other files, such as the project root, no longer overwrites its `.gitignore`.
+- Report files are readable by the owner only (POSIX), and a report folder inside a commonly published folder prints a warning.
+- `SOURCE_DATE_EPOCH` pins report and SBOM timestamps and the SBOM serial number, for byte-identical output.
+- Mistyped commands and options suggest the closest one.
+- `VS-CICD-002` reports checkout of `refs/pull/.../merge`. `VS-CICD-004` also reads `actions/github-script` scripts.
+
 ## 0.4.2 - 2026-11-24
 
 - New documentation site (`site/`): guided pages, diagrams, charts, six real-world scenarios, light theme by default with a dark option, phone and desktop layouts, search, and a fresh sample report generated from the real CLI. Built by a zero-dependency generator and deployed by the Pages workflow. No rule or CLI changes.

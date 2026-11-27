@@ -1,18 +1,29 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 - 2026-11-28
 
-- Go, Java, Kotlin, PHP, Ruby and C#: new rule `VS-CODE-013` (request data into a shell or SQL call on one line), and `VS-CODE-005`/`VS-CODE-006` now read these languages.
-- `VS-CICD-002` also covers `workflow_run` workflows that check out the triggering commit.
+### Read before upgrading
+
+- `VS-CICD-005` and `VS-K8S-007` are low severity and common, so a `--fail-on low` gate is likely to fail.
+- New language patterns can fail a higher gate that passed with 0.5.0.
+- Recreate a baseline to let it follow moved files.
+
+### Fixes
+
+- Waivers for Kubernetes rules (`VS-K8S-*`) stopped the scan with an error, and the published finding schema rejected those rule ids.
+
+### Rules (56 to 59, rules version `1.9.0`)
+
+- `VS-CODE-013`: request data into a shell or SQL call (Go, Java, Kotlin, PHP, Ruby, C#).
+- `VS-CICD-005`: workflow without `permissions`. `VS-K8S-007`: no resource limits.
+- `VS-CODE-005`, `006` and `009` to `011` also read Go, Java, Kotlin, PHP, Ruby and C#. These language checks match one line.
+- `VS-CICD-002` covers `workflow_run`. `VS-CICD-001` and `004` read composite actions.
+
+### Features
+
+- Baselines follow a moved file; a copy is still reported.
 - The SBOM carries package hashes and licences from npm lockfiles.
-- `VS-CODE-009` to `VS-CODE-011` (path traversal, SSRF, open redirect) also read Go, Java, Kotlin, PHP, Ruby and C#. Rules version `1.8.0`.
-- `VS-CICD-001` and `VS-CICD-004` also read composite actions (`action.yml`).
-- Baselines record the content of each finding, so a moved file stays accepted. Recreate a baseline to get this.
-
-- New rules `VS-CICD-005` (workflow without `permissions`) and `VS-K8S-007` (no resource limits), both low severity. Rules version `1.9.0`, 59 rules.
 - A warning when the report folder is listed in `package.json` `files`.
-- Tests check every finding against the published JSON schema.
-- Fixed: waivers for Kubernetes rules (`VS-K8S-*`) were rejected, and the published schema did not accept those rule ids.
 
 ## 0.5.0 - 2026-11-28
 

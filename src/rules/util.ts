@@ -47,7 +47,7 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
       g.lastIndex = 0;
       // Every match is read: to count them, and so that no second secret on the line survives in an excerpt.
       for (let m = g.exec(part.text); m; m = g.exec(part.text)) {
-        if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup]);
+        if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup] ?? m[0]);
         if (!opts.filter || opts.filter(m, part.text, i + 1)) {
           hit ??= { line: i + 1, excerpt: part.text, at: m.index };
           matched.add(p * 1900 + m.index);

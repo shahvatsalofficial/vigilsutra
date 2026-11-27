@@ -126,6 +126,28 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 
 In the GitHub Action, pull request and merge queue runs read `.vigilsutra.yml` from the base commit, so a pull request cannot loosen its own gate. A policy change takes effect after it is merged. If the base commit or its policy file cannot be read, the built-in defaults apply. Protect the workflow file itself with branch rules or `CODEOWNERS`. In another CI system, pass the base branch copy with `--policy <file>`.
 
+## Custom rules
+
+Keep project-specific patterns in a JSON file and name it with `--rules`. The file is never read from the scanned project on its own, because a slow regular expression can stall a scan. In CI, take it from a trusted branch.
+
+```json
+{
+  "rules": [
+    {
+      "id": "VS-CUSTOM-001",
+      "title": "Internal service token",
+      "severity": "high",
+      "pattern": "\\b(itk_[a-z0-9]{20})\\b",
+      "secretGroup": 1,
+      "files": ["src/**"],
+      "tests": { "match": ["t = itk_aaaaaaaaaaaaaaaaaaaa"], "noMatch": ["t = itk_short"] }
+    }
+  ]
+}
+```
+
+Check the examples with `vigilsutra rules test rules.json`. Set `secretGroup` for secrets so the value is redacted. Custom findings appear in every report; the SARIF rule descriptions cover built-in rules only.
+
 Set `SOURCE_DATE_EPOCH` (seconds) to get byte-identical reports and SBOM from the same input.
 
 Exit codes: `0` ok · `1` findings at or above `--fail-on` (or new findings in `verify`) · `2` usage or runtime error, or an incomplete scan with `--fail-on`.

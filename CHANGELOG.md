@@ -32,6 +32,8 @@
 
 ## Unreleased (reports, CLI and workflows)
 
+- Custom rules from a JSON file with `--rules`, and `vigilsutra rules test <file>`.
+- `--annotate` prints GitHub Actions annotations; the Action uses it, so findings show on pull request files.
 - New rules `VS-DB-001`, `VS-DB-002` (databases without authentication), `VS-IAC-004` (public database or storage) and `VS-IAC-005` (access granted to everyone). Rules version `1.6.0`, 56 rules.
 - `vigilsutra completion <bash|zsh|powershell>` prints a shell completion script.
 - Tests fail when rule docs, rule counts or the help text drift from the code.

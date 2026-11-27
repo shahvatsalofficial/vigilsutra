@@ -10,6 +10,8 @@ import { locateGit } from "./git-objects.js";
 import { cycloneDx, readComponents } from "./components.js";
 import { applyFixes, planFixes } from "./fix.js";
 import { closest } from "./suggest.js";
+import { loadCustomRules, testCustomRules } from "./custom-rules.js";
+import { annotations } from "./reporters/annotations.js";
 import { SEVERITY_ORDER, type ScanResult, type Severity } from "./types.js";
 
 const HELP = `VigilSutra AI ${VERSION} - offline, read-only security & privacy auditor. Created by Vatsal Shah (https://shahvatsal.com).
@@ -33,6 +35,8 @@ Commands:
       --no-advisories     Do not match the shipped advisory snapshot
       --advisories <file> Match this advisory snapshot instead of the shipped one
       --no-color          Plain output (also honours NO_COLOR)
+      --rules <file>      Also apply custom rules from this JSON file (never read from the project on its own)
+      --annotate          Also print GitHub Actions annotations; use with --out
   report [path]           Same scan as audit. Always writes report.md and report.html (plus JSON and SARIF)
   sbom [path]             Write a CycloneDX 1.6 JSON SBOM of pinned npm, PyPI and Go components
       --out <file>        Write the SBOM to a file instead of stdout
@@ -41,6 +45,7 @@ Commands:
   baseline [path] --out <file>   Record current findings as an accepted baseline
   verify [path] --previous <results.json>   Re-scan and compare with an earlier JSON result
   rules list              List implemented rules
+  rules test <file>       Run the examples in a custom rules file
   explain <RULE-ID>       Show rule details, fix and false-positive notes
   doctor                  Environment and offline-readiness check
   completion <shell>      Print a completion script for bash, zsh or powershell
@@ -61,9 +66,9 @@ interface Args {
 
 const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules", "explain", "doctor", "init", "adapters", "completion"];
 
-const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories"]);
+const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories", "rules"]);
 
-const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run"]);
+const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run", "annotate"]);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -110,7 +115,9 @@ function policyOpts(flags: Map<string, string | true>): { policyFile?: string; i
 function auditOpts(root: string, flags: Map<string, string | true>) {
   const since = flags.get("since");
   const advisories = flags.get("advisories");
+  const rules = flags.get("rules");
   return {
+    extraRules: typeof rules === "string" ? loadCustomRules(resolve(rules)).map((c) => c.rule) : undefined,
     root,
     history: !flags.has("no-history"),
     since: typeof since === "string" ? since : undefined,
@@ -200,6 +207,7 @@ function main(): void {
         writeOut(out, render(result, format as Format, false));
         process.stderr.write(`Report written to ${out} (${result.summary.total} findings)\n`);
       } else process.stdout.write(render(result, format as Format, color));
+      if (flags.has("annotate")) process.stdout.write(annotations(result));
       // Readable reports are files, not only a terminal scrollback. Stdout stays the chosen format.
       const dirFlag = flags.get("report-dir");
       if (!flags.has("no-report")) {
@@ -272,7 +280,16 @@ function main(): void {
       return;
     }
     case "rules": {
-      if (pos[0] !== "list") fail("usage: vigilsutra rules list");
+      if (pos[0] === "test" && pos[1]) {
+        const custom = loadCustomRules(resolve(pos[1]));
+        const failures = testCustomRules(custom);
+        for (const f of failures) process.stdout.write(`FAIL ${f}\n`);
+        const examples = custom.reduce((n, c) => n + c.match.length + c.noMatch.length, 0);
+        process.stdout.write(`${custom.length} rule(s), ${examples} example(s), ${failures.length} failure(s)\n`);
+        if (failures.length) process.exit(1);
+        return;
+      }
+      if (pos[0] !== "list") fail("usage: vigilsutra rules list | rules test <file>");
       process.stdout.write(`Rules version ${RULES_VERSION}: ${ALL_RULES.length} rules\n`);
       for (const r of ALL_RULES) process.stdout.write(`${r.id.padEnd(15)} ${r.severity.padEnd(8)} ${r.status.padEnd(13)} ${r.agent.padEnd(13)} ${r.title}\n`);
       return;

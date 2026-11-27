@@ -36,6 +36,8 @@ export interface AuditOptions {
   advisoriesFile?: string;
   /** Skip advisory matching. */
   advisories?: boolean;
+  /** Rules from a file the caller named; see custom-rules.ts. */
+  extraRules?: Rule[];
 }
 
 function sha(s: string): string {
@@ -180,7 +182,8 @@ export function audit(opts: AuditOptions): ScanResult {
   extraNotes.push(opened.note);
   let capped = 0;
   const disabled = new Set(policy.disableRules.map((r) => r.toUpperCase()));
-  const rules = ALL_RULES.filter((r) => !disabled.has(r.id));
+  const rules = ALL_RULES.concat(opts.extraRules ?? []).filter((r) => !disabled.has(r.id));
+  if (opts.extraRules?.length) extraNotes.push(`${opts.extraRules.length} custom rule(s) from --rules were applied.`);
   const generated = makeIgnoreMatcher(SECRETS_ONLY);
   const baseline = opts.baselineFile ? loadBaseline(opts.baselineFile) : new Set<string>();
 

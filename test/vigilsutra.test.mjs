@@ -284,6 +284,28 @@ test("completion scripts list the commands and options", () => {
   assert.equal(cli(["completion", "fish"]).status, 2);
 });
 
+test("custom rules apply only with --rules, redact secrets and test their examples", () => {
+  const token = "itk_" + "a".repeat(20);
+  const rule = { id: "VS-CUSTOM-001", title: "Token", severity: "high", pattern: "\\b(itk_[a-z]{20})\\b", secretGroup: 1, files: ["src/**"], tests: { match: [token], noMatch: ["itk_short"] } };
+  const root = project({ "src/a.js": `const t = "${token}";`, "other/b.js": token, "rules.json": JSON.stringify({ rules: [rule] }), "bad.json": JSON.stringify({ rules: [{ ...rule, tests: { match: ["nothing"] } }] }), "evil.json": JSON.stringify({ rules: [{ ...rule, id: "VS-SECRET-001" }] }) });
+  assert.ok(!ids(audit({ root })).includes("VS-CUSTOM-001"));
+  const r = cli(["audit", root, "--rules", join(root, "rules.json"), "--format", "json", "--no-report", "--fail-on", "high"]);
+  assert.equal(r.status, 1);
+  const found = JSON.parse(r.stdout).findings.filter((f) => f.ruleId === "VS-CUSTOM-001");
+  assert.deepEqual(found.map((f) => f.path), ["src/a.js"]);
+  assert.ok(!r.stdout.includes(token), "secret must be redacted");
+  assert.equal(cli(["rules", "test", join(root, "rules.json")]).status, 0);
+  assert.equal(cli(["rules", "test", join(root, "bad.json")]).status, 1);
+  assert.equal(cli(["rules", "test", join(root, "evil.json")]).status, 2);
+});
+
+test("annotations escape file names and skip history paths", () => {
+  const root = project({ "a,b.js": "eval(x)" });
+  const r = cli(["audit", root, "--no-report", "--annotate", "--format", "sarif", "--out", join(root, "..", "out.sarif")]);
+  assert.match(r.stdout, /^::error file=a%2Cb\.js,line=1,title=VS-CODE-001::/m);
+  assert.doesNotMatch(r.stdout, /git-history/);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

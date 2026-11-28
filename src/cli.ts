@@ -20,7 +20,7 @@ Usage: vigilsutra <command> [options]
 
 Commands:
   audit [path]            Scan a project (default: .). Read-only; no network; no code execution.
-      --format <f>        text (default) | json | markdown | sarif | html
+      --format <f>        text (default) | json | markdown | sarif | html | csv | junit
       --out <file>        Write the report to a file instead of stdout
       --fail-on <sev>     Exit 1 if any finding is at/above critical|high|medium|low|info
       --baseline <file>   Suppress findings whose fingerprints are in this baseline

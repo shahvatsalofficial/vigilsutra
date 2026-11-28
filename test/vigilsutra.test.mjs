@@ -96,9 +96,11 @@ test("the action reads the policy from the base commit", { skip: process.platfor
   writeFileSync(join(root, "a.js"), `const t = "${GH}";`);
   writeFileSync(join(root, ".vigilsutra.yml"), "ignore:\n  - a.js\n");
   const script = readFileSync("action.yml", "utf8").replace(/\r/g, "").split("      run: |\n")[1].replace(/^ {8}/gm, "");
-  const run = (VS_BASE) => spawnSync(process.env.VS_BASH || "bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_ACTION_PATH: resolve("."), VS_PATH: ".", VS_FAIL: "high", VS_HISTORY: "false", VS_BASE } });
+  const outputs = join(root, "..", "out.txt");
+  const run = (VS_BASE) => spawnSync(process.env.VS_BASH || "bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_ACTION_PATH: resolve("."), VS_PATH: ".", VS_FAIL: "high", VS_HISTORY: "false", VS_BASE, GITHUB_OUTPUT: outputs } });
   assert.equal(run("").status, 0);
   assert.equal(run(base).status, 1);
+  assert.match(readFileSync(outputs, "utf8"), /^high=[1-9]/m);
   for (const policy of ["disableRules:\n  - VS-SECRET-003\n", "waivers:\n  - VS-SECRET-003|a.js|me|2099-01-01\n"]) {
     writeFileSync(join(root, ".vigilsutra.yml"), policy);
     assert.equal(run("").status, 0, "outside a pull request the project policy applies");
@@ -595,6 +597,19 @@ test("--local reports untracked env secrets as local only and marks uncommitted 
   assert.equal(cli(["audit", root, "--local", "--staged"]).status, 2);
 });
 
+test("CSV defuses formulas and JUnit stays well formed", () => {
+  const r = scan({ "=cmd.js": 'eval(x); // <"&> \u0007' });
+  const csv = render(r, "csv");
+  assert.match(csv, /^ruleId,severity,/);
+  assert.ok(csv.includes('"\'=cmd.js"'), csv);
+  const xml = render(r, "junit");
+  assert.match(xml, /<testsuite name="vigilsutra" tests="\d+" failures="\d+">/);
+  assert.ok(!xml.includes('<"&>') && !xml.includes("\u0007"));
+  assert.equal((xml.match(/<testcase /g) ?? []).length, r.findings.length);
+  assert.match(render(scan({ "a.txt": "x", "SECURITY.md": "x" }), "junit"), /failures="0"/);
+  for (const format of ["csv", "junit"]) assert.ok(!render(scan({ "a.js": `const t = "${GH}";` }), format).includes(GH));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -628,6 +643,12 @@ const PAIRS = [
   ["VS-CICD-008", { ".github/workflows/w.yml": "on: [pull_request]\njobs:\n  a:\n    runs-on: [self-hosted, linux]\n" }, { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    runs-on: self-hosted\n" }],
   ["VS-CICD-009", { ".github/workflows/w.yml": "on:\n  workflow_run:\n    workflows: [ci]\njobs:\n  a:\n    steps:\n      - uses: actions/download-artifact@v4\n" }, { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    steps:\n      - uses: actions/download-artifact@v4\n" }],
   ["VS-CICD-010", { ".github/workflows/w.yml": "on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n      - run: x\n        env:\n          persist-credentials: false\n" }, { ".github/workflows/w.yml": "on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          persist-credentials: false\n" }],
+  ["VS-CODE-014", { "a.js": "const resetToken = Math.random().toString(36);" }, { "a.js": "const jitter = Math.random() * 100;" }],
+  ["VS-CODE-015", { "a.js": "jwt.verify(t, k, { algorithms: ['HS256', 'none'] });" }, { "a.js": "jwt.verify(t, k, { algorithms: ['HS256'] });" }],
+  ["VS-CODE-016", { "settings.py": "DEBUG = True" }, { "settings.py": "DEBUG = os.getenv('DEBUG') == '1'" }],
+  ["VS-CODE-017", { "a.php": "<?php $o = unserialize($_COOKIE['d']);" }, { "a.php": "<?php $o = json_decode($_COOKIE['d']);" }],
+  ["VS-CODE-018", { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", false);" }, { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);" }],
+  ["VS-CODE-019", { "a.go": "exec.Command(\"sh\", \"-c\", cmd)" }, { "a.go": "exec.Command(\"sh\", \"-c\", \"ls -l\")" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- New rules `VS-CODE-014` to `VS-CODE-019`: predictable random secrets, unverified JWTs, debug and any-host settings, deserialization, XML external entities and shell commands from variables. Rules version `1.11.0`, 70 rules.
+- `--format csv` and `--format junit`.
+- The GitHub Action sets `total`, `critical` and `high` outputs.
 - `--local` also reads untracked `.env` files and marks findings that git does not have: local only, or uncommitted.
 - New rules `VS-CICD-006` to `VS-CICD-010`: `secrets: inherit`, event data written to `GITHUB_ENV`, self-hosted runners on pull requests, artifact downloads and kept checkout credentials in privileged workflows. Rules version `1.10.0`, 64 rules.
 - Text, Markdown and HTML reports show each finding's note, such as the commit date of a history finding.

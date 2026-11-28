@@ -1,4 +1,4 @@
-# Rules (version 1.10.0)
+# Rules (version 1.11.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -57,6 +57,12 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-010 | Request data used as an outbound URL (SSRF) | high | medium | potential | CodeGuard | CWE-918 |
 | VS-CODE-011 | Redirect target taken from the request (open redirect) | medium | medium | potential | CodeGuard | CWE-601 |
 | VS-CODE-012 | Session cookie protection switched off | medium | medium | potential | CodeGuard | CWE-1004, CWE-614 |
+| VS-CODE-014 | Predictable random number used for a secret | medium | medium | potential | CodeGuard | CWE-338 |
+| VS-CODE-015 | JWT signature is not checked | high | medium | potential | CodeGuard | CWE-347 |
+| VS-CODE-016 | Debug mode or any-host setting enabled | medium | medium | potential | CodeGuard | CWE-489 |
+| VS-CODE-017 | Untrusted object deserialization (PHP, Java, Kotlin, Ruby) | high | medium | potential | CodeGuard | CWE-502 |
+| VS-CODE-018 | XML parser resolves external entities | high | medium | potential | CodeGuard | CWE-611 |
+| VS-CODE-019 | Shell command built from a variable (Go, Ruby) | high | medium | potential | CodeGuard | CWE-78 |
 | VS-AGENT-004 | Hidden Unicode characters in code or agent instructions | medium | high | potential | AgentShield | CWE-1007 |
 | VS-AGENT-001 | Instruction file tries to override agent safety or scope | medium | low | potential | AgentShield | CWE-1427 |
 | VS-AGENT-002 | Agent configuration disables permission prompts | high | medium | potential | AgentShield | CWE-250 |
@@ -494,6 +500,54 @@ The redirect destination comes from the request, so a link to this site can send
 - **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
 - **Verify:** The Set-Cookie response header carries HttpOnly and Secure.
 - **False positives:** Cookies that scripts must read, or settings used only for local development.
+
+### VS-CODE-014: Predictable random number used for a secret
+
+`Math.random` is predictable, so a token, password or nonce made from it can be guessed.
+
+- **Fix:** Use `crypto.randomBytes`, `crypto.randomUUID` or `crypto.getRandomValues`.
+- **Verify:** The value comes from a cryptographic random source.
+- **False positives:** A variable with such a name that is not security sensitive.
+
+### VS-CODE-015: JWT signature is not checked
+
+A token is accepted with the `none` algorithm or with signature verification switched off, so anyone can forge it.
+
+- **Fix:** Verify the signature and list only the algorithms you issue.
+- **Verify:** A token with a changed payload is rejected.
+- **False positives:** Code that only reads claims after another layer verified the token.
+
+### VS-CODE-016: Debug mode or any-host setting enabled
+
+A debug server shows source and can run code, and `ALLOWED_HOSTS = ['*']` accepts any host header.
+
+- **Fix:** Read debug flags from the environment with a safe default, and list the real host names.
+- **Verify:** The production configuration has debug off and named hosts.
+- **False positives:** Settings files used only for local development.
+
+### VS-CODE-017: Untrusted object deserialization (PHP, Java, Kotlin, Ruby)
+
+Deserialising data an attacker controls can create arbitrary objects and often runs code.
+
+- **Fix:** Use a data format such as JSON, or an allow list of classes.
+- **Verify:** Untrusted input can no longer reach the deserialiser.
+- **False positives:** Data that the program itself wrote and that no one else can change.
+
+### VS-CODE-018: XML parser resolves external entities
+
+External entities let a crafted document read files or reach internal services.
+
+- **Fix:** Disable document type declarations and external entities.
+- **Verify:** A document with an external entity is rejected.
+- **False positives:** Documents that come only from the program itself.
+
+### VS-CODE-019: Shell command built from a variable (Go, Ruby)
+
+A command string with variable content is interpreted by a shell.
+
+- **Fix:** Run the program directly and pass each argument separately.
+- **Verify:** No shell interprets variable text.
+- **False positives:** Variables that hold only fixed values chosen by the program.
 
 ### VS-AGENT-004: Hidden Unicode characters in code or agent instructions
 

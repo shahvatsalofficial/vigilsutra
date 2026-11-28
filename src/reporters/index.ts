@@ -1,11 +1,12 @@
 import { ALL_RULES } from "../rules/index.js";
 import type { Finding, ScanResult, Severity } from "../types.js";
 import { toHtml, toMarkdown, htmlEsc } from "./rich.js";
+import { toCsv, toJunit } from "./tables.js";
 
 export { toHtml, toMarkdown, htmlEsc };
 
-export type Format = "text" | "json" | "markdown" | "sarif" | "html";
-export const FORMATS: Format[] = ["text", "json", "markdown", "sarif", "html"];
+export type Format = "text" | "json" | "markdown" | "sarif" | "html" | "csv" | "junit";
+export const FORMATS: Format[] = ["text", "json", "markdown", "sarif", "html", "csv", "junit"];
 
 const SEV: Severity[] = ["critical", "high", "medium", "low", "info"];
 
@@ -90,6 +91,10 @@ export function render(r: ScanResult, f: Format, color = false): string {
       return toJson(r);
     case "markdown":
       return toMarkdown(r);
+    case "csv":
+      return toCsv(r);
+    case "junit":
+      return toJunit(r);
     case "sarif":
       return toSarif(r);
     case "html":

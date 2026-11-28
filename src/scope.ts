@@ -46,7 +46,7 @@ function readChecked(abs: string, expected: Stats): string | "binary" | "swapped
  * Read-only inventory. Symlinks are never followed (they are counted and skipped), so a
  * repository can not redirect the scan outside its root. Nothing is executed.
  */
-export function inventory(rootInput: string, policy: Policy, deadline = Date.now() + policy.timeLimitMs): Inventory {
+export function inventory(rootInput: string, policy: Policy, deadline = Date.now() + policy.timeLimitMs, includeUntracked = false): Inventory {
   const root = realpathSync(rootInput);
   const ignored = makeIgnoreMatcher(policy.ignore);
   const stats: ScopeStats = {
@@ -109,7 +109,7 @@ export function inventory(rootInput: string, policy: Policy, deadline = Date.now
       }
       // A local .env that git does not track is not a committed secret. Leave it unread.
       // With no usable git index, the file is still reviewed.
-      if (shouldSkipUntrackedDotenv(e.name, abs, gitCache)) {
+      if (!includeUntracked && shouldSkipUntrackedDotenv(e.name, abs, gitCache)) {
         stats.skippedIgnored++;
         continue;
       }

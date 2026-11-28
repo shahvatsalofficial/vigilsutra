@@ -566,6 +566,35 @@ test("workflow rules cover the pull request source repository and more fields", 
   assert.ok(wf("on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: ${{ github.event.pull_request.head.repo.full_name }}\n").includes("VS-CICD-002"));
 });
 
+test("--local reports untracked env secrets as local only and marks uncommitted lines", () => {
+  const root = project({ "a.js": "const x = 1;\n", ".gitignore": ".env\n" });
+  const git = (...a) => assert.equal(spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root }).status, 0);
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "one");
+  writeFileSync(join(root, ".env"), "API_TOKEN=" + PASS);
+  writeFileSync(join(root, ".env-stag"), "API_TOKEN=" + PASS);
+  writeFileSync(join(root, ".env.example"), "API_TOKEN=" + PASS);
+  writeFileSync(join(root, "a.js"), `const x = 1;\nconst t = "${GH}";\n`);
+  const secrets = (r) => r.findings.filter((f) => f.category === "secrets");
+  assert.ok(!secrets(audit({ root })).some((f) => f.path === ".env" || f.path === ".env-stag"), "default mode does not read untracked env files");
+  const local = secrets(audit({ root, local: true }));
+  for (const p of [".env", ".env-stag", ".env.example"]) assert.match(local.find((f) => f.path === p).note, /^Local only/, p);
+  assert.match(local.find((f) => f.path === "a.js").note, /Uncommitted: this line/);
+  const out = cli(["audit", root, "--local", "--format", "json", "--no-report"]).stdout;
+  assert.ok(!out.includes(PASS) && !out.includes(GH));
+  git("add", "-f", "a.js", ".env");
+  git("commit", "-qm", "two");
+  const after = secrets(audit({ root, local: true }));
+  assert.equal(after.find((f) => f.path === "a.js").note, undefined);
+  assert.equal(after.find((f) => f.path === ".env").note, undefined);
+  rmSync(join(root, ".env"));
+  git("rm", "-q", "--cached", ".env");
+  git("commit", "-qm", "three");
+  assert.ok(secrets(audit({ root })).some((f) => f.path.startsWith("git-history/") && f.path.endsWith("/.env")), "removed commit stays visible");
+  assert.equal(cli(["audit", root, "--local", "--staged"]).status, 2);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -594,6 +623,11 @@ const PAIRS = [
   ["VS-CODE-013", { "a.php": "<?php system('ping ' . $_GET['h']);" }, { "a.php": "<?php system('ping ' . escapeshellarg($_GET['h']));" }],
   ["VS-CICD-005", { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    runs-on: x\n" }, { ".github/workflows/w.yml": "on: push\npermissions:\n  contents: read\njobs:\n  a:\n    runs-on: x\n" }],
   ["VS-K8S-007", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      resources:\n        limits:\n          memory: 1Gi\n" }],
+  ["VS-CICD-006", { ".github/workflows/w.yml": "jobs:\n  a:\n    uses: ./x.yml\n    secrets: inherit\n" }, { ".github/workflows/w.yml": "jobs:\n  a:\n    uses: ./x.yml\n    secrets:\n      token: x\n" }],
+  ["VS-CICD-007", { ".github/workflows/w.yml": "jobs:\n  a:\n    steps:\n      - run: echo \"T=${{ github.event.issue.title }}\" >> \"$GITHUB_ENV\"\n" }, { ".github/workflows/w.yml": "jobs:\n  a:\n    steps:\n      - run: echo \"N=${{ github.event.pull_request.number }}\" >> \"$GITHUB_ENV\"\n" }],
+  ["VS-CICD-008", { ".github/workflows/w.yml": "on: [pull_request]\njobs:\n  a:\n    runs-on: [self-hosted, linux]\n" }, { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    runs-on: self-hosted\n" }],
+  ["VS-CICD-009", { ".github/workflows/w.yml": "on:\n  workflow_run:\n    workflows: [ci]\njobs:\n  a:\n    steps:\n      - uses: actions/download-artifact@v4\n" }, { ".github/workflows/w.yml": "on: push\njobs:\n  a:\n    steps:\n      - uses: actions/download-artifact@v4\n" }],
+  ["VS-CICD-010", { ".github/workflows/w.yml": "on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n      - run: x\n        env:\n          persist-credentials: false\n" }, { ".github/workflows/w.yml": "on: pull_request_target\njobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          persist-credentials: false\n" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

@@ -32,6 +32,7 @@
 | `--no-history` | Do not read git objects |
 | `--since <rev>` | Scan only worktree files that differ from a git revision |
 | `--staged` | Scan the git index (what the next commit records) |
+| `--local` | Also read untracked `.env` files, and mark findings that are not in the last commit. They still count for `--fail-on` |
 | `--no-advisories` / `--advisories <file>` | Skip or replace the advisory snapshot |
 | `--no-color` | Plain output; `NO_COLOR` also works |
 

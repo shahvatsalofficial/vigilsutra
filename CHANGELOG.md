@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `--local` also reads untracked `.env` files and marks findings that git does not have: local only, or uncommitted.
+- New rules `VS-CICD-006` to `VS-CICD-010`: `secrets: inherit`, event data written to `GITHUB_ENV`, self-hosted runners on pull requests, artifact downloads and kept checkout credentials in privileged workflows. Rules version `1.10.0`, 64 rules.
 - Text, Markdown and HTML reports show each finding's note, such as the commit date of a history finding.
 - `VS-AGENT-004` shows the text that hidden tag characters spell.
 - Reports say when a clone is shallow and that only commits reachable from HEAD are read.

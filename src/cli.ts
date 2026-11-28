@@ -32,6 +32,7 @@ Commands:
       --no-history        Do not read git objects for secrets that were removed from the worktree
       --since <rev>       Scan only worktree files that differ from this git revision (skips history)
       --staged            Scan the git index (what a commit would record) instead of the worktree
+      --local             Also read untracked .env files and mark findings that are not committed
       --no-advisories     Do not match the shipped advisory snapshot
       --advisories <file> Match this advisory snapshot instead of the shipped one
       --no-color          Plain output (also honours NO_COLOR)
@@ -68,7 +69,7 @@ const COMMANDS = ["audit", "report", "sbom", "fix", "baseline", "verify", "rules
 
 const VALUE_FLAGS = new Set(["format", "out", "fail-on", "baseline", "previous", "project", "policy", "report-dir", "since", "advisories", "rules"]);
 
-const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run", "annotate"]);
+const BOOL_FLAGS = new Set(["help", "report", "no-report", "no-policy", "no-history", "staged", "no-advisories", "no-color", "apply", "hook", "force", "dry-run", "annotate", "local"]);
 
 function parse(argv: string[]): Args {
   const pos: string[] = [];
@@ -122,6 +123,7 @@ function auditOpts(root: string, flags: Map<string, string | true>) {
     history: !flags.has("no-history"),
     since: typeof since === "string" ? since : undefined,
     staged: flags.has("staged"),
+    local: flags.has("local"),
     advisories: !flags.has("no-advisories"),
     advisoriesFile: typeof advisories === "string" ? resolve(advisories) : undefined,
     ...policyOpts(flags)

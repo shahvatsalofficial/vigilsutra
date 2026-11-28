@@ -22,7 +22,100 @@ function listKey(f: ScannedFile, lineNo: number): string {
 
 const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || /\.(?:env|conf|cfg|ini|properties|sh)$|^\.env/.test(f.name);
 
+/** True when the workflow lists one of these events as a trigger. */
+const triggeredBy = (f: ScannedFile, events: string): boolean => new RegExp(`^[ \\t]*(?:-[ \\t]*)?(?:${events})[ \\t]*(?::|$)|\\bon:[ \\t]*\\[?[^\\n]*\\b(?:${events})\\b`, "m").test(f.text);
+
 export const infraRules: Rule[] = [
+  {
+    ...wf,
+    id: "VS-CICD-006",
+    title: "Reusable workflow receives every secret",
+    severity: "medium",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-250"],
+    description: "`secrets: inherit` passes all repository and organisation secrets to the called workflow.",
+    remediation: "Pass only the secrets the called workflow needs, by name.",
+    falsePositives: "A reusable workflow in the same repository that needs most secrets.",
+    verification: "No `secrets: inherit` remains and the called workflow still runs.",
+    applies: isWorkflow,
+    check: (f) => lineRule(f, /^\s*secrets:\s*inherit\b/)
+  },
+  {
+    ...wf,
+    id: "VS-CICD-007",
+    title: "Untrusted input written to GITHUB_ENV or GITHUB_PATH",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-74"],
+    description: "An event field is written to the environment or path file, so a crafted value can set variables or put a program on the path for later steps.",
+    remediation: "Do not write event data to these files. Pass it through `env:` to the one step that needs it.",
+    falsePositives: "Fields that GitHub limits to safe characters, such as numbers.",
+    verification: "The write is removed or uses a validated value.",
+    applies: workflowOrAction,
+    check: (f) => lineRule(f, /\$\{\{\s*github\.(?:event\.|head_ref)[^}]*\}\}.*>>\s*["']?\$\{?GITHUB_(?:ENV|PATH)\b/, { filter: (_m, line) => !/\.(?:number|id|sha)\s*\}\}/.test(line) })
+  },
+  {
+    ...wf,
+    id: "VS-CICD-008",
+    title: "Pull request workflow runs on a self-hosted runner",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-829"],
+    description: "A pull request can run its code on your own machine, which keeps state between jobs. On a public repository anyone can open one.",
+    remediation: "Use hosted runners for pull requests, or ephemeral runners with approval required for outside contributors.",
+    falsePositives: "Private repositories where every contributor is trusted.",
+    verification: "Pull request jobs no longer select a self-hosted runner.",
+    applies: isWorkflow,
+    check: (f) => (triggeredBy(f, "pull_request|pull_request_target") ? lineRule(f, /^\s*(?:runs-on:.*|-\s*)\bself-hosted\b/, { skipComments: true }) : [])
+  },
+  {
+    ...wf,
+    id: "VS-CICD-009",
+    title: "Privileged workflow_run downloads an artifact",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-829", "CWE-345"],
+    description: "A `workflow_run` workflow has secrets and a write token, while the artifact it downloads was built by an untrusted run.",
+    remediation: "Treat the artifact as untrusted: extract it into an empty folder, validate its content, and never execute it.",
+    falsePositives: "Artifacts that are only read as data and validated.",
+    verification: "The artifact is validated before use, or the download is removed.",
+    applies: isWorkflow,
+    check: (f) => (triggeredBy(f, "workflow_run") ? lineRule(f, /uses:\s*["']?(?:actions\/download-artifact|dawidd6\/action-download-artifact)@|\.downloadArtifact\s*\(/, { skipComments: true }) : [])
+  },
+  {
+    ...wf,
+    id: "VS-CICD-010",
+    title: "Privileged workflow keeps checkout credentials",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-522"],
+    description: "`actions/checkout` stores the token in the git configuration by default. In a privileged workflow, later steps can read it.",
+    remediation: "Set `persist-credentials: false` on the checkout step.",
+    falsePositives: "Jobs that push to the repository and run no outside code.",
+    verification: "The checkout step sets `persist-credentials: false`.",
+    applies: isWorkflow,
+    check: (f) => {
+      if (!triggeredBy(f, "pull_request_target|workflow_run")) return [];
+      return lineRule(f, /uses:\s*["']?actions\/checkout@/, {
+        skipComments: true,
+        filter: (_m, line, lineNo) => {
+          // The step ends at the next list item that is not indented deeper than this one.
+          const indent = line.search(/\S/);
+          for (let i = lineNo; i < f.lines.length; i++) {
+            const next = f.lines[i];
+            if (/^\s*persist-credentials:\s*false\b/.test(next)) return false;
+            if (next.trim() && (next.search(/\S/) < indent || (next.search(/\S/) === indent && /^\s*-/.test(next)))) break;
+          }
+          return true;
+        }
+      });
+    }
+  },
   {
     ...wf,
     id: "VS-CICD-005",

@@ -4,7 +4,8 @@ import { basename, extname, join } from "node:path";
 import { ALL_RULES, CWE_NOTE, RULES_VERSION, findRule } from "./rules/index.js";
 import { isTestPath } from "./rules/util.js";
 import { inventory, type Inventory } from "./scope.js";
-import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.js";
+import { blobHash, headReader, locateGit, revisionTree, scanHistory, stagedBlobs } from "./git-objects.js";
+import { createGitCache, gitTracks } from "./git-index.js";
 import { readComponents, unreadManifests } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
@@ -36,6 +37,8 @@ export interface AuditOptions {
   advisoriesFile?: string;
   /** Skip advisory matching. */
   advisories?: boolean;
+  /** Also read untracked .env files, and say which findings git does not have yet. */
+  local?: boolean;
   /** Rules from a file the caller named; see custom-rules.ts. */
   extraRules?: Rule[];
 }
@@ -158,11 +161,41 @@ export function loadBaseline(file: string): Baseline {
   };
 }
 
+/** Adds to each working-folder finding whether git has it. Returns how many it does not, or null without git. */
+function markLocal(root: string, findings: Finding[], files: ScannedFile[]): number | null {
+  const head = headReader(root);
+  if (!locateGit(root)) return null;
+  const cache = createGitCache();
+  const lines = new Map(files.map((f) => [f.path, f.lines]));
+  const committed = new Map<string, Set<string> | null>();
+  let count = 0;
+  for (const f of findings) {
+    const mine = lines.get(f.path);
+    if (!mine || f.path.startsWith("git-history/")) continue;
+    let note = "";
+    if (gitTracks(join(root, f.path), cache) === false) note = "Local only: git does not track this file, so this is not a committed exposure.";
+    else {
+      if (!committed.has(f.path)) {
+        const text = head?.(f.path) ?? null;
+        committed.set(f.path, text === null ? null : new Set(text.split(/\r\n|\n|\r/)));
+      }
+      const old = committed.get(f.path);
+      if (!old) note = "Uncommitted: this file is not in the last commit.";
+      else if (!old.has(mine[f.startLine - 1] ?? "")) note = "Uncommitted: this line is not in the last commit.";
+    }
+    if (!note) continue;
+    count++;
+    f.note = [note, f.note].filter(Boolean).join(" ");
+  }
+  return count;
+}
+
 export function audit(opts: AuditOptions): ScanResult {
   const root = realpathSync(opts.root);
   const policy = opts.policy ?? loadPolicy(root, { explicitFile: opts.policyFile, ignoreProjectPolicy: opts.ignoreProjectPolicy });
   const deadline = Date.now() + policy.timeLimitMs;
-  const inv: Inventory = inventory(root, policy, deadline);
+  if (opts.local && (opts.staged || opts.since)) throw new Error("--local reads the working folder; do not combine it with --staged or --since");
+  const inv: Inventory = inventory(root, policy, deadline, opts.local);
   const extraNotes: string[] = [];
   let historyRan = false;
   let files = inv.files;
@@ -284,6 +317,11 @@ export function audit(opts: AuditOptions): ScanResult {
         evidenceType: "file-absence"
       });
     }
+  }
+
+  if (opts.local) {
+    const count = markLocal(root, findings, files);
+    extraNotes.push(count === null ? "Local mode: no readable git repository, so findings were not classified." : `Local mode: ${count} finding(s) are not in the last commit (untracked file or uncommitted line).`);
   }
 
   let suppressed = 0;

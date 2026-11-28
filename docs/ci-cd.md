@@ -11,14 +11,14 @@ steps:
   - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     with:
       node-version: 22
-  - run: npx --yes vigilsutra@0.7.0 audit . --format sarif --out vigilsutra.sarif --fail-on high --no-report
+  - run: npx --yes vigilsutra@0.8.0 audit . --format sarif --out vigilsutra.sarif --fail-on high --no-report
   - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
     if: always()
     with:
       sarif_file: vigilsutra.sarif
 ```
 
-This repository also ships `action.yml`. After a release tag exists, a job can call `uses: shahvatsalofficial/vigilsutra@v0.7.0` instead of `npx`. The action runs `npm ci` inside the action directory, then writes `vigilsutra.sarif`.
+This repository also ships `action.yml`. After a release tag exists, a job can call `uses: shahvatsalofficial/vigilsutra@v0.8.0` instead of `npx`. The action runs `npm ci` inside the action directory, then writes `vigilsutra.sarif`.
 
 - In the Action, pull request and merge queue runs read `.vigilsutra.yml` from the base commit, so ignores, disabled rules and waivers added by the pull request have no effect until merged. If the base commit cannot be read, built-in defaults apply. Check out with `fetch-depth: 0` or keep the checkout credentials so the base commit can be fetched. Elsewhere, save the base copy and pass it: `git show origin/main:.vigilsutra.yml > /tmp/policy.yml`, then `--policy /tmp/policy.yml`.
 - Use `--since <base-sha>` on a pull request when you want the gate to look at the change, not the whole tree. That mode does not read older history.

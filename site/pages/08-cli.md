@@ -35,6 +35,16 @@
 | `--no-advisories` / `--advisories <file>` | Skip or replace the advisory snapshot |
 | `--no-color` | Plain output; `NO_COLOR` also works |
 
+## Flags of other commands
+
+| Flag | Meaning |
+|---|---|
+| `--project <dir>` | `adapters install` and `uninstall`: the project to change |
+| `--rules <file>` | Also apply custom rules from a JSON file |
+| `--force` | `adapters install`: overwrite existing files |
+| `--dry-run` | `adapters install`: show the plan only |
+| `--annotate` | Also print GitHub Actions annotations |
+
 ## Exit codes
 
 | Code | Meaning |

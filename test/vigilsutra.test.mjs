@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, symlinkSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { audit } from "../dist/engine.js";
 import { render } from "../dist/reporters/index.js";
@@ -99,6 +99,11 @@ test("the action reads the policy from the base commit", { skip: process.platfor
   const run = (VS_BASE) => spawnSync(process.env.VS_BASH || "bash", ["-c", script], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_ACTION_PATH: resolve("."), VS_PATH: ".", VS_FAIL: "high", VS_HISTORY: "false", VS_BASE } });
   assert.equal(run("").status, 0);
   assert.equal(run(base).status, 1);
+  for (const policy of ["disableRules:\n  - VS-SECRET-003\n", "waivers:\n  - VS-SECRET-003|a.js|me|2099-01-01\n"]) {
+    writeFileSync(join(root, ".vigilsutra.yml"), policy);
+    assert.equal(run("").status, 0, "outside a pull request the project policy applies");
+    assert.equal(run(base).status, 1, policy);
+  }
   assert.equal(run("0".repeat(40)).status, 1); // unreadable base commit: defaults apply
 });
 
@@ -407,6 +412,94 @@ test("placeholder instructions, constant names and status words are not secrets"
   assert.ok(found({ "a.js": "const c = { password: 'correct_horse_battery' };" }));
   assert.ok(found({ "a.js": "const c = { pass: 'Zq7_horse9' };" }));
   assert.ok(found({ ".env.example": "APP_TOKEN=" + "Xk9" + "fQ2vLm81" }));
+});
+
+test("two secrets on one line are two findings and appear in no output", () => {
+  const a = "Zq8xLm2p" + "Qr7vT1", b = "Hk3nWv9s" + "Bd4yU6";
+  for (const files of [{ "two.json": `{"password":"${a}","secret":"${b}"}` }, { "two.js": `const t = "${GH}", password = "${a}";` }]) {
+    const r = scan(files);
+    assert.equal(r.findings.filter((f) => f.category === "secrets").length, 2, JSON.stringify(files));
+    assert.equal(new Set(r.findings.map((f) => f.fingerprint)).size, r.findings.length);
+    for (const format of ["text", "json", "markdown", "html", "sarif"]) for (const v of [a, b, GH]) assert.ok(!render(r, format).includes(v), format);
+  }
+});
+
+test("more secret key names and template file names", () => {
+  const v = "Xk9" + "fQ2vLm81";
+  for (const files of [{ "a.js": `const signing_key = "${v}";` }, { "a.yml": `encryption_key: ${v}` }, { "a.py": `bearer = "${v}"` }, { ".pypirc": `password = ${v}` }, { "deep/x/.env-example": `API_TOKEN=${v}` }, { ".env_sample": `API_TOKEN=${v}` }])
+    assert.ok(ids(scan(files)).includes("VS-SECRET-004"), JSON.stringify(files));
+  assert.ok(ids(scan({ ".env-stag": `API_TOKEN=${v}` })).includes("VS-SECRET-006"));
+  for (const line of ["API_KEY=YOUR_API_KEY", "API_KEY=${API_KEY}", "API_KEY="]) assert.ok(!ids(scan({ ".env-example": line })).some((i) => i.startsWith("VS-SECRET")), line);
+});
+
+test("fix leaves a WebSocket handshake and MD5 alone, and the README lists what it edits", () => {
+  const code = 'import { createHash } from "node:crypto";\nexport const a = (k) => createHash("sha1").update(k + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest("base64");\nexport const b = (k) => createHash("md5").update(k).digest("hex");\n';
+  const root = project({ "ws.js": code });
+  assert.equal(cli(["fix", root, "--apply"]).status, 0);
+  assert.equal(readFileSync(join(root, "ws.js"), "utf8"), code);
+  const documented = [...readFileSync("README.md", "utf8").split("## What `fix` changes")[1].split("\n## ")[0].matchAll(/^\| `(VS-[A-Z0-9-]+)` \|/gm)].map((m) => m[1]).sort();
+  const implemented = [...readFileSync("src/fix.ts", "utf8").matchAll(/^  "(VS-[A-Z0-9-]+)":/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(documented, implemented);
+});
+
+test("a closed pipe does not print a stack trace", async () => {
+  const child = spawn(process.execPath, [CLI, "rules", "list"], { stdio: ["ignore", "pipe", "pipe"] });
+  let errors = "";
+  child.stderr.on("data", (d) => (errors += d));
+  child.stdout.destroy();
+  const code = await new Promise((done) => child.on("close", done));
+  assert.equal(code, 0, errors);
+  assert.doesNotMatch(errors, /EPIPE|\n\s+at /);
+});
+
+test("reports carry no machine paths", () => {
+  const root = project({ "a.js": "eval(x)" });
+  const out = cli(["audit", root, "--format", "json", "--no-report"]).stdout;
+  for (const p of [root, resolve(".")]) for (const form of [p, p.replaceAll("\\", "/"), JSON.stringify(p).slice(1, -1)]) assert.ok(!out.includes(form), form);
+});
+
+test("a default report stays out of git status and out of the npm package", () => {
+  const root = project({ "package.json": JSON.stringify({ name: "x", version: "1.0.0" }), "a.js": "eval(x)" });
+  const git = (...a) => {
+    const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...a], { cwd: root, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout;
+  };
+  git("init", "-q");
+  git("add", "-A");
+  git("commit", "-qm", "base");
+  assert.equal(cli(["audit", "."], root).status, 0);
+  assert.ok(existsSync(join(root, "vigilsutra-report", "report.html")));
+  assert.equal(git("status", "--porcelain"), "");
+  const pack = spawnSync("npm pack --dry-run --json", { cwd: root, encoding: "utf8", shell: true });
+  assert.equal(pack.status, 0, pack.stderr);
+  const packed = JSON.parse(pack.stdout)[0].files.map((f) => f.path);
+  assert.ok(packed.includes("a.js") && !packed.some((p) => p.startsWith("vigilsutra-report")), packed.join());
+});
+
+test("every command-line flag is documented in help and on the CLI page", () => {
+  const source = readFileSync("src/cli.ts", "utf8");
+  const flags = ["VALUE_FLAGS", "BOOL_FLAGS"].flatMap((name) => [...new RegExp(`const ${name} = new Set\\(\\[([^\\]]*)\\]`).exec(source)[1].matchAll(/"([a-z-]+)"/g)].map((m) => m[1]));
+  assert.ok(flags.length > 20);
+  const help = cli(["--help"]).stdout, page = readFileSync("site/pages/08-cli.md", "utf8");
+  for (const flag of flags.filter((f) => f !== "help")) {
+    assert.ok(help.includes(`--${flag}`), `--${flag} is missing from --help`);
+    assert.ok(page.includes(`--${flag}`), `--${flag} is missing from site/pages/08-cli.md`);
+  }
+});
+
+test("a repository is scanned the same from its root, a nested folder or elsewhere", () => {
+  const root = project({ "a.js": `const t = "${GH}";`, "sub/deep/.env.local": "API_TOKEN=" + PASS, "sub/b.js": `const t = "${GH}";` });
+  writeFileSync(join(root, "..", "sibling.js"), `const t = "${GH}";`);
+  const at = (args, cwd) => JSON.parse(cli([...args, "--format", "json", "--no-report"], cwd).stdout).findings.map((f) => `${f.ruleId} ${f.path}`).sort();
+  const fromRoot = at(["audit", "."], root);
+  assert.deepEqual(at(["audit", root], join(root, "sub")), fromRoot);
+  assert.deepEqual(at(["audit", root], tmpdir()), fromRoot);
+  assert.ok(fromRoot.some((x) => x.endsWith("sub/deep/.env.local")) && !fromRoot.some((x) => x.includes("sibling")));
+  const missing = cli(["audit", join(root, "nope")]);
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /not a directory/);
+  assert.match(cli(["audit", root, "--format", "json", "--no-report"]).stdout, /No git directory was found/);
 });
 
 test("every rule has metadata and unique id", () => {

@@ -29,7 +29,7 @@ export function createGitCache(): GitCache {
 
 /** `.env`, `.env.local`, `.env.production`, and similar. Example and template files are not secret files. */
 export function isDotenvName(name: string): boolean {
-  return /^\.env(\..+)?$/i.test(name) && !/\.(example|sample|template)$/i.test(name);
+  return /^\.env([._-].+)?$/i.test(name) && !/[._-](example|sample|template)$/i.test(name);
 }
 
 /**

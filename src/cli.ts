@@ -411,6 +411,12 @@ function main(): void {
   }
 }
 
+// `vigilsutra rules list | head -1` closes the pipe early. Keep the exit code that was already decided.
+process.stdout.on("error", (e: NodeJS.ErrnoException) => {
+  if (e.code !== "EPIPE" && e.code !== "EOF") throw e;
+  process.exit(process.exitCode ?? 0);
+});
+
 try {
   main();
 } catch (e) {

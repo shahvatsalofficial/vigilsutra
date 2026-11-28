@@ -126,6 +126,20 @@ Full sample reports (labelled as samples, generated from the demo project): [HTM
 
 In the GitHub Action, pull request and merge queue runs read `.vigilsutra.yml` from the base commit, so a pull request cannot loosen its own gate. A policy change takes effect after it is merged. If the base commit or its policy file cannot be read, the built-in defaults apply. Protect the workflow file itself with branch rules or `CODEOWNERS`. In another CI system, pass the base branch copy with `--policy <file>`.
 
+## What `fix` changes
+
+`vigilsutra fix` prints edits and writes them only with `--apply`. It edits only settings whose safe value is certain:
+
+| Rule | Edit |
+|---|---|
+| `VS-K8S-001` | `privileged: true` to `false` |
+| `VS-K8S-002` | host network, PID or IPC sharing to `false` |
+| `VS-K8S-003` | disallow privilege escalation, require non-root |
+| `VS-IAC-002` | public storage ACL to `private` |
+| `VS-CODE-005` | turn TLS certificate verification back on. A server with a self-signed certificate then fails until you trust its CA |
+
+It never rewrites secrets, and never changes a hash algorithm: protocols such as the WebSocket handshake and published checksums need the old one.
+
 ## Custom rules
 
 Keep project-specific patterns in a JSON file and name it with `--rules`. The file is never read from the scanned project on its own, because a slow regular expression can stall a scan. In CI, take it from a trusted branch.

@@ -18,12 +18,8 @@ const REPLACEMENTS: Record<string, { from: RegExp; to: string }[]> = {
     { from: /rejectUnauthorized\s*:\s*false/, to: "rejectUnauthorized: true" },
     { from: /NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0["']?/, to: "NODE_TLS_REJECT_UNAUTHORIZED=1" },
     { from: /\bverify\s*=\s*False\b/, to: "verify=True" }
-  ],
-  // SHA-1 is never rewritten: protocols such as the WebSocket handshake and git object ids require it.
-  "VS-CODE-006": [
-    { from: /createHash\(\s*["']md5["']\s*\)/i, to: 'createHash("sha256")' },
-    { from: /hashlib\.md5\s*\(/i, to: "hashlib.sha256(" }
   ]
+  // VS-CODE-006 (weak hash) is deliberately absent: protocols and published digests require the old algorithm.
 };
 
 export interface PlannedEdit {

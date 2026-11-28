@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import type { Component } from "./components.js";
@@ -50,7 +50,7 @@ export function openAdvisoryDb(file = defaultAdvisoryPath()): { db: AdvisoryDb |
 }
 
 function advisoryNote(file: string, db: AdvisoryDb): string {
-  return `Advisory database ${file} (${db.size} package names). Match is name and version against recorded ranges. It is a snapshot, not a live feed.`;
+  return `Advisory database ${basename(file)} (${db.size} package names). Match is name and version against recorded ranges. It is a snapshot, not a live feed.`;
 }
 
 export interface AdvisoryMatch {

@@ -13,7 +13,7 @@ import { redactSpan, scrubTokens, tidy } from "./redact.js";
 import { stamp } from "./clock.js";
 import { SEVERITY_ORDER, type Finding, type Hit, type Rule, type ScanResult, type ScannedFile, type Severity } from "./types.js";
 
-export const VERSION = "0.6.0";
+export const VERSION = "0.6.1";
 
 /** Per rule, per file. Keeps one noisy file from producing an unbounded report. */
 export const MAX_PER_RULE_PER_FILE = 200;

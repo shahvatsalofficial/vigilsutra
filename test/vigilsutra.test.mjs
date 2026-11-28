@@ -43,7 +43,7 @@ test("every secret on a line is redacted, also after a placeholder", () => {
 
 test("only an all-filler value is a placeholder", () => {
   const found = (v) => ids(scan({ "a.js": `const password = "${v}";` })).includes("VS-SECRET-004");
-  for (const v of ["password-" + "Xk9fQ2vL", "test" + "Q8zr41mNpa", "secret_" + "9fKd02LmQ"]) assert.ok(found(v), v);
+  for (const v of ["password-" + "Xk9fQ2vL", "test" + "Q8zr41mNpa", "secret_" + "9fKd02LmQ", "Password" + "123!"]) assert.ok(found(v), v);
   for (const v of ["test-password-123", "your-api-key-here", "secret-value"]) assert.ok(!found(v), v);
 });
 

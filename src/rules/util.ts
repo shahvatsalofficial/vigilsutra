@@ -31,7 +31,8 @@ export function isPlaceholder(value: string): boolean {
     // Instructions in example files, such as "replace-with-a-long-random-value".
     /^(replace|insert|put|enter|set)[-_ ](with|me|your|this)(?![a-z])/i.test(v) ||
     // Only a value made entirely of filler words is a placeholder: "test-password-123" is, "password-Xk9fQ2" is not.
-    v.toLowerCase().split(/[-_ .!]+|\d+/).every((w) => !w || FILLER.has(w)) ||
+    // "!" is not a separator: "Password123!" is a common real password.
+    v.toLowerCase().split(/[-_ .]+|\d+/).every((w) => !w || FILLER.has(w)) ||
     /(^|[^a-z])(example|placeholder|dummy|changeme|xxxx)/i.test(v)
   );
 }

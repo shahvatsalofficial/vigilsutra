@@ -237,7 +237,7 @@ export const infraRules: Rule[] = [
     applies: isWorkflow,
     check: (f) => {
       if (!/^[ \t]*(?:pull_request_target|workflow_run)[ \t]*:|\bon:[ \t]*\[?[^\n]*(?:pull_request_target|workflow_run)/m.test(f.text)) return [];
-      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|event\.workflow_run\.head_(?:sha|branch)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))/);
+      return lineRule(f, /ref:\s*["']?(?:\$\{\{\s*github\.(?:event\.pull_request\.head\.(?:sha|ref)|event\.workflow_run\.head_(?:sha|branch)|head_ref)\s*\}\}|refs\/pull\/\$\{\{[^}]*\}\}\/(?:merge|head))|repository:\s*["']?\$\{\{\s*github\.event\.(?:pull_request\.head|workflow_run\.head_repository)(?:\.repo)?\.full_name/);
     }
   },
   {
@@ -479,5 +479,5 @@ export const infraRules: Rule[] = [
 ];
 
 function risky(s: string): boolean {
-  return /\$\{\{\s*github\.(?:event\.(?:pull_request\.(?:title|body|head\.ref|head\.label)|issue\.(?:title|body)|comment\.body|review\.body|head_commit\.message|commits\[[^\]]*\]\.message)|head_ref)\s*\}\}/.test(s);
+  return /\$\{\{\s*github\.(?:event\.(?:pull_request\.(?:title|body|head\.ref|head\.label)|issue\.(?:title|body)|comment\.body|review\.body|head_commit\.(?:message|author\.(?:name|email))|commits\[[^\]]*\]\.(?:message|author\.(?:name|email))|pull_request\.head\.repo\.default_branch|workflow_run\.(?:head_branch|head_commit\.(?:message|author\.(?:name|email)))|discussion\.(?:title|body)|pages\[[^\]]*\]\.page_name)|head_ref)\s*\}\}/.test(s);
 }

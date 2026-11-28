@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Text, Markdown and HTML reports show each finding's note, such as the commit date of a history finding.
+- `VS-AGENT-004` shows the text that hidden tag characters spell.
+- Reports say when a clone is shallow and that only commits reachable from HEAD are read.
+- `Pipfile.lock` and `uv.lock` are read, and reports list dependency files that were found but not read.
+- `VS-CICD-002` reports checkout of the pull request's source repository; `VS-CICD-004` covers more attacker-controlled fields.
+
 ## 0.7.0 - 2026-11-28
 
 ### Read before upgrading

@@ -5,7 +5,7 @@ import { ALL_RULES, CWE_NOTE, RULES_VERSION, findRule } from "./rules/index.js";
 import { isTestPath } from "./rules/util.js";
 import { inventory, type Inventory } from "./scope.js";
 import { blobHash, revisionTree, scanHistory, stagedBlobs } from "./git-objects.js";
-import { readComponents } from "./components.js";
+import { readComponents, unreadManifests } from "./components.js";
 import { matchAdvisories, openAdvisoryDb } from "./advisories.js";
 import { propagateTaint } from "./taint.js";
 import { DEFAULT_POLICY, loadPolicy, makeIgnoreMatcher, SECRETS_ONLY, waiverCovers, type Policy } from "./policy.js";
@@ -259,7 +259,10 @@ export function audit(opts: AuditOptions): ScanResult {
 
   const advRule = findRule("VS-SUPPLY-004");
   if (advRule && opened.db && !disabled.has(advRule.id)) {
-    const matches = matchAdvisories(readComponents(root, makeIgnoreMatcher(policy.ignore.slice(DEFAULT_POLICY.ignore.length))), opened.db);
+    const skipped = makeIgnoreMatcher(policy.ignore.slice(DEFAULT_POLICY.ignore.length));
+    const unread = unreadManifests(root, skipped);
+    if (unread.length) extraNotes.push(`Dependency files found but not read: ${unread.slice(0, 10).join(", ")}${unread.length > 10 ? ` and ${unread.length - 10} more` : ""}.`);
+    const matches = matchAdvisories(readComponents(root, skipped), opened.db);
     const shown = matches.slice(0, 500);
     if (matches.length > shown.length) extraNotes.push(`${matches.length - shown.length} advisory match(es) were not listed (cap 500).`);
     for (const m of shown) {

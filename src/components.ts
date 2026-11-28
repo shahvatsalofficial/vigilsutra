@@ -28,11 +28,15 @@ function readText(root: string, rel: string): string | null {
   }
 }
 
-const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod", "Cargo.lock", "poetry.lock", "composer.lock", "Gemfile.lock"]);
+const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod", "Cargo.lock", "poetry.lock", "composer.lock", "Gemfile.lock", "Pipfile.lock", "uv.lock"]);
+/** Dependency files this version recognises but cannot read. */
+const UNREAD = new Set(["pom.xml", "build.gradle", "build.gradle.kts", "gradle.lockfile", "packages.lock.json", "Package.resolved", "pubspec.lock", "mix.lock", "bun.lockb", "bun.lock", "conda-lock.yml"]);
+
+export const unreadManifests = (root: string, skip: (rel: string) => boolean = () => false): string[] => findManifests(root, skip, UNREAD);
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "vendor", ".venv", "venv", "__pycache__", "coverage", ".next", "target", "vigilsutra-report"]);
 
 /** Relative paths of manifests at any depth. Symlinks are not followed. */
-function findManifests(root: string, skip: (rel: string) => boolean, dir = "", depth = 0): string[] {
+function findManifests(root: string, skip: (rel: string) => boolean, names: Set<string> = MANIFESTS, dir = "", depth = 0): string[] {
   let entries;
   try {
     entries = readdirSync(join(root, dir), { withFileTypes: true });
@@ -43,8 +47,8 @@ function findManifests(root: string, skip: (rel: string) => boolean, dir = "", d
   const out: string[] = [];
   for (const e of entries) {
     const rel = dir ? `${dir}/${e.name}` : e.name;
-    if (e.isFile() && MANIFESTS.has(e.name) && !skip(rel)) out.push(rel);
-    if (e.isDirectory() && depth < 8 && !SKIP_DIRS.has(e.name) && !skip(rel + "/placeholder")) out.push(...findManifests(root, skip, rel, depth + 1));
+    if (e.isFile() && names.has(e.name) && !skip(rel)) out.push(rel);
+    if (e.isDirectory() && depth < 8 && !SKIP_DIRS.has(e.name) && !skip(rel + "/placeholder")) out.push(...findManifests(root, skip, names, rel, depth + 1));
   }
   return out;
 }
@@ -108,7 +112,18 @@ export function readComponents(root: string, skip: (rel: string) => boolean = ()
         const m = /^\s{2}['"]?\/?(@?[^@\s'"]+)@(\d[^:(/'"]*)/.exec(line);
         if (m) add({ ecosystem: "npm", name: m[1], version: m[2], path });
       }
-    } else if (file === "Cargo.lock" || file === "poetry.lock") {
+    } else if (file === "Pipfile.lock") {
+      try {
+        const json = JSON.parse(text) as Record<string, Record<string, { version?: unknown }>>;
+        for (const group of ["default", "develop"]) {
+          for (const [name, meta] of Object.entries(json[group] ?? {})) {
+            if (typeof meta.version === "string") add({ ecosystem: "pypi", name, version: meta.version.replace(/^==/, ""), path });
+          }
+        }
+      } catch {
+        /* not a lockfile */
+      }
+    } else if (file === "Cargo.lock" || file === "poetry.lock" || file === "uv.lock") {
       const ecosystem = file === "Cargo.lock" ? "cargo" : "pypi";
       let name = "";
       for (const line of lines) {

@@ -28,6 +28,7 @@ export function toText(r: ScanResult, color = false): string {
     out.push(`${c(paint[f.severity], f.severity.toUpperCase().padEnd(8))} ${f.ruleId}  ${f.title}`);
     out.push(`         ${safe(f.path)}:${f.startLine}  [${f.status}, confidence ${f.confidence}]`);
     out.push(`         evidence: ${f.excerpt}`);
+    if (f.note) out.push(`         note: ${safe(f.note)}`);
   }
   out.push("");
   out.push(`Summary: ${SEV.map((s) => `${r.summary.bySeverity[s]} ${s}`).join(", ")}${r.summary.baselineSuppressed ? `; ${r.summary.baselineSuppressed} suppressed by baseline` : ""}`);

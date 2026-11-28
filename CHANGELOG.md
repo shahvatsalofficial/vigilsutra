@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Each distinct secret on a line is reported as its own finding.
+- `VS-SECRET-004` reads `encryption_key`, `signing_key`, `bearer` and `.pypirc`. Environment templates named with `-` or `_` (such as `.env-example`) are treated like `.env.example`.
+- `fix` no longer rewrites MD5; the README lists what `fix` changes.
+- Piping output into a command that closes early no longer prints a stack trace.
+- Reports name the advisory database file without its full path.
+- New stability page for the report format, fingerprints and exit codes.
+
 ## 0.6.1 - 2026-11-28
 
 - `VS-SECRET-004` reports passwords such as `Password123!`, which the placeholder filter skipped.

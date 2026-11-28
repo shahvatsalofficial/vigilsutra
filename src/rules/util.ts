@@ -47,6 +47,7 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
     let hit: Hit | undefined;
     const secrets: string[] = [];
     const matched = new Set<number>(); // line offsets; windows overlap
+    const found = new Map<string, Hit>(); // one per distinct secret value
     for (const [p, part] of parts.entries()) {
       if (opts.skipComments && isCommentLine(part.text)) continue;
       g.lastIndex = 0;
@@ -54,13 +55,20 @@ export function lineRule(file: ScannedFile, re: RegExp, opts: { skipComments?: b
       for (let m = g.exec(part.text); m; m = g.exec(part.text)) {
         if (opts.secretGroup !== undefined) secrets.push(m[opts.secretGroup] ?? m[0]);
         if (!opts.filter || opts.filter(m, part.text, i + 1)) {
-          hit ??= { line: i + 1, excerpt: part.text, at: m.index };
+          const here: Hit = { line: i + 1, excerpt: part.text, at: m.index };
+          hit ??= here;
+          const value = opts.secretGroup === undefined ? undefined : (m[opts.secretGroup] ?? m[0]);
+          if (value !== undefined && !found.has(value)) found.set(value, here);
           matched.add(p * 1900 + m.index);
         }
         if (!m[0]) g.lastIndex++;
       }
     }
     if (!hit) return;
+    if (found.size) {
+      hits.push(...[...found.values()].map((h) => ({ ...h, secrets })));
+      return;
+    }
     if (matched.size > 1) hit.note = `${matched.size - 1} more match(es) on this line.`;
     hits.push(secrets.length ? { ...hit, secrets } : hit);
   });

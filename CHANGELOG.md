@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 - 2026-11-28
+
+### Read before upgrading
+
+- Each secret on a line is now its own finding. Minified and vendored files can report many more, so a gate that passed can fail.
+- `fix` no longer rewrites MD5 calls.
+- Files such as `.env-stag` are now treated as environment files, and `.env-example` as a template.
+
+### Changes
 
 - Each distinct secret on a line is reported as its own finding.
 - `VS-SECRET-004` reads `encryption_key`, `signing_key`, `bearer` and `.pypirc`. Environment templates named with `-` or `_` (such as `.env-example`) are treated like `.env.example`.

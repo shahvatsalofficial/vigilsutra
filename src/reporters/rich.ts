@@ -86,6 +86,7 @@ export function toMarkdown(r: ScanResult): string {
       o.push(`- **Where:** \`${mdCode(f.path)}:${f.startLine}\``);
       o.push(`- **Severity** ${f.severity} | **Confidence** ${f.confidence} | **Status** ${f.status}${f.pathContext ? " | test, example or vendored path" : ""}`);
       o.push(`- **Evidence${f.redacted ? " (redacted)" : ""}:** \`${mdCode(f.excerpt)}\``);
+      if (f.note) o.push(`- **Note:** ${mdEsc(f.note.replace(/[\r\n]+/g, " "))}`);
       o.push(`- **Fingerprint:** \`${f.fingerprint}\`${f.cwe.length ? ` | ${f.cwe.join(", ")} (orientation only)` : ""}`, "");
       o.push(`**Why it matters.** ${f.description}`, "", `**Fix.** ${f.remediation}`, "", `**Verify.** ${f.verification}`, "", `**May be a false positive when.** ${f.falsePositives}`, "");
     }
@@ -135,7 +136,7 @@ function findingHtml(f: Finding, i: number): string {
 <summary><span class="sev ${f.severity}">${f.severity}</span> ${htmlEsc(f.ruleId)}: ${htmlEsc(f.title)}</summary>
 <p class="where">${htmlEsc(f.path)}:${f.startLine}</p>
 <p><span class="chip">${htmlEsc(f.status)}</span><span class="chip">confidence ${htmlEsc(f.confidence)}</span>${f.pathContext ? '<span class="chip">test, example or vendored path</span>' : ""}${f.cwe.map((c) => `<span class="chip">${htmlEsc(c)}</span>`).join("")}</p>
-<p><strong>Evidence${f.redacted ? " (redacted)" : ""}</strong></p><pre>${htmlEsc(f.excerpt)}</pre>
+<p><strong>Evidence${f.redacted ? " (redacted)" : ""}</strong></p><pre>${htmlEsc(f.excerpt)}</pre>${f.note ? `\n<p><strong>Note</strong> ${htmlEsc(f.note)}</p>` : ""}
 <dl><dt>Why it matters</dt><dd>${htmlEsc(f.description)}</dd><dt>Fix</dt><dd>${htmlEsc(f.remediation)}</dd><dt>Verify</dt><dd>${htmlEsc(f.verification)}</dd><dt>May be a false positive when</dt><dd>${htmlEsc(f.falsePositives)}</dd></dl>
 <p class="meta">Finding ${i}. Fingerprint <code>${htmlEsc(f.fingerprint)}</code></p>
 </details>`;

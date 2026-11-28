@@ -28,11 +28,15 @@ function readText(root: string, rel: string): string | null {
   }
 }
 
-const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod", "Cargo.lock", "poetry.lock", "composer.lock", "Gemfile.lock"]);
+const MANIFESTS = new Set(["package-lock.json", "npm-shrinkwrap.json", "requirements.txt", "yarn.lock", "pnpm-lock.yaml", "go.mod", "Cargo.lock", "poetry.lock", "composer.lock", "Gemfile.lock", "Pipfile.lock", "uv.lock"]);
+/** Dependency files this version recognises but cannot read. */
+const UNREAD = new Set(["pom.xml", "build.gradle", "build.gradle.kts", "gradle.lockfile", "packages.lock.json", "Package.resolved", "pubspec.lock", "mix.lock", "bun.lockb", "bun.lock", "conda-lock.yml"]);
+
+export const unreadManifests = (root: string, skip: (rel: string) => boolean = () => false): string[] => findManifests(root, skip, UNREAD);
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", "out", "vendor", ".venv", "venv", "__pycache__", "coverage", ".next", "target", "vigilsutra-report"]);
 
 /** Relative paths of manifests at any depth. Symlinks are not followed. */
-function findManifests(root: string, skip: (rel: string) => boolean, dir = "", depth = 0): string[] {
+function findManifests(root: string, skip: (rel: string) => boolean, names: Set<string> = MANIFESTS, dir = "", depth = 0): string[] {
   let entries;
   try {
     entries = readdirSync(join(root, dir), { withFileTypes: true });
@@ -43,8 +47,8 @@ function findManifests(root: string, skip: (rel: string) => boolean, dir = "", d
   const out: string[] = [];
   for (const e of entries) {
     const rel = dir ? `${dir}/${e.name}` : e.name;
-    if (e.isFile() && MANIFESTS.has(e.name) && !skip(rel)) out.push(rel);
-    if (e.isDirectory() && depth < 8 && !SKIP_DIRS.has(e.name) && !skip(rel + "/placeholder")) out.push(...findManifests(root, skip, rel, depth + 1));
+    if (e.isFile() && names.has(e.name) && !skip(rel)) out.push(rel);
+    if (e.isDirectory() && depth < 8 && !SKIP_DIRS.has(e.name) && !skip(rel + "/placeholder")) out.push(...findManifests(root, skip, names, rel, depth + 1));
   }
   return out;
 }
@@ -108,7 +112,18 @@ export function readComponents(root: string, skip: (rel: string) => boolean = ()
         const m = /^\s{2}['"]?\/?(@?[^@\s'"]+)@(\d[^:(/'"]*)/.exec(line);
         if (m) add({ ecosystem: "npm", name: m[1], version: m[2], path });
       }
-    } else if (file === "Cargo.lock" || file === "poetry.lock") {
+    } else if (file === "Pipfile.lock") {
+      try {
+        const json = JSON.parse(text) as Record<string, Record<string, { version?: unknown }>>;
+        for (const group of ["default", "develop"]) {
+          for (const [name, meta] of Object.entries(json[group] ?? {})) {
+            if (typeof meta.version === "string") add({ ecosystem: "pypi", name, version: meta.version.replace(/^==/, ""), path });
+          }
+        }
+      } catch {
+        /* not a lockfile */
+      }
+    } else if (file === "Cargo.lock" || file === "poetry.lock" || file === "uv.lock") {
       const ecosystem = file === "Cargo.lock" ? "cargo" : "pypi";
       let name = "";
       for (const line of lines) {
@@ -155,7 +170,25 @@ function hashes(integrity: string | undefined): { hashes?: { alg: string; conten
   return m ? { hashes: [{ alg: `SHA-${m[1]}`, content: Buffer.from(m[2], "base64").toString("hex") }] } : {};
 }
 
-export function cycloneDx(components: Component[], version: string): string {
+/** Name and version of the scanned project, when its root package.json states them. */
+export function projectIdentity(root: string): { name: string; version?: string } | undefined {
+  try {
+    const { name, version } = JSON.parse(readText(root, "package.json") ?? "") as { name?: unknown; version?: unknown };
+    return typeof name === "string" && name ? { name, ...(typeof version === "string" ? { version } : {}) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function cycloneDx(components: Component[], version: string, project: { name: string; version?: string } = { name: "scanned-project" }): string {
+  // Names that differ only in spelling can share a purl; a reference must stay unique.
+  const refs = new Map<string, number>();
+  const ref = (c: Component): string => {
+    const id = purl(c);
+    const n = refs.get(id) ?? 0;
+    refs.set(id, n + 1);
+    return n ? `${id}#${n}` : id;
+  };
   const bom = {
     bomFormat: "CycloneDX",
     specVersion: "1.6",
@@ -164,10 +197,11 @@ export function cycloneDx(components: Component[], version: string): string {
     metadata: {
       timestamp: stamp(),
       tools: { components: [{ type: "application", name: "vigilsutra", version }] },
-      component: { type: "application", name: "scanned-project" }
+      component: { type: "application", ...project }
     },
     components: components.map((c) => ({
       type: "library",
+      "bom-ref": ref(c),
       name: c.name,
       version: c.version,
       purl: purl(c),
@@ -181,7 +215,8 @@ export function cycloneDx(components: Component[], version: string): string {
 
 function purl(c: Component): string {
   if (c.ecosystem === "npm") return `pkg:npm/${c.name.replace(/^@/, "%40")}@${c.version}`;
-  if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase()}@${c.version}`;
+  // The purl type and PEP 503 treat runs of `-`, `_` and `.` in PyPI names as one hyphen.
+  if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase().replace(/[-_.]+/g, "-")}@${c.version}`;
   if (c.ecosystem === "golang") return `pkg:golang/${c.name}@v${c.version}`;
   return `pkg:${c.ecosystem}/${c.name}@${c.version}`;
 }

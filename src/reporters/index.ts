@@ -1,11 +1,12 @@
 import { ALL_RULES } from "../rules/index.js";
 import type { Finding, ScanResult, Severity } from "../types.js";
 import { toHtml, toMarkdown, htmlEsc } from "./rich.js";
+import { toCsv, toJunit } from "./tables.js";
 
 export { toHtml, toMarkdown, htmlEsc };
 
-export type Format = "text" | "json" | "markdown" | "sarif" | "html";
-export const FORMATS: Format[] = ["text", "json", "markdown", "sarif", "html"];
+export type Format = "text" | "json" | "markdown" | "sarif" | "html" | "csv" | "junit";
+export const FORMATS: Format[] = ["text", "json", "markdown", "sarif", "html", "csv", "junit"];
 
 const SEV: Severity[] = ["critical", "high", "medium", "low", "info"];
 
@@ -28,6 +29,7 @@ export function toText(r: ScanResult, color = false): string {
     out.push(`${c(paint[f.severity], f.severity.toUpperCase().padEnd(8))} ${f.ruleId}  ${f.title}`);
     out.push(`         ${safe(f.path)}:${f.startLine}  [${f.status}, confidence ${f.confidence}]`);
     out.push(`         evidence: ${f.excerpt}`);
+    if (f.note) out.push(`         note: ${safe(f.note)}`);
   }
   out.push("");
   out.push(`Summary: ${SEV.map((s) => `${r.summary.bySeverity[s]} ${s}`).join(", ")}${r.summary.baselineSuppressed ? `; ${r.summary.baselineSuppressed} suppressed by baseline` : ""}`);
@@ -89,6 +91,10 @@ export function render(r: ScanResult, f: Format, color = false): string {
       return toJson(r);
     case "markdown":
       return toMarkdown(r);
+    case "csv":
+      return toCsv(r);
+    case "junit":
+      return toJunit(r);
     case "sarif":
       return toSarif(r);
     case "html":

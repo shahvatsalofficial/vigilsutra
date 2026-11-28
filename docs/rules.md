@@ -1,4 +1,4 @@
-# Rules (version 1.9.0)
+# Rules (version 1.12.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -16,6 +16,11 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-CICD-006 | Reusable workflow receives every secret | medium | high | potential | PipelineGuard | CWE-250 |
+| VS-CICD-007 | Untrusted input written to GITHUB_ENV or GITHUB_PATH | high | medium | potential | PipelineGuard | CWE-74 |
+| VS-CICD-008 | Pull request workflow runs on a self-hosted runner | medium | medium | potential | PipelineGuard | CWE-829 |
+| VS-CICD-009 | Privileged workflow_run downloads an artifact | medium | medium | potential | PipelineGuard | CWE-829, CWE-345 |
+| VS-CICD-010 | Privileged workflow keeps checkout credentials | medium | medium | potential | PipelineGuard | CWE-522 |
 | VS-CICD-005 | Workflow does not limit token permissions | low | high | potential | PipelineGuard | CWE-250 |
 | VS-K8S-007 | Workload sets no resource limits | low | medium | potential | ContainerGuard | CWE-770 |
 | VS-DB-001 | Database accepts connections without a password | high | high | potential | InfraGuard | CWE-306 |
@@ -52,6 +57,13 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-010 | Request data used as an outbound URL (SSRF) | high | medium | potential | CodeGuard | CWE-918 |
 | VS-CODE-011 | Redirect target taken from the request (open redirect) | medium | medium | potential | CodeGuard | CWE-601 |
 | VS-CODE-012 | Session cookie protection switched off | medium | medium | potential | CodeGuard | CWE-1004, CWE-614 |
+| VS-CODE-020 | Request data merged into an object (prototype pollution) | high | medium | potential | CodeGuard | CWE-1321 |
+| VS-CODE-014 | Predictable random number used for a secret | medium | medium | potential | CodeGuard | CWE-338 |
+| VS-CODE-015 | JWT signature is not checked | high | medium | potential | CodeGuard | CWE-347 |
+| VS-CODE-016 | Debug mode or any-host setting enabled | medium | medium | potential | CodeGuard | CWE-489 |
+| VS-CODE-017 | Untrusted object deserialization (PHP, Java, Kotlin, Ruby) | high | medium | potential | CodeGuard | CWE-502 |
+| VS-CODE-018 | XML parser resolves external entities | high | medium | potential | CodeGuard | CWE-611 |
+| VS-CODE-019 | Shell command built from a variable (Go, Ruby) | high | medium | potential | CodeGuard | CWE-78 |
 | VS-AGENT-004 | Hidden Unicode characters in code or agent instructions | medium | high | potential | AgentShield | CWE-1007 |
 | VS-AGENT-001 | Instruction file tries to override agent safety or scope | medium | low | potential | AgentShield | CWE-1427 |
 | VS-AGENT-002 | Agent configuration disables permission prompts | high | medium | potential | AgentShield | CWE-250 |
@@ -161,6 +173,46 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
+
+### VS-CICD-006: Reusable workflow receives every secret
+
+`secrets: inherit` passes all repository and organisation secrets to the called workflow.
+
+- **Fix:** Pass only the secrets the called workflow needs, by name.
+- **Verify:** No `secrets: inherit` remains and the called workflow still runs.
+- **False positives:** A reusable workflow in the same repository that needs most secrets.
+
+### VS-CICD-007: Untrusted input written to GITHUB_ENV or GITHUB_PATH
+
+An event field is written to the environment or path file, so a crafted value can set variables or put a program on the path for later steps.
+
+- **Fix:** Do not write event data to these files. Pass it through `env:` to the one step that needs it.
+- **Verify:** The write is removed or uses a validated value.
+- **False positives:** Fields that GitHub limits to safe characters, such as numbers.
+
+### VS-CICD-008: Pull request workflow runs on a self-hosted runner
+
+A pull request can run its code on your own machine, which keeps state between jobs. On a public repository anyone can open one.
+
+- **Fix:** Use hosted runners for pull requests, or ephemeral runners with approval required for outside contributors.
+- **Verify:** Pull request jobs no longer select a self-hosted runner.
+- **False positives:** Private repositories where every contributor is trusted.
+
+### VS-CICD-009: Privileged workflow_run downloads an artifact
+
+A `workflow_run` workflow has secrets and a write token, while the artifact it downloads was built by an untrusted run.
+
+- **Fix:** Treat the artifact as untrusted: extract it into an empty folder, validate its content, and never execute it.
+- **Verify:** The artifact is validated before use, or the download is removed.
+- **False positives:** Artifacts that are only read as data and validated.
+
+### VS-CICD-010: Privileged workflow keeps checkout credentials
+
+`actions/checkout` stores the token in the git configuration by default. In a privileged workflow, later steps can read it.
+
+- **Fix:** Set `persist-credentials: false` on the checkout step.
+- **Verify:** The checkout step sets `persist-credentials: false`.
+- **False positives:** Jobs that push to the repository and run no outside code.
 
 ### VS-CICD-005: Workflow does not limit token permissions
 
@@ -444,11 +496,67 @@ The redirect destination comes from the request, so a link to this site can send
 
 ### VS-CODE-012: Session cookie protection switched off
 
-`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.
+`httpOnly`, `secure` or `sameSite` is disabled for a cookie, which exposes it to scripts, unencrypted connections or cross-site requests.
 
 - **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
 - **Verify:** The Set-Cookie response header carries HttpOnly and Secure.
 - **False positives:** Cookies that scripts must read, or settings used only for local development.
+
+### VS-CODE-020: Request data merged into an object (prototype pollution)
+
+A deep merge or path assignment with request data can change `Object.prototype`, which affects the whole program.
+
+- **Fix:** Copy only expected fields, validate against a schema, and reject `__proto__`, `constructor` and `prototype` keys.
+- **Verify:** A request containing `__proto__` leaves new objects unchanged.
+- **False positives:** Libraries and versions that already block those keys, or input validated before this line.
+
+### VS-CODE-014: Predictable random number used for a secret
+
+`Math.random` is predictable, so a token, password or nonce made from it can be guessed.
+
+- **Fix:** Use `crypto.randomBytes`, `crypto.randomUUID` or `crypto.getRandomValues`.
+- **Verify:** The value comes from a cryptographic random source.
+- **False positives:** A variable with such a name that is not security sensitive.
+
+### VS-CODE-015: JWT signature is not checked
+
+A token is accepted with the `none` algorithm or with signature verification switched off, so anyone can forge it.
+
+- **Fix:** Verify the signature and list only the algorithms you issue.
+- **Verify:** A token with a changed payload is rejected.
+- **False positives:** Code that only reads claims after another layer verified the token.
+
+### VS-CODE-016: Debug mode or any-host setting enabled
+
+A debug server shows source and can run code, and `ALLOWED_HOSTS = ['*']` accepts any host header.
+
+- **Fix:** Read debug flags from the environment with a safe default, and list the real host names.
+- **Verify:** The production configuration has debug off and named hosts.
+- **False positives:** Settings files used only for local development.
+
+### VS-CODE-017: Untrusted object deserialization (PHP, Java, Kotlin, Ruby)
+
+Deserialising data an attacker controls can create arbitrary objects and often runs code.
+
+- **Fix:** Use a data format such as JSON, or an allow list of classes.
+- **Verify:** Untrusted input can no longer reach the deserialiser.
+- **False positives:** Data that the program itself wrote and that no one else can change.
+
+### VS-CODE-018: XML parser resolves external entities
+
+External entities let a crafted document read files or reach internal services.
+
+- **Fix:** Disable document type declarations and external entities.
+- **Verify:** A document with an external entity is rejected.
+- **False positives:** Documents that come only from the program itself.
+
+### VS-CODE-019: Shell command built from a variable (Go, Ruby)
+
+A command string with variable content is interpreted by a shell.
+
+- **Fix:** Run the program directly and pass each argument separately.
+- **Verify:** No shell interprets variable text.
+- **False positives:** Variables that hold only fixed values chosen by the program.
 
 ### VS-AGENT-004: Hidden Unicode characters in code or agent instructions
 

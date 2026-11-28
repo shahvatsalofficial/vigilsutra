@@ -23,7 +23,7 @@
 
 | Flag | Meaning |
 |---|---|
-| `--format <f>` | `text` (default), `json`, `markdown`, `sarif`, `html` |
+| `--format <f>` | `text` (default), `json`, `markdown`, `sarif`, `html`, `csv`, `junit` |
 | `--out <file>` | Write that format to a file instead of the screen |
 | `--fail-on <sev>` | Exit 1 if any finding is at or above `critical`, `high`, `medium`, `low` or `info` |
 | `--baseline <file>` | Hide findings recorded in the baseline; the count is still shown |
@@ -32,6 +32,7 @@
 | `--no-history` | Do not read git objects |
 | `--since <rev>` | Scan only worktree files that differ from a git revision |
 | `--staged` | Scan the git index (what the next commit records) |
+| `--local` | Also read untracked `.env` files, and mark findings that are not in the last commit. They still count for `--fail-on` |
 | `--no-advisories` / `--advisories <file>` | Skip or replace the advisory snapshot |
 | `--no-color` | Plain output; `NO_COLOR` also works |
 

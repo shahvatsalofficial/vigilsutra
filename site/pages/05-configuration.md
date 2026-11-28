@@ -82,6 +82,7 @@ Use `disableRules` only for a rule that is wrong for your whole project. The rep
 |---|---|---|
 | (default) | The whole working folder, plus git history | A full audit |
 | `--staged` | The git index, i.e. what the next commit would record | Pre-commit hooks |
+| `--local` | The working folder including untracked `.env` files, with local-only findings marked | Checking your machine before you commit |
 | `--since <rev>` | Worktree files that differ from `<rev>` (skips history) | Pull request checks that should judge the change |
 | `--no-history` | Skips reading git objects | When the job must not read `.git` |
 

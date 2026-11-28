@@ -31,7 +31,7 @@ const webRules: Rule[] = [
       falsePositives: "Input already validated against a schema before this line.",
       verification: "Send an object where a string is expected and confirm it is rejected."
     },
-    /\.(?:find|findOne|findOneAndUpdate|updateOne|updateMany|deleteOne|deleteMany|countDocuments)\s*\(\s*req(?:uest)?\.(?:body|query)\s*[,)]|(?<![\w"'])\$where\s*:\s*(?:`[^`]*\$\{|["'][^"']*["']\s*\+|req(?:uest)?\.)/,
+    /\.(?:find|findOne|findOneAndUpdate|updateOne|updateMany|deleteOne|deleteMany|countDocuments)\s*\(\s*req(?:uest)?\.(?:body|query)\s*[,)]|(?<![\w"'])\$where\s*:\s*(?:`[^`]*\$\{|["'][^"']*["']\s*\+|req(?:uest)?\.)|(?<![\w"'])\$function\s*:\s*\{[^}\n]*\bbody\s*:\s*(?:`[^`]*\$\{|["'][^"'\n]*["']\s*\+|req(?:uest)?\.)/,
     /\.(?:find|find_one|update_one|delete_one|delete_many)\s*\(\s*request\.(?:json|get_json\(\))\s*[,)]/
   ),
   webRule(
@@ -105,13 +105,13 @@ const webRules: Rule[] = [
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-1004", "CWE-614"],
-    description: "`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.",
+    description: "`httpOnly`, `secure` or `sameSite` is disabled for a cookie, which exposes it to scripts, unencrypted connections or cross-site requests.",
     remediation: "Set `httpOnly` and `secure` to true and choose a `sameSite` value.",
     falsePositives: "Cookies that scripts must read, or settings used only for local development.",
     verification: "The Set-Cookie response header carries HttpOnly and Secure.",
     applies: isCode,
     check: (f) =>
-      lineRule(f, /\b(?:httpOnly|httponly|secure|SESSION_COOKIE_(?:SECURE|HTTPONLY))\s*[:=]\s*(?:false|False)\b/, {
+      lineRule(f, /\b(?:httpOnly|httponly|secure|sameSite|samesite|SESSION_COOKIE_(?:SECURE|HTTPONLY))\s*[:=]\s*(?:false|False)\b|\bSESSION_COOKIE_SAMESITE\s*=\s*None\b/, {
         skipComments: true,
         filter: (m, line, lineNo) => !insideString(line, m.index) && (/cookie|session/i.test(line) || lookBack(f, lineNo, 6, /cookie|session/i))
       })
@@ -150,6 +150,125 @@ const OTHER_INJECTION: Record<Lang, RegExp> = {
   ruby: /(?<![\w.])(?:system|exec|eval)\b[^\n]*#\{\s*params\b|\.where\s*\(\s*"[^"\n]*#\{\s*params\b/,
   dotnet: /\b(?:Process\.Start)\s*\([^;]*\bRequest\.(?:Query|Form|QueryString|Params)\b|\b(?:new\s+SqlCommand|ExecuteSqlRaw|FromSqlRaw)\s*\([^;]*(?:\+\s*|\{)Request\.(?:Query|Form|QueryString|Params)\b/
 };
+
+type Meta = Pick<Rule, "id" | "title" | "severity" | "cwe" | "description" | "remediation" | "falsePositives" | "verification">;
+
+/** One line pattern per file kind; a kind without a pattern is not read. */
+function perKind(meta: Meta, patterns: (f: ScannedFile) => RegExp | undefined, matchesStrings = false): Rule {
+  return {
+    ...b,
+    ...meta,
+    confidence: "medium",
+    status: "potential",
+    applies: (f) => patterns(f) !== undefined,
+    // A pattern that names a quoted setting has to match inside strings.
+    check: (f) => lineRule(f, patterns(f)!, { skipComments: true, filter: (m, line) => matchesStrings || !insideString(line, m.index) })
+  };
+}
+
+const unsafeApiRules: Rule[] = [
+  perKind(
+    {
+      id: "VS-CODE-020",
+      title: "Request data merged into an object (prototype pollution)",
+      severity: "high",
+      cwe: ["CWE-1321"],
+      description: "A deep merge or path assignment with request data can change `Object.prototype`, which affects the whole program.",
+      remediation: "Copy only expected fields, validate against a schema, and reject `__proto__`, `constructor` and `prototype` keys.",
+      falsePositives: "Libraries and versions that already block those keys, or input validated before this line.",
+      verification: "A request containing `__proto__` leaves new objects unchanged."
+    },
+    (f) => (isJs(f) ? /(?<![\w$])(?:(?:_|lodash)\.(?:merge|mergeWith|defaultsDeep|set|setWith)|deepmerge|deepMerge|deepExtend)\s*\([^;\n]*\breq(?:uest)?\.(?:body|query|params)\b/ : undefined)
+  ),
+  perKind(
+    {
+      id: "VS-CODE-014",
+      title: "Predictable random number used for a secret",
+      severity: "medium",
+      cwe: ["CWE-338"],
+      description: "`Math.random` is predictable, so a token, password or nonce made from it can be guessed.",
+      remediation: "Use `crypto.randomBytes`, `crypto.randomUUID` or `crypto.getRandomValues`.",
+      falsePositives: "A variable with such a name that is not security sensitive.",
+      verification: "The value comes from a cryptographic random source."
+    },
+    (f) => (isJs(f) ? /\b[\w$]*(?:token|secret|password|passwd|otp|session_?id|nonce|salt|api_?key)[\w$]*\s*[:=][^;\n]*\bMath\.random\s*\(/i : undefined)
+  ),
+  perKind(
+    {
+      id: "VS-CODE-015",
+      title: "JWT signature is not checked",
+      severity: "high",
+      cwe: ["CWE-347"],
+      description: "A token is accepted with the `none` algorithm or with signature verification switched off, so anyone can forge it.",
+      remediation: "Verify the signature and list only the algorithms you issue.",
+      falsePositives: "Code that only reads claims after another layer verified the token.",
+      verification: "A token with a changed payload is rejected."
+    },
+    (f) => (isJs(f) ? /\balgorithms?\s*:\s*\[?[^\]\n]*["']none["']/i : isPy(f) ? /\bjwt\.decode\s*\([^\n]*(?:\bverify\s*=\s*False|["']verify_signature["']\s*:\s*False)|algorithms\s*=\s*\[[^\]\n]*["']none["']/i : undefined)
+  ),
+  perKind(
+    {
+      id: "VS-CODE-016",
+      title: "Debug mode or any-host setting enabled",
+      severity: "medium",
+      cwe: ["CWE-489"],
+      description: "A debug server shows source and can run code, and `ALLOWED_HOSTS = ['*']` accepts any host header.",
+      remediation: "Read debug flags from the environment with a safe default, and list the real host names.",
+      falsePositives: "Settings files used only for local development.",
+      verification: "The production configuration has debug off and named hosts."
+    },
+    (f) => (!isPy(f) ? undefined : /^settings.*\.py$/.test(f.name) ? /^DEBUG\s*=\s*True\b|^ALLOWED_HOSTS\s*=\s*\[\s*["']\*["']/ : /\.run\s*\([^\n]*\bdebug\s*=\s*True\b/)
+  ),
+  perKind(
+    {
+      id: "VS-CODE-017",
+      title: "Untrusted object deserialization (PHP, Java, Kotlin, Ruby)",
+      severity: "high",
+      cwe: ["CWE-502"],
+      description: "Deserialising data an attacker controls can create arbitrary objects and often runs code.",
+      remediation: "Use a data format such as JSON, or an allow list of classes.",
+      falsePositives: "Data that the program itself wrote and that no one else can change.",
+      verification: "Untrusted input can no longer reach the deserialiser."
+    },
+    (f) => {
+      const lang = otherLang(f);
+      return lang === "php" ? /\bunserialize\s*\([^;]*\$_(?:GET|POST|REQUEST|COOKIE)\b/ : lang === "jvm" ? /\bnew\s+ObjectInputStream\s*\(/ : lang === "ruby" ? /\b(?:YAML\.load|Marshal\.load)\s*\(?[^\n]*\bparams\b/ : undefined;
+    }
+  ),
+  perKind(
+    {
+      id: "VS-CODE-018",
+      title: "XML parser resolves external entities",
+      severity: "high",
+      cwe: ["CWE-611"],
+      description: "External entities let a crafted document read files or reach internal services.",
+      remediation: "Disable document type declarations and external entities.",
+      falsePositives: "Documents that come only from the program itself.",
+      verification: "A document with an external entity is rejected."
+    },
+    (f) => {
+      const lang = otherLang(f);
+      return lang === "jvm" ? /disallow-doctype-decl["']\s*,\s*false\b|(?:IS_SUPPORTING_EXTERNAL_ENTITIES|external-general-entities["'])\s*,\s*(?:true|Boolean\.TRUE)\b/ : lang === "php" ? /\bLIBXML_NOENT\b/ : undefined;
+    },
+    true
+  ),
+  perKind(
+    {
+      id: "VS-CODE-019",
+      title: "Shell command built from a variable (Go, Ruby)",
+      severity: "high",
+      cwe: ["CWE-78"],
+      description: "A command string with variable content is interpreted by a shell.",
+      remediation: "Run the program directly and pass each argument separately.",
+      falsePositives: "Variables that hold only fixed values chosen by the program.",
+      verification: "No shell interprets variable text."
+    },
+    (f) => {
+      const lang = otherLang(f);
+      return lang === "go" ? /\bexec\.Command(?:Context)?\s*\([^\n]*"(?:ba)?sh"\s*,\s*"-c"\s*,(?!\s*"[^"\n]*"\s*[,)])/ : lang === "ruby" ? /(?<![\w.])system\s*\(?\s*"[^"\n]*#\{(?!\s*params\b)/ : undefined;
+    }
+  )
+];
 
 export const codeRules: Rule[] = [
   {
@@ -321,5 +440,6 @@ export const codeRules: Rule[] = [
         filter: (m, line) => !insideString(line, m.index) && !/\.innerHTML\s*=\s*(?:"[^"]*"|'[^']*'|`[^`$]*`)\s*;?\s*(?:\/\/.*)?$/.test(line) && !/sanitiz|DOMPurify|escapeHtml|xss\(/i.test(line)
       })
   },
-  ...webRules
+  ...webRules,
+  ...unsafeApiRules
 ];

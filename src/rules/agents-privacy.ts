@@ -1,3 +1,4 @@
+import { scrubTokens, tidy } from "../redact.js";
 import type { Rule } from "../types.js";
 import { isCode, lineRule, stripStrings } from "./util.js";
 
@@ -18,6 +19,9 @@ const SOURCE_EXT = /\.(?:[cm]?[jt]sx?|py|go|rs|java|kt|c|h|cc|cpp|hpp|cs|rb|php|
 /** Makes each invisible character visible, so the report shows what a reviewer cannot see in an editor. */
 const reveal = (s: string): string => s.replace(/[\u200b\u2060\u202a-\u202e\u2066-\u2069\u{e0000}-\u{e007f}]/gu, (c) => `<U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}>`);
 
+/** Tag characters mirror ASCII, so a hidden message can be read back. */
+const decodeTags = (s: string): string => [...s.matchAll(/[\u{e0020}-\u{e007e}]/gu)].map((m) => String.fromCharCode(m[0].codePointAt(0)! - 0xe0000)).join("");
+
 export const agentPrivacyRules: Rule[] = [
   {
     ...ag,
@@ -36,7 +40,8 @@ export const agentPrivacyRules: Rule[] = [
       const agent = AGENT_FILE(f.path);
       return lineRule(f, agent ? HIDDEN_IN_AGENT : HIDDEN_IN_CODE).map((h) => {
         const excerpt = reveal(h.excerpt ?? "");
-        return { ...h, excerpt, at: excerpt.indexOf("<U+"), ...(agent ? { severity: "high" as const } : {}) };
+        const hidden = tidy(scrubTokens(decodeTags(f.lines[h.line - 1] ?? "")));
+        return { ...h, excerpt, at: excerpt.indexOf("<U+"), ...(hidden ? { note: `Hidden text spelled by tag characters: "${hidden}"` } : {}), ...(agent ? { severity: "high" as const } : {}) };
       });
     }
   },

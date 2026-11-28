@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { decodeText } from "./decode.js";
-import { lstatSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, extname, basename, isAbsolute } from "node:path";
 import { inflateSync } from "node:zlib";
 import { parseGitIndexEntries } from "./git-index.js";
@@ -437,6 +437,8 @@ export function scanHistory(scanRoot: string, ignore: string[], current: Map<str
     }
   }
   const notes = [...store.notes];
+  if (existsSync(join(located.gitDir, "shallow"))) notes.push("This is a shallow clone, so older commits are missing and history results are incomplete. Fetch the full history to scan it.");
+  notes.push("Only commits reachable from HEAD are read. Other branches and tags are not.");
   if (capped) notes.push(`Git history stopped at the time limit after ${seenCommits.size} commit(s). Older commits were not read.`);
   else notes.push(`Git history read ${seenCommits.size} commit(s) from HEAD without running git (${store.hashAlgo}). Objects still identical to the worktree were not reported twice.`);
   return { files, commitsSeen: seenCommits.size, blobsRead: files.length, capped, notes };
@@ -467,6 +469,24 @@ export function blobHash(text: string, algo: "sha1" | "sha256"): string {
 }
 
 /** Blob ids in `rev`, keyed by path. `note` is set when the revision cannot be read. */
+/** Reads a file as HEAD records it, by path relative to the scan root; null when HEAD has no such file. */
+export function headReader(scanRoot: string): ((rel: string) => string | null) | null {
+  const located = locateGit(scanRoot);
+  const head = located && resolveRevision(located.gitDir, "HEAD");
+  if (!located || !head) return null;
+  const store = new Store(located.gitDir);
+  const commit = store.get(head);
+  const tree = commit && commit.type === "commit" ? commitTree(commit) : null;
+  if (!tree) return null;
+  const blobs = flatten(store, tree, "");
+  const prefix = relative(located.workTree, resolve(scanRoot)).split("\\").join("/");
+  return (rel) => {
+    const sha = blobs.get(prefix ? `${prefix}/${rel}` : rel);
+    const blob = sha ? store.get(sha) : null;
+    return blob && blob.type === "blob" ? decodeText(blob.data) : null;
+  };
+}
+
 export function revisionTree(scanRoot: string, rev: string): { blobs: Map<string, string> | null; note: string; algo: "sha1" | "sha256" } {
   const located = locateGit(scanRoot);
   if (!located) return { blobs: null, note: `No git directory; --since ${rev} cannot be resolved.`, algo: "sha1" };

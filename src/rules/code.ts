@@ -105,16 +105,21 @@ const webRules: Rule[] = [
     confidence: "medium",
     status: "potential",
     cwe: ["CWE-1004", "CWE-614"],
-    description: "`httpOnly`, `secure` or `sameSite` is disabled for a cookie, which exposes it to scripts, unencrypted connections or cross-site requests.",
+    description: "`httpOnly`, `secure` or `sameSite` is disabled, or `res.cookie` leaves out `httpOnly` or `secure`, which exposes the cookie to scripts, unencrypted connections or cross-site requests.",
     remediation: "Set `httpOnly` and `secure` to true and choose a `sameSite` value.",
     falsePositives: "Cookies that scripts must read, or settings used only for local development.",
     verification: "The Set-Cookie response header carries HttpOnly and Secure.",
     applies: isCode,
-    check: (f) =>
-      lineRule(f, /\b(?:httpOnly|httponly|secure|sameSite|samesite|SESSION_COOKIE_(?:SECURE|HTTPONLY))\s*[:=]\s*(?:false|False)\b|\bSESSION_COOKIE_SAMESITE\s*=\s*None\b/, {
+    check: (f) => {
+      const off = lineRule(f, /\b(?:httpOnly|httponly|secure|sameSite|samesite|SESSION_COOKIE_(?:SECURE|HTTPONLY))\s*[:=]\s*(?:false|False)\b|\bSESSION_COOKIE_SAMESITE\s*=\s*None\b/, {
         skipComments: true,
         filter: (m, line, lineNo) => !insideString(line, m.index) && (/cookie|session/i.test(line) || lookBack(f, lineNo, 6, /cookie|session/i))
-      })
+      });
+      if (!isJs(f)) return off;
+      // `res.cookie` with no options, or with a literal options object that leaves out `httpOnly` or `secure`.
+      const absent = lineRule(f, /\bres\.cookie\s*\(\s*[^,()\n]+,\s*(?:[^,{}()\n]+\)|[^\n]*?,\s*\{(?:(?![^{}\n]*\bhttpOnly\b)|(?![^{}\n]*\bsecure\b))(?![^{}\n]*\.\.\.)[^{}\n]*\}\s*\))/, { skipComments: true, filter: (m, line) => !insideString(line, m.index) });
+      return [...off, ...absent.filter((h) => !off.some((o) => o.line === h.line))];
+    }
   }
 ];
 

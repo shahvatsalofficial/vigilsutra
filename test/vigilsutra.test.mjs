@@ -622,6 +622,35 @@ test("Mongo $function, sameSite, shell calls and SBOM identity", () => {
   assert.equal(new Set(bom.components.map((c) => c["bom-ref"])).size, bom.components.length);
 });
 
+test("URL and netrc passwords are redacted, .git-credentials included", () => {
+  const v = "Xk9" + "fQ2vLm81";
+  for (const files of [{ ".git-credentials": `https://bot:${v}@example.invalid` }, { ".netrc": `machine h login u password ${v}` }]) {
+    const r = scan(files);
+    assert.ok(r.findings.some((f) => f.category === "secrets"), JSON.stringify(files));
+    assert.ok(!render(r, "json").includes(v));
+  }
+});
+
+test("res.cookie without httpOnly or secure is reported; complete or spread options are not", () => {
+  const hit = (code) => ids(scan({ "a.js": code })).includes("VS-CODE-012");
+  for (const bad of ["res.cookie('s', token)", "res.cookie('s', v, { maxAge: 1 })", "res.cookie('s', v, { httpOnly: true })"]) assert.ok(hit(bad), bad);
+  for (const fine of ["res.cookie('s', v, { httpOnly: true, secure: true })", "res.cookie('s', v, cookieOptions)", "res.cookie('s', v, { ...defaults, maxAge: 1 })", "res.clearCookie('s')"]) assert.ok(!hit(fine), fine);
+});
+
+test("each document of a multi-document manifest is judged, and Bicep outbound rules are ignored", () => {
+  const good = "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      resources:\n        limits:\n          cpu: 1\n";
+  const bad = "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: b\n";
+  assert.deepEqual(scan({ "m.yaml": good + "---\n" + bad }).findings.filter((f) => f.ruleId === "VS-K8S-007").map((f) => f.startLine), [13]);
+  const bicep = (dir) => ids(scan({ "n.bicep": `rule: {\n  direction: '${dir}'\n  sourceAddressPrefix: '*'\n}\n` })).includes("VS-IAC-006");
+  assert.ok(bicep("Inbound") && !bicep("Outbound"));
+  assert.ok(ids(scan({ "values.yaml": "database:\n  password: " + "Xk9" + "fQ2vLm81\n" })).includes("VS-SECRET-004"));
+});
+
+test("template and path text under a bare token name is not a secret", () => {
+  for (const code of [`token = 'variable|default:"Default value"|date:"Y-m-d"'`, `token = "%HOMEPATH%\\\\" + token[2:]`, 'token = "makefile.bat"']) assert.ok(!ids(scan({ "a.py": code })).includes("VS-SECRET-004"), code);
+  assert.ok(ids(scan({ "a.py": 'token = "Zq8xLm2p' + 'Qr7vT1"' })).includes("VS-SECRET-004"));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -662,6 +691,15 @@ const PAIRS = [
   ["VS-CODE-018", { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", false);" }, { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);" }],
   ["VS-CODE-019", { "a.go": "exec.Command(\"sh\", \"-c\", cmd)" }, { "a.go": "exec.Command(\"sh\", \"-c\", \"ls -l\")" }],
   ["VS-CODE-020", { "a.js": "_.merge(config, req.body)" }, { "a.js": "_.merge(config, defaults)" }],
+  ["VS-SECRET-013", { "a.js": "const u = 'postgres://app:" + "Xk9fQ2vLm81" + "@db:5432/x';" }, { "a.js": "const u = 'postgres://app:${DB_PASSWORD}@db:5432/x';" }],
+  ["VS-SECRET-014", { ".netrc": "machine h login u password " + "Xk9fQ2vLm81" }, { ".netrc": "machine h login anonymous password changeme" }],
+  ["VS-K8S-008", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      image: nginx:latest\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      image: nginx:1.27.1\n" }],
+  ["VS-K8S-009", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      securityContext:\n        readOnlyRootFilesystem: true\n" }],
+  ["VS-K8S-010", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n  automountServiceAccountToken: true\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n  automountServiceAccountToken: false\n" }],
+  ["VS-K8S-011", { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      env:\n        - name: DB_PASSWORD\n          value: " + "Xk9fQ2vLm81" + "\n" }, { "p.yaml": "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: a\n      env:\n        - name: DB_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: db\n" }],
+  ["VS-K8S-012", { "s.yaml": "apiVersion: v1\nkind: Service\nspec:\n  type: LoadBalancer\n" }, { "s.yaml": "apiVersion: v1\nkind: Service\nspec:\n  type: LoadBalancer\n  loadBalancerSourceRanges: [10.0.0.0/8]\n" }],
+  ["VS-K8S-013", { "b.yaml": "apiVersion: v1\nkind: ClusterRoleBinding\nroleRef:\n  kind: ClusterRole\n  name: cluster-admin\n" }, { "b.yaml": "apiVersion: v1\nkind: ClusterRoleBinding\nmetadata:\n  name: cluster-admin\nroleRef:\n  name: viewer\n" }],
+  ["VS-IAC-006", { "t.yaml": "Resources:\n  G:\n    Type: AWS::EC2::SecurityGroup\n    Properties:\n      SecurityGroupIngress:\n        - CidrIp: 0.0.0.0/0\n" }, { "t.yaml": "Resources:\n  G:\n    Type: AWS::EC2::SecurityGroup\n    Properties:\n      SecurityGroupEgress:\n        - CidrIp: 0.0.0.0/0\n" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

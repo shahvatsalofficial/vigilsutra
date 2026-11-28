@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New rules: `VS-SECRET-013` (password inside a URL), `VS-SECRET-014` (netrc password), `VS-K8S-008` to `VS-K8S-013` (image tags, writable filesystem, token mount, plain secret values, open load balancer, cluster-admin) and `VS-IAC-006` (public CloudFormation or Bicep resources). Rules version `1.13.0`, 80 rules.
+- `VS-K8S-007` judges each document of a multi-document file.
+- `VS-SECRET-004` no longer reports template or path text assigned to a bare `token` name.
+- `VS-CODE-012` reports `res.cookie` calls that leave out `httpOnly` or `secure`.
+
 ## 0.8.0 - 2026-11-28
 
 ### Read before upgrading

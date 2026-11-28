@@ -25,7 +25,170 @@ const isDbConfig = (f: ScannedFile): boolean => isYaml(f) || isDockerfile(f) || 
 /** True when the workflow lists one of these events as a trigger. */
 const triggeredBy = (f: ScannedFile, events: string): boolean => new RegExp(`^[ \\t]*(?:-[ \\t]*)?(?:${events})[ \\t]*(?::|$)|\\bon:[ \\t]*\\[?[^\\n]*\\b(?:${events})\\b`, "m").test(f.text);
 
+const WORKLOAD = /^[ \t]*kind:[ \t]*(?:Pod|Deployment|StatefulSet|DaemonSet|Job|CronJob|ReplicaSet)\b/m;
+
+/** The documents of a multi-document YAML file, with the line where each starts. Templates are read as text. */
+function yamlDocs(f: ScannedFile): { start: number; lines: string[]; text: string }[] {
+  const starts = [0, ...f.lines.flatMap((l, i) => (/^---(?:\s|$)/.test(l) ? [i + 1] : []))];
+  return starts.map((start, n) => {
+    const lines = f.lines.slice(start, n + 1 < starts.length ? starts[n + 1] - 1 : f.lines.length);
+    return { start, lines, text: lines.join("\n") };
+  });
+}
+
+/** One hit per document that matches `kind` and lacks what `has` looks for, at the first line matching `at`. */
+function perDocument(f: ScannedFile, kind: RegExp, has: RegExp, at: RegExp): Hit[] {
+  return yamlDocs(f).flatMap((d) => {
+    if (!kind.test(d.text) || has.test(d.text)) return [];
+    const i = d.lines.findIndex((l) => at.test(l));
+    return i < 0 ? [] : [{ line: d.start + i + 1, excerpt: d.lines[i] }];
+  });
+}
+
+/** Keys that contain the line, nearest first, judged by indentation. */
+function ancestors(f: ScannedFile, lineNo: number): string[] {
+  const out: string[] = [];
+  let indent = f.lines[lineNo - 1].search(/\S|$/);
+  for (let i = lineNo - 2; i >= 0 && indent > 0; i--) {
+    const depth = f.lines[i].search(/\S|$/);
+    if (f.lines[i].trim() && depth < indent) {
+      out.push(f.lines[i].trim());
+      indent = depth;
+    }
+  }
+  return out;
+}
+
+const isBinding = (f: ScannedFile): boolean => isYaml(f) && /^[ \t]*kind:[ \t]*(?:Cluster)?RoleBinding[ \t]*$/m.test(f.text);
+const isCloudFormation = (f: ScannedFile): boolean => (isYaml(f) || f.ext === ".json") && /AWSTemplateFormatVersion|["']?Type["']?\s*:\s*["']?AWS::/.test(f.text);
+
 export const infraRules: Rule[] = [
+  {
+    ...k8,
+    id: "VS-K8S-008",
+    title: "Workload image has no fixed tag",
+    severity: "low",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-829"],
+    description: "A container image without a tag, or with `latest`, can change between deployments.",
+    remediation: "Pin a version tag, and for production a digest (`image@sha256:…`).",
+    falsePositives: "Local development manifests.",
+    verification: "Every image names a version or digest.",
+    applies: isK8s,
+    check: (f) => lineRule(f, /^\s*(?:-\s+)?image:\s*["']?([^\s"'#]+)/, { filter: (m) => !m[1].includes("{{") && !m[1].includes("@sha256:") && /^[^:]*$|:latest$/.test(m[1].split("/").pop()!) })
+  },
+  {
+    ...k8,
+    id: "VS-K8S-009",
+    title: "Workload does not make its filesystem read-only",
+    severity: "low",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-732"],
+    description: "No `readOnlyRootFilesystem: true` appears in the workload, so a compromised process can change files in the container.",
+    remediation: "Add a `securityContext` with `readOnlyRootFilesystem: true` and mount writable folders explicitly.",
+    falsePositives: "Applications that must write to their image. The check looks at each manifest, not each container.",
+    verification: "The workload runs with a read-only root filesystem.",
+    applies: isK8s,
+    check: (f) => perDocument(f, WORKLOAD, /\breadOnlyRootFilesystem:\s*true\b/, /^\s*(?:-\s+)?containers\s*:/)
+  },
+  {
+    ...k8,
+    id: "VS-K8S-010",
+    title: "Service account token mounted on purpose",
+    severity: "low",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-522"],
+    description: "`automountServiceAccountToken: true` places a cluster credential in the pod.",
+    remediation: "Set it to `false` unless the workload calls the Kubernetes API.",
+    falsePositives: "Controllers and operators that use the API.",
+    verification: "The setting is false, or the need is documented.",
+    applies: (f) => isYaml(f) && /^[ \t]*apiVersion:/m.test(f.text),
+    check: (f) => lineRule(f, /^\s*automountServiceAccountToken:\s*true\b/)
+  },
+  {
+    ...k8,
+    id: "VS-K8S-011",
+    title: "Secret written as a plain environment value",
+    severity: "medium",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-798"],
+    description: "A container environment variable with a secret-like name has its value in the manifest.",
+    remediation: "Use `valueFrom.secretKeyRef` or an external secret manager, and rotate the exposed value.",
+    falsePositives: "Names that only point to a file or another resource.",
+    verification: "The manifest references a secret and holds no value.",
+    applies: isK8s,
+    check: (f) =>
+      lineRule(f, /^\s*value:\s*["']?([^\s"'#{]{4,})/, {
+        secretGroup: 1,
+        filter: (m, _line, lineNo) => /^\s*-\s+name:\s*["']?\w*(?:PASS(?:WORD|WD)?|SECRET|TOKEN|API_?KEY|PRIVATE_?KEY)(?:_?VALUE)?["']?\s*$/i.test(f.lines[lineNo - 2] ?? "") && !/^(?:true|false|\d+|[./].*|changeme.*|example.*)$/i.test(m[1])
+      })
+  },
+  {
+    ...k8,
+    id: "VS-K8S-012",
+    title: "LoadBalancer service open to every address",
+    severity: "low",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-284"],
+    description: "A `LoadBalancer` service without `loadBalancerSourceRanges` usually accepts connections from anywhere.",
+    remediation: "List the allowed ranges, or put the service behind an ingress with access control.",
+    falsePositives: "Public web entry points, or ranges enforced by cloud annotations or firewalls.",
+    verification: "Only the listed ranges can connect.",
+    applies: (f) => isYaml(f) && /^[ \t]*type:[ \t]*LoadBalancer\b/m.test(f.text),
+    check: (f) => perDocument(f, /^[ \t]*kind:[ \t]*Service[ \t]*$/m, /\bloadBalancerSourceRanges\s*:/, /^\s*type:\s*LoadBalancer\b/)
+  },
+  {
+    ...k8,
+    id: "VS-K8S-013",
+    title: "Binding grants cluster-admin",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    cwe: ["CWE-269"],
+    description: "A role binding gives `cluster-admin`, which controls the whole cluster.",
+    remediation: "Create a role with only the permissions the subject needs.",
+    falsePositives: "Bindings for cluster operators.",
+    verification: "No application account is bound to `cluster-admin`.",
+    applies: isBinding,
+    check: (f) => lineRule(f, /^\s*name:\s*["']?cluster-admin["']?\s*$/, { filter: (_m, _line, lineNo) => ancestors(f, lineNo).some((a) => a.startsWith("roleRef")) })
+  },
+  {
+    ...iac,
+    id: "VS-IAC-006",
+    title: "CloudFormation or Bicep resource open to the internet",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    cwe: ["CWE-284", "CWE-732"],
+    description: "A security group, network rule or storage setting allows public access.",
+    remediation: "Restrict source ranges and turn public storage access off.",
+    falsePositives: "Public web ports and buckets that are meant to be public.",
+    verification: "The deployed resource refuses public access.",
+    applies: (f) => f.ext === ".bicep" || isCloudFormation(f),
+    check: (f) => {
+      if (f.ext === ".bicep")
+        return lineRule(f, /\ballowBlobPublicAccess\s*:\s*true\b|\bpublicAccess\s*:\s*'(?:Blob|Container)'|\bsourceAddressPrefix\s*:\s*'(?:\*|0\.0\.0\.0\/0|Internet)'/, {
+          skipComments: true,
+          filter: (m, _line, lineNo) => !m[0].startsWith("sourceAddressPrefix") || !/direction\s*:\s*'Outbound'|access\s*:\s*'Deny'/.test(enclosingBlock(f, lineNo).body)
+        });
+      return lineRule(f, /["']?Cidr(?:Ip|Ipv6)["']?\s*:\s*["']?(?:0\.0\.0\.0\/0|::\/0)|["']?AccessControl["']?\s*:\s*["']?PublicRead/, {
+        skipComments: true,
+        filter: (_m, _line, lineNo) => {
+          if (ancestors(f, lineNo).some((a) => /Egress/.test(a))) return false;
+          for (let i = lineNo - 1; i >= 0; i--) {
+            const type = /Type["']?\s*:\s*["']?(AWS::\S+)/.exec(f.lines[i]);
+            if (type) return !type[1].includes("Egress");
+          }
+          return true;
+        }
+      });
+    }
+  },
   {
     ...wf,
     id: "VS-CICD-006",
@@ -145,14 +308,10 @@ export const infraRules: Rule[] = [
     cwe: ["CWE-770"],
     description: "No `limits` appear in the manifest, so one container can use all the CPU or memory of a node.",
     remediation: "Set memory and CPU requests and limits for each container.",
-    falsePositives: "Clusters that apply defaults with a LimitRange. The check looks at the whole file, not each container.",
+    falsePositives: "Clusters that apply defaults with a LimitRange. The check looks at each manifest, not each container.",
     verification: "`kubectl describe pod` shows limits.",
     applies: isK8s,
-    check: (f) => {
-      if (/\blimits[ \t]*:/.test(f.text)) return [];
-      const at = f.lines.findIndex((l) => /^\s*(?:-\s+)?containers\s*:/.test(l));
-      return at < 0 ? [] : [{ line: at + 1, excerpt: f.lines[at] }];
-    }
+    check: (f) => perDocument(f, WORKLOAD, /\blimits[ \t]*:/, /^\s*(?:-\s+)?containers\s*:/)
   },
   {
     ...iac,

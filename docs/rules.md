@@ -1,9 +1,11 @@
-# Rules (version 1.12.0)
+# Rules (version 1.13.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
 | ID | Title | Severity | Confidence | Status | Specialist | CWE |
 |---|---|---|---|---|---|---|
+| VS-SECRET-013 | Password inside a URL | high | medium | potential | SecretWatch | CWE-798 |
+| VS-SECRET-014 | Password in a netrc file | high | high | potential | SecretWatch | CWE-798 |
 | VS-SECRET-001 | AWS access key ID in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-002 | Private key material committed | critical | high | confirmed | SecretWatch | CWE-321, CWE-798 |
 | VS-SECRET-003 | GitHub token in source | high | high | confirmed | SecretWatch | CWE-798 |
@@ -16,6 +18,13 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SECRET-010 | Google API key in source | high | medium | potential | SecretWatch | CWE-798 |
 | VS-SECRET-011 | Azure storage account key in source | high | high | confirmed | SecretWatch | CWE-798 |
 | VS-SECRET-012 | GitLab personal access token in source | high | high | confirmed | SecretWatch | CWE-798 |
+| VS-K8S-008 | Workload image has no fixed tag | low | high | potential | ContainerGuard | CWE-829 |
+| VS-K8S-009 | Workload does not make its filesystem read-only | low | medium | potential | ContainerGuard | CWE-732 |
+| VS-K8S-010 | Service account token mounted on purpose | low | high | potential | ContainerGuard | CWE-522 |
+| VS-K8S-011 | Secret written as a plain environment value | medium | medium | potential | ContainerGuard | CWE-798 |
+| VS-K8S-012 | LoadBalancer service open to every address | low | medium | potential | ContainerGuard | CWE-284 |
+| VS-K8S-013 | Binding grants cluster-admin | high | high | potential | ContainerGuard | CWE-269 |
+| VS-IAC-006 | CloudFormation or Bicep resource open to the internet | high | medium | potential | InfraGuard | CWE-284, CWE-732 |
 | VS-CICD-006 | Reusable workflow receives every secret | medium | high | potential | PipelineGuard | CWE-250 |
 | VS-CICD-007 | Untrusted input written to GITHUB_ENV or GITHUB_PATH | high | medium | potential | PipelineGuard | CWE-74 |
 | VS-CICD-008 | Pull request workflow runs on a self-hosted runner | medium | medium | potential | PipelineGuard | CWE-829 |
@@ -77,6 +86,22 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-SUPPLY-004 | Dependency version matches a recorded advisory | high | high | confirmed | SupplyWatch | CWE-1395 |
 
 ## Details
+
+### VS-SECRET-013: Password inside a URL
+
+A URL of the form `scheme://user:password@host` is committed, including in `.git-credentials` files and connection strings.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Examples with made-up passwords, and local development databases.
+
+### VS-SECRET-014: Password in a netrc file
+
+A `.netrc` file with a password is committed. Tools read it to sign in without asking.
+
+- **Fix:** Treat the credential as compromised: revoke or rotate it at the issuer first, then remove it from the repository and load it from an environment variable or secret manager. Deleting it from the latest commit does not remove it from git history.
+- **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
+- **False positives:** Anonymous access entries with a placeholder password.
 
 ### VS-SECRET-001: AWS access key ID in source
 
@@ -174,6 +199,62 @@ A string matching a GitLab personal access token (glpat-) is committed.
 - **Verify:** Re-run `vigilsutra audit` after removing the value; then confirm the credential was rotated at the issuer and review git history for earlier exposure.
 - **False positives:** Revoked tokens.
 
+### VS-K8S-008: Workload image has no fixed tag
+
+A container image without a tag, or with `latest`, can change between deployments.
+
+- **Fix:** Pin a version tag, and for production a digest (`image@sha256:…`).
+- **Verify:** Every image names a version or digest.
+- **False positives:** Local development manifests.
+
+### VS-K8S-009: Workload does not make its filesystem read-only
+
+No `readOnlyRootFilesystem: true` appears in the workload, so a compromised process can change files in the container.
+
+- **Fix:** Add a `securityContext` with `readOnlyRootFilesystem: true` and mount writable folders explicitly.
+- **Verify:** The workload runs with a read-only root filesystem.
+- **False positives:** Applications that must write to their image. The check looks at each manifest, not each container.
+
+### VS-K8S-010: Service account token mounted on purpose
+
+`automountServiceAccountToken: true` places a cluster credential in the pod.
+
+- **Fix:** Set it to `false` unless the workload calls the Kubernetes API.
+- **Verify:** The setting is false, or the need is documented.
+- **False positives:** Controllers and operators that use the API.
+
+### VS-K8S-011: Secret written as a plain environment value
+
+A container environment variable with a secret-like name has its value in the manifest.
+
+- **Fix:** Use `valueFrom.secretKeyRef` or an external secret manager, and rotate the exposed value.
+- **Verify:** The manifest references a secret and holds no value.
+- **False positives:** Names that only point to a file or another resource.
+
+### VS-K8S-012: LoadBalancer service open to every address
+
+A `LoadBalancer` service without `loadBalancerSourceRanges` usually accepts connections from anywhere.
+
+- **Fix:** List the allowed ranges, or put the service behind an ingress with access control.
+- **Verify:** Only the listed ranges can connect.
+- **False positives:** Public web entry points, or ranges enforced by cloud annotations or firewalls.
+
+### VS-K8S-013: Binding grants cluster-admin
+
+A role binding gives `cluster-admin`, which controls the whole cluster.
+
+- **Fix:** Create a role with only the permissions the subject needs.
+- **Verify:** No application account is bound to `cluster-admin`.
+- **False positives:** Bindings for cluster operators.
+
+### VS-IAC-006: CloudFormation or Bicep resource open to the internet
+
+A security group, network rule or storage setting allows public access.
+
+- **Fix:** Restrict source ranges and turn public storage access off.
+- **Verify:** The deployed resource refuses public access.
+- **False positives:** Public web ports and buckets that are meant to be public.
+
 ### VS-CICD-006: Reusable workflow receives every secret
 
 `secrets: inherit` passes all repository and organisation secrets to the called workflow.
@@ -228,7 +309,7 @@ No `limits` appear in the manifest, so one container can use all the CPU or memo
 
 - **Fix:** Set memory and CPU requests and limits for each container.
 - **Verify:** `kubectl describe pod` shows limits.
-- **False positives:** Clusters that apply defaults with a LimitRange. The check looks at the whole file, not each container.
+- **False positives:** Clusters that apply defaults with a LimitRange. The check looks at each manifest, not each container.
 
 ### VS-DB-001: Database accepts connections without a password
 
@@ -496,7 +577,7 @@ The redirect destination comes from the request, so a link to this site can send
 
 ### VS-CODE-012: Session cookie protection switched off
 
-`httpOnly`, `secure` or `sameSite` is disabled for a cookie, which exposes it to scripts, unencrypted connections or cross-site requests.
+`httpOnly`, `secure` or `sameSite` is disabled, or `res.cookie` leaves out `httpOnly` or `secure`, which exposes the cookie to scripts, unencrypted connections or cross-site requests.
 
 - **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
 - **Verify:** The Set-Cookie response header carries HttpOnly and Secure.

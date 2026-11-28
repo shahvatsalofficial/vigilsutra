@@ -23,6 +23,30 @@ const base = {
 export const secretRules: Rule[] = [
   {
     ...base,
+    id: "VS-SECRET-013",
+    title: "Password inside a URL",
+    severity: "high",
+    confidence: "medium",
+    status: "potential",
+    description: "A URL of the form `scheme://user:password@host` is committed, including in `.git-credentials` files and connection strings.",
+    falsePositives: "Examples with made-up passwords, and local development databases.",
+    applies: (f) => !/\.(md|txt|lock)$/.test(f.name),
+    check: (f) => lineRule(f, /\b[a-z][a-z0-9+.-]{1,30}:\/\/[^\s\/:@"'`<>]*:([^\s\/@"'`<>]{3,200})@[^\s\/"'`<>]+/i, { skipComments: true, secretGroup: 1, filter: (m) => realValue(m[1]) && !/[${}%]/.test(m[1]) })
+  },
+  {
+    ...base,
+    id: "VS-SECRET-014",
+    title: "Password in a netrc file",
+    severity: "high",
+    confidence: "high",
+    status: "potential",
+    description: "A `.netrc` file with a password is committed. Tools read it to sign in without asking.",
+    falsePositives: "Anonymous access entries with a placeholder password.",
+    applies: (f) => /^[._]netrc$/.test(f.name),
+    check: (f) => lineRule(f, /(?:^|\s)password\s+(\S+)/, { secretGroup: 1, filter: (m) => !isPlaceholder(m[1]) })
+  },
+  {
+    ...base,
     id: "VS-SECRET-001",
     title: "AWS access key ID in source",
     severity: "high",
@@ -75,7 +99,8 @@ export const secretRules: Rule[] = [
       // Skip placeholders and variable references such as '$password' used in templates or SQL text.
       // A real credential contains ASCII letters or digits; UI labels in other scripts do not.
       const quoted = lineRule(f, QUOTED, { skipComments: true, secretGroup: 1, // A bare `pass` key often holds a status word such as `reported_passed`.
-        filter: (m) => realValue(m[1]) && !(/^pass(?![a-z])/i.test(m[0]) && /^[a-z]+(?:_[a-z]+)+$/.test(m[1])) });
+        // In parsers a bare `token` also names a piece of text; template and path text holds `|` or `%`, or is a file name.
+        filter: (m) => realValue(m[1]) && !(/^pass(?![a-z])/i.test(m[0]) && /^[a-z]+(?:_[a-z]+)+$/.test(m[1])) && !(/^token\b/i.test(m[0]) && /[|%]|^[\w-]+\.[a-z0-9]{1,4}$/i.test(m[1])) });
       if (!CONFIG_FILE.test(f.name)) return quoted;
       // Without quotes, a plain word or a file path is usually a name or a reference, so require a digit or symbol.
       // No comment skipping: `.npmrc` keys start with `//`, and UNQUOTED cannot match a `#` comment.

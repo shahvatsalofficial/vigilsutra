@@ -27,7 +27,7 @@ seqLeak
 `--staged` scans what the next commit would record, not the whole working folder:
 
 ```term vigilsutra audit --staged --fail-on high --no-report
-VigilSutra AI 0.6.1 - local read-only audit of "s1"
+VigilSutra AI 0.7.0 - local read-only audit of "s1"
 Scanned 2 files (91 bytes). Skipped: 1 ignored, 0 symlinks, 0 too large, 0 binary.
 
 HIGH     VS-SECRET-001  AWS access key ID in source

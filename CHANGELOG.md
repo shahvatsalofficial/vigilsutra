@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 - 2026-11-29
+
+### Read before upgrading
+
+- New rules add findings, including low-severity ones on typical Kubernetes manifests, so a `--fail-on low` gate is likely to fail.
+
+### Changes
 
 - New rules: `VS-SECRET-013` (password inside a URL), `VS-SECRET-014` (netrc password), `VS-K8S-008` to `VS-K8S-013` (image tags, writable filesystem, token mount, plain secret values, open load balancer, cluster-admin) and `VS-IAC-006` (public CloudFormation or Bicep resources). Rules version `1.13.0`, 80 rules.
 - `VS-K8S-007` judges each document of a multi-document file.

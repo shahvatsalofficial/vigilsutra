@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fewer false positives in `VS-SECRET-004`: instructions such as `replace-with-...` in example files, `UPPER_SNAKE_CASE` constant names, and status words under a bare `pass` key are no longer reported.
+
 ## 0.6.0 - 2026-11-28
 
 ### Read before upgrading

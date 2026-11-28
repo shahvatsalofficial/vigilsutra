@@ -399,6 +399,16 @@ test("a report folder listed in package.json files is warned about", () => {
   assert.doesNotMatch(cli(["audit", root, "--report-dir", join(root, "private")]).stderr, /would be published/);
 });
 
+test("placeholder instructions, constant names and status words are not secrets", () => {
+  const found = (files) => ids(scan(files)).includes("VS-SECRET-004");
+  assert.ok(!found({ ".env.example": "APP_SERVER_TOKEN=replace-with-a-random-value-of-at-least-20-characters" }));
+  assert.ok(!found({ "a.js": 'const D = { ERROR_EMPTY_ACCESSTOKEN: "ERROR_EMPTY_ACCESS_TOKEN" };' }));
+  assert.ok(!found({ "a.js": "const CLAIM = { pass: 'reported_passed' };" }));
+  assert.ok(found({ "a.js": "const c = { password: 'correct_horse_battery' };" }));
+  assert.ok(found({ "a.js": "const c = { pass: 'Zq7_horse9' };" }));
+  assert.ok(found({ ".env.example": "APP_TOKEN=" + "Xk9" + "fQ2vLm81" }));
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {

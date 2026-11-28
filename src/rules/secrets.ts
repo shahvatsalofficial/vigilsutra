@@ -7,7 +7,8 @@ const QUOTED = new RegExp(SECRET_NAME + String.raw`["']?\s*[:=]\s*["']([^"'\s]{8
 const UNQUOTED = /^\s*(?:-\s+)?(?:(?:export|ENV|set)\s+)?[\w./:-]*?(?:pass(?:word|wd)?|secret|api[_-]?key|token|private[_-]?key|crypto[_-]?key)\s*[:=]\s*([^\s"'#,;{}[\]<>$`|&()]{8,})\s*(?:#.*)?$/i;
 const CONFIG_FILE = /\.(ya?ml|properties|ini|conf|cfg|toml|sh|bash)$|^\.npmrc$|^dockerfile|^\.env.*\.(example|sample|template)$/;
 
-const realValue = (v: string): boolean => !isPlaceholder(v) && !/^\$\{?\w+\}?$/.test(v) && /[A-Za-z0-9]/.test(v);
+// `UPPER_SNAKE_CASE` without digits is the name of a constant, as in message-type tables.
+const realValue = (v: string): boolean => !/^[A-Z]+(?:_[A-Z]+)+$/.test(v) && !isPlaceholder(v) && !/^\$\{?\w+\}?$/.test(v) && /[A-Za-z0-9]/.test(v);
 
 const base = {
   version: "1.0.0",
@@ -73,7 +74,8 @@ export const secretRules: Rule[] = [
     check: (f) => {
       // Skip placeholders and variable references such as '$password' used in templates or SQL text.
       // A real credential contains ASCII letters or digits; UI labels in other scripts do not.
-      const quoted = lineRule(f, QUOTED, { skipComments: true, secretGroup: 1, filter: (m) => realValue(m[1]) });
+      const quoted = lineRule(f, QUOTED, { skipComments: true, secretGroup: 1, // A bare `pass` key often holds a status word such as `reported_passed`.
+        filter: (m) => realValue(m[1]) && !(/^pass(?![a-z])/i.test(m[0]) && /^[a-z]+(?:_[a-z]+)+$/.test(m[1])) });
       if (!CONFIG_FILE.test(f.name)) return quoted;
       // Without quotes, a plain word or a file path is usually a name or a reference, so require a digit or symbol.
       // No comment skipping: `.npmrc` keys start with `//`, and UNQUOTED cannot match a `#` comment.

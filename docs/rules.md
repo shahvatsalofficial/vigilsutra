@@ -1,4 +1,4 @@
-# Rules (version 1.11.0)
+# Rules (version 1.12.0)
 
 Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`. CWE ids are orientation only; no standards control mapping is asserted (mapping unverified).
 
@@ -57,6 +57,7 @@ Generated from the rule definitions by `node docs/gen-rules.mjs > docs/rules.md`
 | VS-CODE-010 | Request data used as an outbound URL (SSRF) | high | medium | potential | CodeGuard | CWE-918 |
 | VS-CODE-011 | Redirect target taken from the request (open redirect) | medium | medium | potential | CodeGuard | CWE-601 |
 | VS-CODE-012 | Session cookie protection switched off | medium | medium | potential | CodeGuard | CWE-1004, CWE-614 |
+| VS-CODE-020 | Request data merged into an object (prototype pollution) | high | medium | potential | CodeGuard | CWE-1321 |
 | VS-CODE-014 | Predictable random number used for a secret | medium | medium | potential | CodeGuard | CWE-338 |
 | VS-CODE-015 | JWT signature is not checked | high | medium | potential | CodeGuard | CWE-347 |
 | VS-CODE-016 | Debug mode or any-host setting enabled | medium | medium | potential | CodeGuard | CWE-489 |
@@ -495,11 +496,19 @@ The redirect destination comes from the request, so a link to this site can send
 
 ### VS-CODE-012: Session cookie protection switched off
 
-`httpOnly` or `secure` is disabled for a cookie, which exposes it to scripts or to unencrypted connections.
+`httpOnly`, `secure` or `sameSite` is disabled for a cookie, which exposes it to scripts, unencrypted connections or cross-site requests.
 
 - **Fix:** Set `httpOnly` and `secure` to true and choose a `sameSite` value.
 - **Verify:** The Set-Cookie response header carries HttpOnly and Secure.
 - **False positives:** Cookies that scripts must read, or settings used only for local development.
+
+### VS-CODE-020: Request data merged into an object (prototype pollution)
+
+A deep merge or path assignment with request data can change `Object.prototype`, which affects the whole program.
+
+- **Fix:** Copy only expected fields, validate against a schema, and reject `__proto__`, `constructor` and `prototype` keys.
+- **Verify:** A request containing `__proto__` leaves new objects unchanged.
+- **False positives:** Libraries and versions that already block those keys, or input validated before this line.
 
 ### VS-CODE-014: Predictable random number used for a secret
 

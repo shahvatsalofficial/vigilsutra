@@ -610,6 +610,18 @@ test("CSV defuses formulas and JUnit stays well formed", () => {
   for (const format of ["csv", "junit"]) assert.ok(!render(scan({ "a.js": `const t = "${GH}";` }), format).includes(GH));
 });
 
+test("Mongo $function, sameSite, shell calls and SBOM identity", () => {
+  assert.ok(ids(scan({ "a.js": "db.c.find({ $expr: { $function: { body: `return this.id == ${id}`, lang: 'js' } } })" })).includes("VS-CODE-008"));
+  assert.ok(ids(scan({ "a.js": "res.cookie('s', v, { sameSite: false })" })).includes("VS-CODE-012"));
+  assert.ok(ids(scan({ "s.py": "SESSION_COOKIE_SAMESITE = None" })).includes("VS-CODE-012"));
+  for (const files of [{ "a.js": "exec(`ping ${req.query.host}`)" }, { "a.py": "subprocess.run(f'ping {host}', shell=True)" }]) assert.ok(ids(scan(files)).includes("VS-CODE-002"), JSON.stringify(files));
+  const root = project({ "package.json": JSON.stringify({ name: "@a/b", version: "1.2.3" }), "requirements.txt": "Django_Rest.framework==1.0.0\n" });
+  const bom = JSON.parse(cli(["sbom", root]).stdout);
+  assert.deepEqual(bom.metadata.component, { type: "application", name: "@a/b", version: "1.2.3" });
+  assert.equal(bom.components[0].purl, "pkg:pypi/django-rest-framework@1.0.0");
+  assert.equal(new Set(bom.components.map((c) => c["bom-ref"])).size, bom.components.length);
+});
+
 test("every rule has metadata and unique id", () => {
   const seen = new Set();
   for (const r of ALL_RULES) {
@@ -649,6 +661,7 @@ const PAIRS = [
   ["VS-CODE-017", { "a.php": "<?php $o = unserialize($_COOKIE['d']);" }, { "a.php": "<?php $o = json_decode($_COOKIE['d']);" }],
   ["VS-CODE-018", { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", false);" }, { "A.java": "f.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);" }],
   ["VS-CODE-019", { "a.go": "exec.Command(\"sh\", \"-c\", cmd)" }, { "a.go": "exec.Command(\"sh\", \"-c\", \"ls -l\")" }],
+  ["VS-CODE-020", { "a.js": "_.merge(config, req.body)" }, { "a.js": "_.merge(config, defaults)" }],
   ["VS-SECRET-001", { "a.txt": `key=${AWS}` }, { "a.txt": "key=AKIAIOSFODNN7EXAMPLE" }],
   ["VS-SECRET-002", { "k.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----" }, { "k.pem": "-----BEGIN CERTIFICATE-----\nabc" }],
   ["VS-SECRET-003", { "a.js": `const t = "${GH}";` }, { "a.js": "const t = process.env.GH_TOKEN;" }],

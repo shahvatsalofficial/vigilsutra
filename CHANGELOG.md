@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New rule `VS-CODE-020` (prototype pollution). `VS-CODE-008` reads Mongo `$function`, and `VS-CODE-012` reports a disabled `sameSite`. Rules version `1.12.0`, 71 rules.
+- SBOM: components carry `bom-ref`, PyPI purls use normalised names, and the project name and version come from the root `package.json`.
 - New rules `VS-CODE-014` to `VS-CODE-019`: predictable random secrets, unverified JWTs, debug and any-host settings, deserialization, XML external entities and shell commands from variables. Rules version `1.11.0`, 70 rules.
 - `--format csv` and `--format junit`.
 - The GitHub Action sets `total`, `critical` and `high` outputs.

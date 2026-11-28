@@ -7,7 +7,7 @@ import { render, FORMATS, type Format } from "./reporters/index.js";
 import { ALL_RULES, findRule, RULES_VERSION } from "./rules/index.js";
 import { ADAPTERS, PACKAGE_ROOT, installAdapter, planAdapter, uninstallAdapter, type AdapterName } from "./adapters.js";
 import { locateGit } from "./git-objects.js";
-import { cycloneDx, readComponents } from "./components.js";
+import { cycloneDx, projectIdentity, readComponents } from "./components.js";
 import { applyFixes, planFixes } from "./fix.js";
 import { closest } from "./suggest.js";
 import { loadCustomRules, testCustomRules } from "./custom-rules.js";
@@ -269,7 +269,7 @@ function main(): void {
     }
     case "sbom": {
       const root = checkRoot(pos[0] ?? ".");
-      const text = cycloneDx(readComponents(root), VERSION);
+      const text = cycloneDx(readComponents(root), VERSION, projectIdentity(root));
       const out = flags.get("out");
       if (typeof out === "string") {
         writeOut(out, text);

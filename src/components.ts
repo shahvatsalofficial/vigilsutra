@@ -170,7 +170,25 @@ function hashes(integrity: string | undefined): { hashes?: { alg: string; conten
   return m ? { hashes: [{ alg: `SHA-${m[1]}`, content: Buffer.from(m[2], "base64").toString("hex") }] } : {};
 }
 
-export function cycloneDx(components: Component[], version: string): string {
+/** Name and version of the scanned project, when its root package.json states them. */
+export function projectIdentity(root: string): { name: string; version?: string } | undefined {
+  try {
+    const { name, version } = JSON.parse(readText(root, "package.json") ?? "") as { name?: unknown; version?: unknown };
+    return typeof name === "string" && name ? { name, ...(typeof version === "string" ? { version } : {}) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function cycloneDx(components: Component[], version: string, project: { name: string; version?: string } = { name: "scanned-project" }): string {
+  // Names that differ only in spelling can share a purl; a reference must stay unique.
+  const refs = new Map<string, number>();
+  const ref = (c: Component): string => {
+    const id = purl(c);
+    const n = refs.get(id) ?? 0;
+    refs.set(id, n + 1);
+    return n ? `${id}#${n}` : id;
+  };
   const bom = {
     bomFormat: "CycloneDX",
     specVersion: "1.6",
@@ -179,10 +197,11 @@ export function cycloneDx(components: Component[], version: string): string {
     metadata: {
       timestamp: stamp(),
       tools: { components: [{ type: "application", name: "vigilsutra", version }] },
-      component: { type: "application", name: "scanned-project" }
+      component: { type: "application", ...project }
     },
     components: components.map((c) => ({
       type: "library",
+      "bom-ref": ref(c),
       name: c.name,
       version: c.version,
       purl: purl(c),
@@ -196,7 +215,8 @@ export function cycloneDx(components: Component[], version: string): string {
 
 function purl(c: Component): string {
   if (c.ecosystem === "npm") return `pkg:npm/${c.name.replace(/^@/, "%40")}@${c.version}`;
-  if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase()}@${c.version}`;
+  // The purl type and PEP 503 treat runs of `-`, `_` and `.` in PyPI names as one hyphen.
+  if (c.ecosystem === "pypi") return `pkg:pypi/${c.name.toLowerCase().replace(/[-_.]+/g, "-")}@${c.version}`;
   if (c.ecosystem === "golang") return `pkg:golang/${c.name}@v${c.version}`;
   return `pkg:${c.ecosystem}/${c.name}@${c.version}`;
 }
